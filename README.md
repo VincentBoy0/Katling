@@ -70,7 +70,8 @@ cp envStyle.txt .env
 
 1. **Tạo branch mới từ `main` (hoặc `develop`)**:
 ```bash
-git fetch origin
+git checkout main
+git pull origin main
 git checkout -b feature/your-feature
 ```
 
