@@ -4,3 +4,4 @@ command.bat
 .env
 venv
 static/images/*
+serviceAccountKey.json
