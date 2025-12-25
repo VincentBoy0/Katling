@@ -1,0 +1,6 @@
+venv
+**/__pycache__/**
+command.bat
+.env
+venv
+static/images/*
