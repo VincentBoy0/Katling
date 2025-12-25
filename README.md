@@ -62,25 +62,6 @@ cp envStyle.txt .env
 
 > **Lưu ý:** KHÔNG commit file `.env` chứa secrets lên Git. Nếu chưa có, hãy thêm `.env` vào `.gitignore` hoặc tạo `.env.example` (không chứa giá trị thực).
 
-
-Tạo file `serviceAccountKey.json` trong thư mục `backend/` bằng cách tải JSON từ Firebase console (Service Accounts). **KHÔNG** dán nội dung chứa `private_key` vào README hoặc commit file này lên Git.
-
-Mẫu an toàn (không chứa secrets):
-
-```json
-{
-  "type": "service_account",
-  "project_id": "<PROJECT_ID>",
-  "client_email": "<CLIENT_EMAIL>",
-  "client_id": "<CLIENT_ID>",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token"
-}
-```
-
-- Lưu file `serviceAccountKey.json` cục bộ hoặc sử dụng Secret Manager (khuyến nghị).
-- Thêm `serviceAccountKey.json` vào `.gitignore` để tránh commit nhầm.
-
 ---
 
 ## 🔁 Git workflow (tóm tắt)
