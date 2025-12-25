@@ -23,4 +23,5 @@ dist-ssr
 *.sln
 *.sw?
 
+# Ignore any generated or local firebase config files
 src/config/firebase.js
