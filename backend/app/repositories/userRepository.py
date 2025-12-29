@@ -1,5 +1,6 @@
 from fastapi import Depends, HTTPException
-from sqlmodel import Session, select
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 from models.user import User
 from schemas.user import UserCreate, UserUpdate
 from database.session import get_session
@@ -8,7 +9,7 @@ from database.session import get_session
 class UserRepository:
     """Repository for User database operations."""
     
-    def __init__(self, session: Session = Depends(get_session)):
+    def __init__(self, session: AsyncSession):
         self.session = session
     
     # --- Create ---
