@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from database.session import get_session
 from core.security import decode_id_token
-from schemas.user import UserCreate
+from schemas.user import UserCreate, UserInfo
 from repositories.userRepository import UserRepository
 
 router = APIRouter(prefix="/login", tags=["Login"])
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/login", tags=["Login"])
 @router.post("/")
 async def login(
     token: str,
-    session: Session = Depends(get_session)
+    session: AsyncSession = Depends(get_session)
 ):
     decoded = decode_id_token(token)
     email = decoded.get("email")

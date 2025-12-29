@@ -13,13 +13,14 @@ from api import (
 app = FastAPI()
 init_firebase()
 origins = [
-    'http://localhost:3000', # url of backend api
-    "http://localhost:5173", # url of frontend which call backend api
+    'http://localhost:8000',  # URL of backend API
+    "http://localhost:5173",  # URL of frontend (Vite dev server)
+    "http://localhost:3000",  # Alternative frontend port
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],         # List of allowed origins
+    allow_origins=origins,        # List of allowed origins
     allow_credentials=True,      # Allow cookies to be sent with requests
     allow_methods=["*"],         # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
     allow_headers=["*"],         # Allow all headers (e.g., Content-Type, Authorization)

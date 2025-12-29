@@ -1,9 +1,12 @@
+// Firebase configuration
+// For production, these values should come from environment variables
+// In Vite, use import.meta.env.VITE_* variables
 export const firebaseConfig = {
-  apiKey: "AIzaSyA7Uy7k0f6SR9lpyglSV0RM2AFRsjAKDaE",
-  authDomain: "testing-fastapi-auth.firebaseapp.com",
-  projectId: "testing-fastapi-auth",
-  storageBucket: "testing-fastapi-auth.firebasestorage.app",
-  messagingSenderId: "335238473805",
-  appId: "1:335238473805:web:b6bf2c0877dfb3e6e4d404",
-  measurementId: "G-TLTJ7N16CR"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
