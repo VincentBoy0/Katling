@@ -16,12 +16,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from sqlmodel import SQLModel
 from app.core.config import settings
 
-# Import all models here for Alembic autogenerate support
-from app.models.user import User, Role, UserRole
-
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
 
 # Set the sqlalchemy.url from our settings (overrides alembic.ini)
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
@@ -32,7 +30,9 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # SQLModel's metadata for autogenerate support
+import app.models
 target_metadata = SQLModel.metadata
+
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
