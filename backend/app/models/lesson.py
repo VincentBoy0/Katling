@@ -40,7 +40,7 @@ class Lesson(SQLModel, table=True):
     __tablename__ = "lessons"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    topic_id: int = Field(foreign_key="topics.id", ondelete="CASCADE")
+    topic_id: int = Field(foreign_key="topics.id", ondelete="CASCADE", index=True)
     type: LessonType = Field(
         sa_column=Column(SAEnum(LessonType, name="lesson_type_enum")), 
     )
@@ -63,7 +63,7 @@ class LessonSection(SQLModel, table=True):
     __tablename__ = "lesson_sections"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    lesson_id: int = Field(foreign_key="lessons.id", ondelete="CASCADE")
+    lesson_id: int = Field(foreign_key="lessons.id", ondelete="CASCADE", index=True)
     title: str = Field(max_length=150)
     order_index: int = Field(default=0, index=True)
     content: Optional[Dict[str, Any]] = Field(
@@ -93,8 +93,8 @@ class Question(SQLModel, table=True):
     __tablename__ = "questions"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    lesson_id: int = Field(foreign_key="lessons.id", ondelete="CASCADE")
-    section_id: int = Field(foreign_key="lesson_sections.id", ondelete="CASCADE")
+    lesson_id: int = Field(foreign_key="lessons.id", ondelete="CASCADE", index=True)
+    section_id: int = Field(foreign_key="lesson_sections.id", ondelete="CASCADE", index=True)
     type: QuestionType = Field(
         sa_column=Column(SAEnum(QuestionType, name="question_type_enum")), 
     )
@@ -104,7 +104,7 @@ class Question(SQLModel, table=True):
     )
     correct_answer: Optional[Dict[str, Any]] = Field(
         default=None, 
-        sa_column=Column(SAJSON, nullable=True)
+        sa_column=Column(JSONB, nullable=True)
     )
     audio_url: Optional[str] = Field(default=None, max_length=512)
     explanation: Optional[str] = None

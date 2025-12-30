@@ -2,7 +2,7 @@ from sqlmodel import SQLModel, Field
 from datetime import datetime, timezone
 
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy import Column, Enum as SAEnum, DateTime, text, String
+from sqlalchemy import Column, Enum as SAEnum, DateTime, UniqueConstraint, text, String
 from enum import Enum
 from typing import Optional, Dict, Any
 
@@ -46,6 +46,9 @@ class Vocab(SQLModel, table=True):
 
 class UserWord(SQLModel, table=True):
     __tablename__ = "user_words"
+    __table_args__ = (
+        UniqueConstraint("user_id", "word_id", name="uix_user_word"),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
