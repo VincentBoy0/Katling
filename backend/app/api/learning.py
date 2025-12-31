@@ -2,6 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 from typing import Any
 
+from core.security import get_current_user
+from repositories.lessonRepository import LessonRepository
+from repositories.progressRepository import UserProgressRepository
+from schemas.learning import NextSectionResponse
 from database.session import get_session
 from repositories.questionRepository import QuestionRepository
 from schemas.lesson import (
@@ -70,13 +74,6 @@ async def submit_question_answer(
 		correct_answer=None if is_correct else question.correct_answer,
 	)
 
-from database.session import get_session
-from core.security import get_current_user
-from repositories.lessonRepository import LessonRepository
-from repositories.progressRepository import UserProgressRepository
-from schemas.learning import NextSectionResponse
-
-router = APIRouter(prefix="/learning", tags=["Learning"])
 
 
 @router.get("/lessons/{lesson_id}/next-section", response_model=NextSectionResponse)
