@@ -1,0 +1,310 @@
+"use client";
+
+import type React from "react";
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Trophy,
+  Flame,
+  Zap,
+  Crown,
+  Medal,
+  TrendingUp,
+  Minus,
+  MoveDown,
+  User,
+} from "lucide-react";
+
+// Mock Data
+const leaderboardData = {
+  level: [
+    { rank: 1, name: "Nguyễn Minh", value: 25, change: "up" },
+    { rank: 2, name: "Trần Hà", value: 23, change: "down" },
+    { rank: 3, name: "Lê Quân", value: 22, change: "same" },
+    { rank: 4, name: "Phạm Linh", value: 20, change: "up" },
+    { rank: 5, name: "Hoàng Nam", value: 19, change: "down" },
+    { rank: 6, name: "Võ Trang", value: 18, change: "same" },
+    { rank: 7, name: "Bùi Huy", value: 17, change: "up" },
+    { rank: 8, name: "Đặng Mai", value: 16, change: "same" },
+    { rank: 9, name: "Cao Long", value: 15, change: "down" },
+    { rank: 10, name: "Thái Hòa", value: 14, change: "up" },
+  ],
+  streak: [
+    { rank: 1, name: "Nguyễn Minh", value: 45, change: "up" },
+    { rank: 2, name: "Trần Hà", value: 42, change: "same" },
+    { rank: 3, name: "Lê Quân", value: 38, change: "up" },
+    { rank: 4, name: "Phạm Linh", value: 35, change: "down" },
+    { rank: 5, name: "Hoàng Nam", value: 32, change: "same" },
+    { rank: 6, name: "Võ Trang", value: 30, change: "up" },
+    { rank: 7, name: "Bùi Huy", value: 28, change: "same" },
+    { rank: 8, name: "Đặng Mai", value: 25, change: "down" },
+    { rank: 9, name: "Cao Long", value: 22, change: "up" },
+    { rank: 10, name: "Thái Hòa", value: 20, change: "same" },
+  ],
+  xp: [
+    { rank: 1, name: "Nguyễn Minh", value: 12500, change: "up" },
+    { rank: 2, name: "Trần Hà", value: 11200, change: "same" },
+    { rank: 3, name: "Lê Quân", value: 10800, change: "up" },
+    { rank: 4, name: "Phạm Linh", value: 9500, change: "down" },
+    { rank: 5, name: "Hoàng Nam", value: 8900, change: "same" },
+    { rank: 6, name: "Võ Trang", value: 8200, change: "up" },
+    { rank: 7, name: "Bùi Huy", value: 7600, change: "same" },
+    { rank: 8, name: "Đặng Mai", value: 7100, change: "down" },
+    { rank: 9, name: "Cao Long", value: 6500, change: "up" },
+    { rank: 10, name: "Thái Hòa", value: 6000, change: "same" },
+  ],
+};
+
+// Helper để lấy icon và style cho Rank
+const getRankVisuals = (rank: number) => {
+  switch (rank) {
+    case 1:
+      return {
+        icon: <Crown className="w-6 h-6 fill-yellow-500 text-yellow-600" />,
+        bg: "bg-yellow-50 dark:bg-yellow-950/20",
+        border: "border-yellow-300 dark:border-yellow-700",
+        text: "text-yellow-700 dark:text-yellow-500",
+        badge: "bg-yellow-100 text-yellow-700",
+      };
+    case 2:
+      return {
+        icon: <Medal className="w-6 h-6 fill-slate-300 text-slate-500" />,
+        bg: "bg-slate-50 dark:bg-slate-950/20",
+        border: "border-slate-300 dark:border-slate-700",
+        text: "text-slate-700 dark:text-slate-400",
+        badge: "bg-slate-100 text-slate-700",
+      };
+    case 3:
+      return {
+        icon: <Medal className="w-6 h-6 fill-orange-300 text-orange-600" />,
+        bg: "bg-orange-50 dark:bg-orange-950/20",
+        border: "border-orange-300 dark:border-orange-700",
+        text: "text-orange-700 dark:text-orange-500",
+        badge: "bg-orange-100 text-orange-700",
+      };
+    default:
+      return {
+        icon: (
+          <span className="text-sm font-bold text-muted-foreground">
+            #{rank}
+          </span>
+        ),
+        bg: "bg-card",
+        border: "border-border",
+        text: "text-foreground",
+        badge: "bg-muted text-muted-foreground",
+      };
+  }
+};
+
+export default function LeaderboardPage() {
+  const [activeTab, setActiveTab] = useState("level");
+
+  // Component hiển thị 1 hàng trong bảng xếp hạng
+  const LeaderboardItem = ({
+    user,
+    unit,
+    icon,
+  }: {
+    user: any;
+    unit: string;
+    icon: React.ReactNode;
+  }) => {
+    const visuals = getRankVisuals(user.rank);
+
+    return (
+      <div
+        className={`
+        flex items-center justify-between p-4 rounded-2xl 
+        border-2 transition-all hover:-translate-y-0.5
+        ${visuals.bg} ${visuals.border}
+      `}
+      >
+        <div className="flex items-center gap-4 flex-1">
+          {/* Rank Icon */}
+          <div className="w-8 flex justify-center shrink-0">{visuals.icon}</div>
+
+          {/* Avatar */}
+          <div
+            className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 border-white shadow-sm shrink-0 ${
+              user.avatarColor || "bg-gray-100"
+            }`}
+          >
+            {user.name.charAt(0)}
+          </div>
+
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <p
+              className={`font-bold text-sm md:text-base truncate ${visuals.text}`}
+            >
+              {user.name}
+            </p>
+            <div className="flex items-center gap-1 md:hidden">
+              <span className="text-xs font-bold text-muted-foreground">
+                {user.value} {unit}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Right */}
+        <div className="flex items-center gap-4 md:gap-8">
+          {/* Value (Desktop) */}
+          <div className="hidden md:flex items-center gap-2 font-black text-lg text-foreground/80">
+            {icon}
+            <span>
+              {user.value}{" "}
+              <span className="text-xs font-bold text-muted-foreground uppercase">
+                {unit}
+              </span>
+            </span>
+          </div>
+
+          {/* Trend Indicator */}
+          <div className="w-8 flex justify-end">
+            {user.change === "up" && (
+              <TrendingUp className="w-5 h-5 text-green-500" />
+            )}
+            {user.change === "down" && (
+              <MoveDown className="w-5 h-5 text-muted-foreground/50" />
+            )}{" "}
+            {/* Dùng xám thay vì đỏ */}
+            {user.change === "same" && (
+              <Minus className="w-5 h-5 text-muted-foreground/30" />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="p-4 md:p-8 space-y-8 max-w-4xl mx-auto min-h-screen">
+      {/* 1. HEADER */}
+      <div className="space-y-2">
+        <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
+          Bảng xếp hạng
+        </h1>
+        <p className="text-muted-foreground font-medium text-lg">
+          Thi đua cùng cộng đồng học tập Katling.
+        </p>
+      </div>
+
+      {/* 2. YOUR POSITION CARD */}
+      <Card className="p-6 border-2 border-primary/30 bg-primary/5 rounded-3xl">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xl border-2 border-white shadow-sm">
+            B
+          </div>
+          <div>
+            <h3 className="font-bold text-lg text-primary">Thứ hạng của Bạn</h3>
+            <p className="text-sm text-muted-foreground font-medium">
+              Bạn đang làm rất tốt!
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-background rounded-2xl p-4 border-2 border-indigo-100 dark:border-indigo-900 text-center">
+            <p className="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-1">
+              Cấp độ
+            </p>
+            <p className="text-2xl font-black text-foreground">#12</p>
+            <p className="text-xs text-muted-foreground font-medium">LVL 15</p>
+          </div>
+          <div className="bg-background rounded-2xl p-4 border-2 border-orange-100 dark:border-orange-900 text-center">
+            <p className="text-xs font-bold text-orange-500 uppercase tracking-wider mb-1">
+              Streak
+            </p>
+            <p className="text-2xl font-black text-foreground">#18</p>
+            <p className="text-xs text-muted-foreground font-medium">15 ngày</p>
+          </div>
+          <div className="bg-background rounded-2xl p-4 border-2 border-emerald-100 dark:border-emerald-900 text-center">
+            <p className="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-1">
+              Kinh nghiệm
+            </p>
+            <p className="text-2xl font-black text-foreground">#14</p>
+            <p className="text-xs text-muted-foreground font-medium">5.2K XP</p>
+          </div>
+        </div>
+      </Card>
+
+      {/* 3. LEADERBOARD LIST */}
+      <div className="space-y-6">
+        <Tabs
+          defaultValue="level"
+          className="w-full"
+          onValueChange={setActiveTab}
+        >
+          <TabsList className="grid w-full grid-cols-3 h-12 p-1 bg-muted/50 rounded-xl mb-6">
+            <TabsTrigger
+              value="level"
+              className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
+            >
+              <Crown className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Cấp độ</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="streak"
+              className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:text-orange-500 data-[state=active]:shadow-sm transition-all"
+            >
+              <Flame className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Streak</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="xp"
+              className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:text-emerald-500 data-[state=active]:shadow-sm transition-all"
+            >
+              <Zap className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Kinh nghiệm</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent
+            value="level"
+            className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
+          >
+            {leaderboardData.level.map((user) => (
+              <LeaderboardItem
+                key={user.rank}
+                user={user}
+                unit="Level"
+                icon={<Crown className="w-4 h-4 text-indigo-500" />}
+              />
+            ))}
+          </TabsContent>
+
+          <TabsContent
+            value="streak"
+            className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
+          >
+            {leaderboardData.streak.map((user) => (
+              <LeaderboardItem
+                key={user.rank}
+                user={user}
+                unit="Ngày"
+                icon={<Flame className="w-4 h-4 text-orange-500" />}
+              />
+            ))}
+          </TabsContent>
+
+          <TabsContent
+            value="xp"
+            className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
+          >
+            {leaderboardData.xp.map((user) => (
+              <LeaderboardItem
+                key={user.rank}
+                user={user}
+                unit="XP"
+                icon={<Zap className="w-4 h-4 text-emerald-500" />}
+              />
+            ))}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}
