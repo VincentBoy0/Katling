@@ -173,7 +173,7 @@ class UserRepository:
     
     
 
-    async def update_user_info(self, user_id: int, user_info: UserProfileUpdate) -> UserInfo:
+    async def update_user_info(self, user_id: int, data: dict) -> UserInfo:
         """Create or update a UserInfo row for the given user_id.
 
         Args:
@@ -191,19 +191,11 @@ class UserRepository:
         result = await self.session.exec(stmt)
         profile = result.first()
 
-        data = user_info.dict(exclude_unset=True)
+        update_fields = {k: v for k, v in data.items() if v is not None}
 
         try:
-            if not profile:
-                # create new profile linked to user
-                profile = UserInfo(user_id=user_id, **data)
-                self.session.add(profile)
-                await self.session.commit()
-                await self.session.refresh(profile)
-                return profile
-
             # update only provided fields
-            for field, value in data.items():
+            for field, value in update_fields.items():
                 setattr(profile, field, value)
 
             self.session.add(profile)
@@ -272,6 +264,6 @@ class UserRepository:
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        self.session.delete(user)
+        await self.session.delete(user)
         await self.session.commit()
         return True

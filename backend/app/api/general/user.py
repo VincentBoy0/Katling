@@ -33,7 +33,7 @@ async def get_user_info(
 
 @router.patch("/info")
 async def update_user_info(
-    form: UserProfileUpdate,
+    form: dict,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ):
