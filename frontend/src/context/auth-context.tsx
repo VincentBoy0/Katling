@@ -14,6 +14,7 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   updateProfile,
+  sendEmailVerification,
   type User as FirebaseUser,
 } from "firebase/auth";
 import { auth } from "@/config/firebase";
@@ -39,6 +40,7 @@ interface AuthContextType {
   role: Role;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isEmailVerified: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (
     email: string,
@@ -48,6 +50,7 @@ interface AuthContextType {
   loginWithOAuth: (provider: "google" | "facebook") => Promise<void>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
+  resendVerificationEmail: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,12 +58,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
   const role: Role = "user"; // TODO: Get from backend
 
   // Listen to Firebase auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        // Update email verification status
+        setIsEmailVerified(firebaseUser.emailVerified);
+
         // Check if we have user info in localStorage
         const savedUser = localStorage.getItem("katling_user");
         if (savedUser) {
@@ -72,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } else {
         setUser(null);
+        setIsEmailVerified(false);
         localStorage.removeItem("katling_user");
         localStorage.removeItem("firebase_token");
       }
@@ -126,16 +134,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Step 2: Update Firebase profile
     await updateProfile(firebaseUser, { displayName });
 
-    // Step 3: Get Firebase ID token
+    // Step 3: Send verification email
+    await sendEmailVerification(firebaseUser);
+
+    // Step 4: Get Firebase ID token
     const firebaseToken = await firebaseUser.getIdToken();
 
-    // Step 4: Register with backend
+    // Step 5: Register with backend
     const backendData = await loginWithBackend(firebaseToken);
 
-    // Step 5: Save to localStorage & state
+    // Step 6: Save to localStorage & state
     localStorage.setItem("firebase_token", firebaseToken);
     localStorage.setItem("katling_user", JSON.stringify(backendData.user));
     setUser(backendData.user);
+    setIsEmailVerified(false);
+  };
+
+  /**
+   * Resend verification email
+   */
+  const resendVerificationEmail = async () => {
+    const currentUser = auth.currentUser;
+    if (currentUser && !currentUser.emailVerified) {
+      await sendEmailVerification(currentUser);
+    }
   };
 
   /**
@@ -144,10 +166,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    */
   const loginWithOAuth = async (provider: "google" | "facebook") => {
     // Step 1: Get OAuth provider
-    const authProvider =
-      provider === "google"
-        ? new GoogleAuthProvider()
-        : new FacebookAuthProvider();
+    let authProvider;
+    if (provider === "google") {
+      authProvider = new GoogleAuthProvider();
+      // Force account selection every time
+      authProvider.setCustomParameters({ prompt: "select_account" });
+    } else {
+      authProvider = new FacebookAuthProvider();
+    }
 
     // Step 2: Firebase OAuth popup
     const result = await signInWithPopup(auth, authProvider);
@@ -194,11 +220,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role,
         isAuthenticated: !!user,
         isLoading,
+        isEmailVerified,
         login,
         signup,
         loginWithOAuth,
         logout,
         updateUser,
+        resendVerificationEmail,
       }}
     >
       {children}

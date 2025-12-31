@@ -25,13 +25,8 @@ export interface BackendAuthResponse {
  * @returns { user, firebase } - Backend response
  */
 export const loginWithBackend = async (firebaseToken: string): Promise<BackendAuthResponse> => {
-  const response = await fetch(`${API_URL}/api/login`, {
+  const response = await fetch(`${API_URL}/login/?token=${encodeURIComponent(firebaseToken)}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${firebaseToken}`
-    },
-    body: JSON.stringify({ firebase_token: firebaseToken })
   });
 
   if (!response.ok) {
