@@ -1,9 +1,13 @@
 from fastapi import Depends, HTTPException
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from models.user import User
-from schemas.user import UserCreate, UserUpdate
+from models.user import User, UserRole, Role, RoleType, UserInfo
+from schemas.user import UserProfileUpdate, UserSignUp, UserUpdate, UserRoleSchemas
 from database.session import get_session
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class UserRepository:
@@ -13,7 +17,7 @@ class UserRepository:
         self.session = session
     
     # --- Create ---
-    async def create_user(self, user_data: UserCreate) -> User:
+    async def create_user(self, user_data: UserSignUp) -> User:
         """Create a new user in the database.
         
         Args:
@@ -25,6 +29,16 @@ class UserRepository:
         Raises:
             HTTPException: If firebase_uid already exists
         """
+        
+        # find default "learner" role by type
+        stmt = select(Role).where(Role.type == RoleType.LEARNER)
+        result = await self.session.exec(stmt)
+        role = result.first()
+        
+        # Validate that learner role exists
+        if not role:
+            raise HTTPException(status_code=500, detail="Default learner role not found")
+
         # Check if user already exists
         existing_user = await self.get_user_by_firebase_uid(user_data.firebase_uid)
         if existing_user:
@@ -32,10 +46,35 @@ class UserRepository:
         
         # Create new user
         user = User(**user_data.dict())
-        self.session.add(user)
-        await self.session.commit()
-        await self.session.refresh(user)
-        return user
+        try:
+            # Avoid starting a new transaction if one is already active
+            if getattr(self.session, "in_transaction", None) and self.session.in_transaction():
+                self.session.add(user)
+                await self.session.flush()  # ensure user.id is available
+                user_role = UserRole(user_id=user.id, role_id=role.id)
+                self.session.add(user_role)
+                # create an empty user profile row linked to the user
+                user_info = UserInfo(user_id=user.id)
+                self.session.add(user_info)
+            else:
+                async with self.session.begin():
+                    self.session.add(user)
+                    await self.session.flush()  # ensure user.id is available
+                    user_role = UserRole(user_id=user.id, role_id=role.id)
+                    self.session.add(user_role)
+                    # create an empty user profile row linked to the user
+                    user_info = UserInfo(user_id=user.id)
+                    self.session.add(user_info)
+
+            # refresh user instance after commit/flush
+            await self.session.commit()
+            await self.session.refresh(user)
+            return user
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(status_code=500, detail="Failed to create user")
+            # await self.session.rollback()
     
     # --- Read ---
     async def get_user_by_id(self, user_id: int) -> User:
@@ -74,6 +113,19 @@ class UserRepository:
             User instance or None if not found
         """
         statement = select(User).where(User.email == email)
+        result = await self.session.exec(statement)
+        return result.first()
+
+    async def get_user_info_by_user_id(self, user_id: int) -> UserInfo:
+        """Get UserInfo row by the related user's ID.
+
+        Args:
+            user_id: ID of the user
+
+        Returns:
+            `UserInfo` instance or None if not found
+        """
+        statement = select(UserInfo).where(UserInfo.user_id == user_id)
         result = await self.session.exec(statement)
         return result.first()
     
@@ -118,6 +170,41 @@ class UserRepository:
         await self.session.commit()
         await self.session.refresh(user)
         return user
+    
+    
+
+    async def update_user_info(self, user_id: int, data: dict) -> UserInfo:
+        """Create or update a UserInfo row for the given user_id.
+
+        Args:
+            user_id: ID of the user whose profile to update
+            user_info: Partial update data (only provided fields will be applied)
+
+        Returns:
+            The created or updated UserInfo instance
+
+        Raises:
+            HTTPException: If the operation fails
+        """
+        # fetch existing profile
+        stmt = select(UserInfo).where(UserInfo.user_id == user_id)
+        result = await self.session.exec(stmt)
+        profile = result.first()
+
+        update_fields = {k: v for k, v in data.items() if v is not None}
+
+        try:
+            # update only provided fields
+            for field, value in update_fields.items():
+                setattr(profile, field, value)
+
+            self.session.add(profile)
+            await self.session.commit()
+            await self.session.refresh(profile)
+            return profile
+        except Exception as e:
+            logger.exception("Failed to update user_info: %s", e)
+            raise HTTPException(status_code=500, detail="Failed to update user info")
     
     async def ban_user(self, user_id: int) -> User:
         """Ban a user.
@@ -177,6 +264,6 @@ class UserRepository:
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        self.session.delete(user)
+        await self.session.delete(user)
         await self.session.commit()
         return True
