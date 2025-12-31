@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from database.session import get_session
-from core.security import decode_id_token, verify_firebase_token
+from core.security import decode_id_token, verify_firebase_token, required_roles
 
 from schemas.user import UserCreate, UserInfo
-from models.user import User
+from models.user import User, RoleType
 
 from repositories.userRepository import UserRepository
 

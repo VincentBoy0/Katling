@@ -6,8 +6,11 @@ from core.firebase import init_firebase
 from database.session import create_db_and_tables
 
 from api import (
-    test, user, login, role
+    test, login, role
 )
+from api.general import auth, user
+
+
 # from app.database import engine
 
 app = FastAPI()
@@ -27,6 +30,7 @@ app.add_middleware(
 )
 
 #---------------------------------- Routers -------------------------------------------------------
+app.include_router(auth.router)
 app.include_router(test.router)
 app.include_router(user.router)
 app.include_router(role.router)
