@@ -33,3 +33,4 @@ class VocabSearchResponse(BaseModel):
     word: str
     definition: Dict[str, list[str]]
     audio_url: Optional[str] = None
+    phonetic: Optional[str] = None

@@ -47,6 +47,25 @@ def _extract_audio_url(entry: dict[str, Any]) -> str | None:
     return None
 
 
+def _extract_phonetic(entry: dict[str, Any]) -> str | None:
+    phonetic = entry.get("phonetic")
+    if isinstance(phonetic, str) and phonetic.strip():
+        return phonetic.strip()
+
+    phonetics = entry.get("phonetics")
+    if not isinstance(phonetics, list):
+        return None
+
+    for item in phonetics:
+        if not isinstance(item, dict):
+            continue
+        text = item.get("text")
+        if isinstance(text, str) and text.strip():
+            return text.strip()
+
+    return None
+
+
 def _extract_definitions(entry: dict[str, Any]) -> dict[str, list[str]]:
     meanings = entry.get("meanings")
     if not isinstance(meanings, list):
@@ -84,7 +103,7 @@ async def lookup_word(raw_word: str) -> dict[str, Any]:
     """Look up a word from dictionaryapi.dev and return normalized payload.
 
     Returns:
-        { "word": str, "definition": {pos: [..]}, "audio_url": str | None }
+        { "word": str, "definition": {pos: [..]}, "audio_url": str | None, "phonetic": str | None }
 
     Raises:
         DictionaryWordNotFoundError: when the word does not exist (upstream 404)
@@ -127,9 +146,11 @@ async def lookup_word(raw_word: str) -> dict[str, Any]:
 
     definition = _extract_definitions(entry)
     audio_url = _extract_audio_url(entry)
+    phonetic = _extract_phonetic(entry)
 
     return {
         "word": result_word.strip().lower(),
         "definition": definition,
         "audio_url": audio_url,
+        "phonetic": phonetic,
     }
