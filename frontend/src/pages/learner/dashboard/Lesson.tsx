@@ -4,23 +4,23 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { useAuth } from "@/context/auth-context";
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Button } from "@/components/learner/button";
+import { Card } from "@/components/learner/card";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/learner/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/components/learner/select";
+import { Textarea } from "@/components/learner/textarea";
 import {
   AlertCircle,
   CheckCircle,

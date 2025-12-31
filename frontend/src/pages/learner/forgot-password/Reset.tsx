@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+import { Button } from "@/components/learner/button";
+import { Input } from "@/components/learner/input";
+import { Card } from "@/components/learner/card";
 import { Lock, Check, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner"; // Nhớ cài sonner nếu chưa có
 

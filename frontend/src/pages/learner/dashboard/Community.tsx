@@ -1,18 +1,23 @@
 import type React from "react";
 import { useState } from "react";
 
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/learner/card";
+import { Button } from "@/components/learner/button";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/learner/tabs";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
+} from "@/components/learner/dialog";
+import { Textarea } from "@/components/learner/textarea";
+import { Input } from "@/components/learner/input";
 import {
   Heart,
   MessageCircle,

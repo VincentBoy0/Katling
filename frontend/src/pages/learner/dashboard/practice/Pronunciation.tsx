@@ -2,8 +2,8 @@ import type React from "react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/learner/card";
+import { Button } from "@/components/learner/button";
 import {
   X,
   Mic,

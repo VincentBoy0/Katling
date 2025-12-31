@@ -2,8 +2,8 @@ import type React from "react";
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/learner/button";
+import { Switch } from "@/components/learner/switch";
 import { useAuth } from "@/context/auth-context";
 import { useTheme } from "@/context/theme-context";
 import {
@@ -34,7 +34,7 @@ const menuItems = [
 export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const pathname = location.pathname
+  const pathname = location.pathname;
   const { logout } = useAuth();
   const [open, setOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();

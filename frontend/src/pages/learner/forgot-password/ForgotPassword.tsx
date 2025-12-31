@@ -3,21 +3,21 @@
 import type React from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+import { Button } from "@/components/learner/button";
+import { Input } from "@/components/learner/input";
+import { Card } from "@/components/learner/card";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/learner/dialog";
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
-} from "@/components/ui/input-otp";
+} from "@/components/learner/input-otp";
 import Link from "next/link";
 import { Mail, ArrowLeft, LockKeyhole, KeyRound } from "lucide-react";
 

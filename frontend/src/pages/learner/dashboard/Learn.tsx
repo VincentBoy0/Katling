@@ -1,9 +1,8 @@
 import type React from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/learner/button";
 import { Check, Lock, Play, BookOpen, Star } from "lucide-react";
-
 
 // Mock Data
 const units = [

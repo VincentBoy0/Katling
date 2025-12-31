@@ -2,12 +2,11 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/learner/button";
+import { Card } from "@/components/learner/card";
+import { Switch } from "@/components/learner/switch";
 import { useAuth } from "@/context/auth-context";
 import { Bell, ChevronRight, Mic, Smartphone, Volume2 } from "lucide-react";
-
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();

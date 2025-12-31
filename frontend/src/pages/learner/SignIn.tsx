@@ -2,12 +2,11 @@ import type React from "react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/learner/button";
+import { Card } from "@/components/learner/card";
+import { Input } from "@/components/learner/input";
 import { useAuth } from "@/context/auth-context";
 import { Lock, Mail } from "lucide-react";
-
 
 export default function SignIn() {
   const navigate = useNavigate();

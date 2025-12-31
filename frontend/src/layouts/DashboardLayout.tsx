@@ -1,12 +1,11 @@
 import { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 
-import { Sidebar } from "@/components/dashboard/sidebar";
-import { TopBar } from "@/components/dashboard/top-bar";
+import { Sidebar } from "@/components/learner/dashboard/sidebar";
+import { TopBar } from "@/components/learner/dashboard/top-bar";
 import { useAuth } from "@/context/auth-context";
 
-
-export default function DashboardLayout(){
+export default function DashboardLayout() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
