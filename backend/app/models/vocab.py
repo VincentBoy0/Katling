@@ -31,6 +31,10 @@ class Vocab(SQLModel, table=True):
         default=None,
         max_length=512,
     )
+    phonetic: Optional[str] = Field(
+        default=None,
+        max_length=255,
+    )
     # review_status: ReviewStatus = Field(
     #     sa_column=Column(SAEnum(ReviewStatus, name="review_status_enum")), 
     #     default=ReviewStatus.NEW,

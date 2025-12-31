@@ -36,8 +36,9 @@ class VocabRepository:
         word: str,
         definition: Optional[Dict[str, Any]] = None,
         audio_url: Optional[str] = None,
+        phonetic: Optional[str] = None,
     ) -> Vocab:
-        vocab = Vocab(word=word, definition=definition, audio_url=audio_url)
+        vocab = Vocab(word=word, definition=definition, audio_url=audio_url, phonetic=phonetic)
         self.session.add(vocab)
         try:
             await self.session.commit()
@@ -57,11 +58,12 @@ class VocabRepository:
         word: str,
         definition: Optional[Dict[str, Any]] = None,
         audio_url: Optional[str] = None,
+        phonetic: Optional[str] = None,
     ) -> Vocab:
         existing = await self.get_vocab_by_word(word)
         if existing:
             return existing
-        return await self.create_vocab(word=word, definition=definition, audio_url=audio_url)
+        return await self.create_vocab(word=word, definition=definition, audio_url=audio_url, phonetic=phonetic)
 
     async def get_user_word(self, user_id: int, vocab_id: int) -> UserWord | None:
         statement = select(UserWord).where(
@@ -79,6 +81,39 @@ class VocabRepository:
         )
         result = await self.session.exec(statement)
         return result.all()
+
+    async def list_user_words_with_vocab(self, user_id: int) -> list[dict[str, Any]]:
+        statement = (
+            select(UserWord, Vocab)
+            .join(Vocab, UserWord.word_id == Vocab.id)
+            .where(UserWord.user_id == user_id)
+            .order_by(UserWord.created_at.desc())
+        )
+
+        result = await self.session.exec(statement)
+        rows: list[tuple[UserWord, Vocab]] = result.all()
+
+        out: list[dict[str, Any]] = []
+        for user_word, vocab in rows:
+            out.append(
+                {
+                    "id": user_word.id,
+                    "user_id": user_word.user_id,
+                    "vocab_id": user_word.word_id,
+                    "category": user_word.category,
+                    "status": user_word.status,
+                    "review_status": user_word.review_status,
+                    "last_reviewed_at": user_word.last_reviewed_at,
+                    "next_reviewed_at": user_word.next_reviewed_at,
+                    "created_at": user_word.created_at,
+                    "word": vocab.word,
+                    "definition": vocab.definition,
+                    "audio_url": vocab.audio_url,
+                    "phonetic": getattr(vocab, "phonetic", None),
+                }
+            )
+
+        return out
 
     async def save_user_word_idempotent(
         self,
