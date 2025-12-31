@@ -10,7 +10,6 @@ import ModeratorLayout from "@/layouts/ModeratorLayout";
 import Home from "@/pages/learner/Home";
 import SignIn from "@/pages/learner/SignIn";
 import SignUp from "@/pages/learner/SignUp";
-import Onboarding from "@/pages/learner/Onboarding";
 import Verify from "@/pages/learner/Verify";
 
 /* Learner */
@@ -41,7 +40,6 @@ export const router = createBrowserRouter([
       { path: "/", element: <Home /> },
       { path: "/signin", element: <SignIn /> },
       { path: "/signup", element: <SignUp /> },
-      { path: "/onboarding", element: <Onboarding /> },
       { path: "/verify", element: <Verify /> },
 
       /* ========== LEARNER ========== */
@@ -73,18 +71,14 @@ export const router = createBrowserRouter([
       {
         path: "/admin",
         element: <AdminLayout />,
-        children: [
-          { index: true, element: <AdminDashboard /> },
-        ],
+        children: [{ index: true, element: <AdminDashboard /> }],
       },
 
       /* ========== MODERATOR ========== */
       {
         path: "/moderator",
         element: <ModeratorLayout />,
-        children: [
-          { index: true, element: <ModeratorDashboard /> },
-        ],
+        children: [{ index: true, element: <ModeratorDashboard /> }],
       },
     ],
   },
