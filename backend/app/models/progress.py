@@ -1,9 +1,21 @@
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Optional
 
-from sqlmodel import SQLModel, Field, UniqueConstraint
+from sqlalchemy import Column, DateTime, Enum as SAEnum, text
+from sqlmodel import Field, SQLModel, UniqueConstraint
 
-class UserPogress(SQLModel, table=True):
+
+def utc_now() -> datetime:
+    """Return current UTC time as timezone-aware datetime."""
+    return datetime.now(timezone.utc)
+
+
+class ProgressStatus(str, Enum):
+    NOT_STARTED = "not_started"
+    COMPLETED = "completed"
+
+class UserProgress(SQLModel, table=True):
     __tablename__ = "user_progress"
 
     __table_args__ = (
@@ -33,8 +45,17 @@ class UserPogress(SQLModel, table=True):
         index=True
     )
 
-    status: str                     # "not_started", "completed"
+    status: ProgressStatus = Field(
+        sa_column=Column(SAEnum(ProgressStatus, name="progress_status_enum")),
+        default=ProgressStatus.NOT_STARTED,
+    )
     score: Optional[int] = None     # percentage of correct answers
 
-    started_at: datetime
-    completed_at: Optional[datetime] = None
+    started_at: datetime = Field(
+        default_factory=utc_now,
+        sa_column=Column(DateTime(timezone=True), server_default=text("now()")),
+    )
+    completed_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )

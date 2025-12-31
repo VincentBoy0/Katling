@@ -1,8 +1,7 @@
-from fastapi import HTTPException
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models.progress import UserProgress
+from models.progress import ProgressStatus, UserProgress
 from models.lesson import LessonSection
 
 
@@ -34,7 +33,7 @@ class UserProgressRepository:
             select(UserProgress.section_id)
             .where(UserProgress.user_id == user_id)
             .where(UserProgress.lesson_id == lesson_id)
-            .where(UserProgress.status == "completed")
+            .where(UserProgress.status == ProgressStatus.COMPLETED)
         )
 
         # Query: first section not in completed list
@@ -42,7 +41,7 @@ class UserProgressRepository:
             select(LessonSection)
             .where(LessonSection.lesson_id == lesson_id)
             .where(LessonSection.id.notin_(completed_sections_stmt))
-            .order_by(LessonSection.order)
+            .order_by(LessonSection.order_index)
         )
 
         result = await self.session.exec(statement)

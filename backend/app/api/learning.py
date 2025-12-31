@@ -5,11 +5,12 @@ from database.session import get_session
 from core.security import get_current_user
 from repositories.lessonRepository import LessonRepository
 from repositories.progressRepository import UserProgressRepository
+from schemas.learning import NextSectionResponse
 
 router = APIRouter(prefix="/learning", tags=["Learning"])
 
 
-@router.get("/lessons/{lesson_id}/next-section")
+@router.get("/lessons/{lesson_id}/next-section", response_model=NextSectionResponse)
 async def get_next_section(
     lesson_id: int,
     session: AsyncSession = Depends(get_session),
