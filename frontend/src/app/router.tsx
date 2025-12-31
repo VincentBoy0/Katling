@@ -8,7 +8,7 @@ import ModeratorLayout from "@/layouts/ModeratorLayout";
 
 /* Public */
 import Home from "@/pages/learner/Home";
-import SignIn from "@/pages/learner/SignIn";
+import LogIn from "@/pages/learner/LogIn";
 import SignUp from "@/pages/learner/SignUp";
 import Onboarding from "@/pages/learner/Onboarding";
 import Verify from "@/pages/learner/Verify";
@@ -39,7 +39,7 @@ export const router = createBrowserRouter([
     children: [
       /* ========== PUBLIC ========== */
       { path: "/", element: <Home /> },
-      { path: "/signin", element: <SignIn /> },
+      { path: "/login", element: <LogIn /> },
       { path: "/signup", element: <SignUp /> },
       { path: "/onboarding", element: <Onboarding /> },
       { path: "/verify", element: <Verify /> },

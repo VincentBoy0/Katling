@@ -1,25 +1,20 @@
-"use client";
-
-import type React from "react";
-import { useState } from "react";
-import { Card } from "@/components/learner/card";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/components/learner/tabs";
+import { Card } from "@/components/ui/card";
 import {
-  Trophy,
-  Flame,
-  Zap,
   Crown,
+  Flame,
   Medal,
-  TrendingUp,
   Minus,
   MoveDown,
-  User,
+  TrendingUp,
+  Zap,
 } from "lucide-react";
+import { useState } from "react";
 
 // Mock Data
 const leaderboardData = {
@@ -121,7 +116,7 @@ export default function LeaderboardPage() {
     return (
       <div
         className={`
-        flex items-center justify-between p-4 rounded-2xl 
+        flex items-center justify-between p-4 rounded-2xl
         border-2 transition-all hover:-translate-y-0.5
         ${visuals.bg} ${visuals.border}
       `}

@@ -1,9 +1,8 @@
-import type React from "react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/learner/button";
-import { Card } from "@/components/learner/card";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { useAuth } from "@/context/auth-context";
 import {
   BookOpen,

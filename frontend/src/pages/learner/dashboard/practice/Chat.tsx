@@ -1,19 +1,10 @@
-import type React from "react";
-import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-import { Card } from "@/components/learner/card";
-import { Button } from "@/components/learner/button";
 import { Input } from "@/components/learner/input";
-import {
-  Send,
-  Mic,
-  Bot,
-  ChevronLeft,
-  Sparkles,
-  MoreHorizontal,
-  User,
-} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Bot, ChevronLeft, Mic, Send, Sparkles, User } from "lucide-react";
 
 interface Message {
   id: number;

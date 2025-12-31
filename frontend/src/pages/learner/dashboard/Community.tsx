@@ -1,50 +1,42 @@
-import type React from "react";
 import { useState } from "react";
 
-import { Card } from "@/components/learner/card";
-import { Button } from "@/components/learner/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/learner/dialog";
+import { Input } from "@/components/learner/input";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/components/learner/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/learner/dialog";
 import { Textarea } from "@/components/learner/textarea";
-import { Input } from "@/components/learner/input";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
-  Heart,
-  MessageCircle,
-  Share2,
-  Plus,
-  User,
-  UserPlus,
-  Link as LinkIcon,
-  Search,
-  CheckCircle2,
-  X,
-  Users,
-  Flag,
-  Pencil,
-  Trash2,
-  Flame,
-  Zap,
-  Trophy,
-  Calendar,
-  MessageSquare,
-  UserMinus,
   Copy,
   Facebook,
-  Twitter,
-  Mail,
-  Send,
+  Flag,
+  Flame,
+  Heart,
   Linkedin,
+  Link as LinkIcon,
+  Mail,
+  MessageCircle,
+  Pencil,
+  Plus,
+  Search,
+  Send,
+  Share2,
+  Trash2,
+  Trophy,
+  Twitter,
+  UserPlus,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 

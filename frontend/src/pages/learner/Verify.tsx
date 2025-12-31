@@ -1,15 +1,14 @@
-import type React from "react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-import { Card } from "@/components/learner/card";
-import { Button } from "@/components/learner/button";
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/learner/input-otp";
-import { Mail, ArrowRight, Loader2, RotateCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ArrowRight, Loader2, Mail, RotateCw } from "lucide-react";
 import { toast } from "sonner"; // Nhớ cài Toaster ở layout gốc
 
 export default function VerifyPage() {

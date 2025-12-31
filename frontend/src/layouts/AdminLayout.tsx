@@ -9,7 +9,7 @@ export default function AdminLayout() {
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
-      navigate("/signin");
+      navigate("/login");
       return;
     }
 

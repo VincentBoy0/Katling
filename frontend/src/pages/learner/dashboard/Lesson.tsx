@@ -1,11 +1,9 @@
 import type React from "react";
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { useAuth } from "@/context/auth-context";
 
-import { Button } from "@/components/learner/button";
-import { Card } from "@/components/learner/card";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +19,8 @@ import {
   SelectValue,
 } from "@/components/learner/select";
 import { Textarea } from "@/components/learner/textarea";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   AlertCircle,
   CheckCircle,

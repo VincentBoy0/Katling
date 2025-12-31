@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import ModeratorHeader from "@/components/moderator/moderator-header";
-import ModeratorSidebar from "@/components/moderator/moderator-sidebar";
-import ModeratorOverview from "@/components/moderator/moderator-overview";
-import CreateContent from "@/components/moderator/create-content";
-import ReviewQueue from "@/components/moderator/review-queue";
-import UserReports from "@/components/moderator/user-reports";
-import AppealsDashboard from "@/components/moderator/appeals-dashboard";
-import ModeratorSettings from "@/components/moderator/moderator-settings";
+import ModeratorHeader from "@/components/moderator/Header";
+import ModeratorSidebar from "@/components/moderator/Sidebar";
+import ModeratorOverview from "@/pages/moderator/dashboard/Overview";
+import CreateContent from "@/pages/moderator/dashboard/create-content";
+import ReviewQueue from "@/pages/moderator/dashboard/review-queue";
+import UserReports from "@/pages/moderator/dashboard/user-reports";
+import AppealsDashboard from "@/pages/moderator/dashboard/appeals-dashboard";
+import ModeratorSettings from "@/pages/moderator/dashboard/Settings";
 
 export default function ModeratorPage() {
   const [activeTab, setActiveTab] = useState("overview");

@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 
-import { Sidebar } from "@/components/learner/dashboard/sidebar";
-import { TopBar } from "@/components/learner/dashboard/top-bar";
+import { Sidebar } from "@/components/learner/sidebar";
+import { TopBar } from "@/components/learner/top-bar";
 import { useAuth } from "@/context/auth-context";
 
 export default function LearnerLayout() {
@@ -11,7 +11,7 @@ export default function LearnerLayout() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate("/signin", { replace: true });
+      navigate("/login", { replace: true });
     }
   }, [isAuthenticated, navigate]);
 

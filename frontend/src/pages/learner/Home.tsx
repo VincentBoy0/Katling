@@ -1,7 +1,7 @@
-import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/learner/button";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import { BookOpen, Star, Users, Zap } from "lucide-react";
 
@@ -41,7 +41,7 @@ export default function Home() {
             <Button
               variant="outline"
               className="bg-transparent"
-              onClick={() => navigate("/signin")}
+              onClick={() => navigate("/login")}
             >
               Đăng nhập
             </Button>

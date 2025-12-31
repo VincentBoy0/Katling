@@ -1,10 +1,6 @@
-import type React from "react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/learner/button";
-import { Input } from "@/components/learner/input";
-import { Card } from "@/components/learner/card";
 import {
   Dialog,
   DialogContent,
@@ -12,13 +8,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/learner/dialog";
+import { Input } from "@/components/learner/input";
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/learner/input-otp";
-import { Mail, ArrowLeft, LockKeyhole, KeyRound } from "lucide-react";
-
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ArrowLeft, LockKeyhole, Mail } from "lucide-react";
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -56,7 +54,7 @@ export default function ForgotPasswordPage() {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // --- THAY ĐỔI Ở ĐÂY ---
-      // Thay vì alert xong về signin, ta chuyển sang trang reset
+      // Thay vì alert xong về login, ta chuyển sang trang reset
       navigate("/forgot-password/reset");
     } catch (err) {
       setError("Mã xác minh không đúng. Vui lòng thử lại.");
@@ -133,7 +131,7 @@ export default function ForgotPasswordPage() {
           <p className="text-sm font-medium text-muted-foreground">
             Bạn đã nhớ ra mật khẩu?{" "}
             <Link
-              to="/signin"
+              to="/login"
               className="text-primary font-bold hover:underline ml-1"
             >
               Đăng nhập ngay

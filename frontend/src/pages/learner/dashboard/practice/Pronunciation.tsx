@@ -1,18 +1,17 @@
-import type React from "react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-import { Card } from "@/components/learner/card";
-import { Button } from "@/components/learner/button";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
-  X,
-  Mic,
-  Volume2,
+  Award,
   CheckCircle2,
   ChevronRight,
+  Mic,
   RotateCcw,
   Sparkles,
-  Award,
+  Volume2,
+  X,
 } from "lucide-react";
 
 // Mock Data
