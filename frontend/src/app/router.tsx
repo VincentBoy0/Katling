@@ -4,30 +4,29 @@ import { createBrowserRouter } from "react-router-dom";
 import DashboardLayout from "@/layouts/DashboardLayout";
 
 /* Public pages */
-import Dashboard from "@/pages/Dashboard";
-import Home from "@/pages/Home";
-import Onboarding from "@/pages/Onboarding";
-import SignIn from "@/pages/SignIn";
-import SignUp from "@/pages/SignUp";
-import Verify from "@/pages/Verify";
+import Dashboard from "@/pages/learner/Dashboard";
+import Home from "@/pages/learner/Home";
+import Onboarding from "@/pages/learner/Onboarding";
+import SignIn from "@/pages/learner/SignIn";
+import SignUp from "@/pages/learner/SignUp";
+import Verify from "@/pages/learner/Verify";
 
 /* Dashboard pages */
-import Community from "@/pages/dashboard/Community";
-import Leaderboard from "@/pages/dashboard/Leaderboard";
-import Learn from "@/pages/dashboard/Learn";
-import Lesson from "@/pages/dashboard/Lesson";
-import Profile from "@/pages/dashboard/Profile";
-import Settings from "@/pages/dashboard/Settings";
-import Practice from "@/pages/dashboard/practice/Practice";
-import Vocabulary from "@/pages/dashboard/vocabulary/Vocabulary";
+import Community from "@/pages/learner/dashboard/Community";
+import Leaderboard from "@/pages/learner/dashboard/Leaderboard";
+import Learn from "@/pages/learner/dashboard/Learn";
+import Lesson from "@/pages/learner/dashboard/Lesson";
+import Profile from "@/pages/learner/dashboard/Profile";
+import Settings from "@/pages/learner/dashboard/Settings";
+import Practice from "@/pages/learner/dashboard/practice/Practice";
+import Vocabulary from "@/pages/learner/dashboard/vocabulary/Vocabulary";
 
-import Chat from "@/pages/dashboard/practice/Chat";
-import Flashcard from "@/pages/dashboard/practice/Flashcard";
-import Pronunciation from "@/pages/dashboard/practice/Pronunciation";
+import Chat from "@/pages/learner/dashboard/practice/Chat";
+import Flashcard from "@/pages/learner/dashboard/practice/Flashcard";
+import Pronunciation from "@/pages/learner/dashboard/practice/Pronunciation";
 import AppLayout from "@/layouts/AppLayout";
 
 export const router = createBrowserRouter([
-
   {
     path: "/__test",
     element: <div>ROUTER OK</div>,
@@ -36,7 +35,7 @@ export const router = createBrowserRouter([
   {
     element: <AppLayout />,
     children: [
-    /* ========== PUBLIC ROUTES ========== */
+      /* ========== PUBLIC ROUTES ========== */
       { path: "/", element: <Home /> },
       { path: "/signin", element: <SignIn /> },
       { path: "/signup", element: <SignUp /> },
@@ -52,7 +51,9 @@ export const router = createBrowserRouter([
           { path: "learn", element: <Learn /> },
           { path: "lesson", element: <Lesson /> },
           { path: "vocabulary", element: <Vocabulary /> },
-          { path: "practice", element: <Practice />,
+          {
+            path: "practice",
+            element: <Practice />,
             children: [
               { index: true, element: <Practice /> },
               { path: "chat", element: <Chat /> },
@@ -67,5 +68,5 @@ export const router = createBrowserRouter([
         ],
       },
     ],
-  }
+  },
 ]);
