@@ -62,8 +62,8 @@ export function Sidebar() {
             <img
               src={
                 theme === "dark"
-                  ? "/logo_with_name_dark.png"
-                  : "/logo_with_name.png"
+                  ? "img/logo_with_name_dark.png"
+                  : "img/logo_with_name.png"
               }
               alt="Logo"
               width={0}
