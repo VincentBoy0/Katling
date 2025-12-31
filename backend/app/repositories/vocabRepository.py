@@ -89,3 +89,17 @@ class VocabRepository:
 
         await self.session.refresh(user_word)
         return user_word, True
+
+    async def delete_user_word_idempotent(self, user_id: int, vocab_id: int) -> bool:
+        """Delete the saved word for a user.
+
+        Returns True if a row was deleted, False if it didn't exist.
+        """
+
+        existing = await self.get_user_word(user_id=user_id, vocab_id=vocab_id)
+        if not existing:
+            return False
+
+        self.session.delete(existing)
+        await self.session.commit()
+        return True

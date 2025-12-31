@@ -38,3 +38,21 @@ async def save_user_word(
 
     response.status_code = 201 if created else 200
     return user_word
+
+
+@router.delete("/{word}", status_code=204)
+async def delete_user_word(
+    word: str,
+    session: AsyncSession = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Remove a vocab from the current user's saved words (idempotent)."""
+
+    repo = VocabRepository(session)
+
+    vocab = await repo.get_vocab_by_word(word)
+    if not vocab:
+        raise HTTPException(status_code=404, detail="Vocab not found")
+
+    await repo.delete_user_word_idempotent(user_id=current_user.id, vocab_id=vocab.id)
+    return Response(status_code=204)
