@@ -23,7 +23,7 @@ export default function HomeHeader() {
           <Button
             variant="outline"
             className="bg-transparent"
-            onClick={() => navigate("/signin")}
+            onClick={() => navigate("/login")}
           >
             Đăng nhập
           </Button>
