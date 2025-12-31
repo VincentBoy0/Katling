@@ -1,56 +1,57 @@
 import { createBrowserRouter } from "react-router-dom";
 
 /* Layouts */
-import DashboardLayout from "@/layouts/DashboardLayout";
+import AppLayout from "@/layouts/AppLayout";
+import LearnerLayout from "@/layouts/LearnerLayout";
+import AdminLayout from "@/layouts/AdminLayout";
+import ModeratorLayout from "@/layouts/ModeratorLayout";
 
-/* Public pages */
-import Dashboard from "@/pages/learner/Dashboard";
+/* Public */
 import Home from "@/pages/learner/Home";
-import Onboarding from "@/pages/learner/Onboarding";
 import SignIn from "@/pages/learner/SignIn";
 import SignUp from "@/pages/learner/SignUp";
+import Onboarding from "@/pages/learner/Onboarding";
 import Verify from "@/pages/learner/Verify";
 
-/* Dashboard pages */
-import Community from "@/pages/learner/dashboard/Community";
-import Leaderboard from "@/pages/learner/dashboard/Leaderboard";
+/* Learner */
+import Dashboard from "@/pages/learner/Dashboard";
 import Learn from "@/pages/learner/dashboard/Learn";
 import Lesson from "@/pages/learner/dashboard/Lesson";
-import Profile from "@/pages/learner/dashboard/Profile";
-import Settings from "@/pages/learner/dashboard/Settings";
 import Practice from "@/pages/learner/dashboard/practice/Practice";
-import Vocabulary from "@/pages/learner/dashboard/vocabulary/Vocabulary";
-
 import Chat from "@/pages/learner/dashboard/practice/Chat";
 import Flashcard from "@/pages/learner/dashboard/practice/Flashcard";
 import Pronunciation from "@/pages/learner/dashboard/practice/Pronunciation";
-import AppLayout from "@/layouts/AppLayout";
+import Vocabulary from "@/pages/learner/dashboard/vocabulary/Vocabulary";
+import Community from "@/pages/learner/dashboard/Community";
+import Leaderboard from "@/pages/learner/dashboard/Leaderboard";
+import Profile from "@/pages/learner/dashboard/Profile";
+import Settings from "@/pages/learner/dashboard/Settings";
+
+/* Admin */
+import AdminDashboard from "@/pages/admin/Dashboard";
+
+/* Moderator */
+import ModeratorDashboard from "@/pages/moderator/Dashboard";
 
 export const router = createBrowserRouter([
   {
-    path: "/__test",
-    element: <div>ROUTER OK</div>,
-  },
-
-  {
     element: <AppLayout />,
     children: [
-      /* ========== PUBLIC ROUTES ========== */
+      /* ========== PUBLIC ========== */
       { path: "/", element: <Home /> },
       { path: "/signin", element: <SignIn /> },
       { path: "/signup", element: <SignUp /> },
       { path: "/onboarding", element: <Onboarding /> },
       { path: "/verify", element: <Verify /> },
 
-      /* ========== DASHBOARD ROUTES ========== */
+      /* ========== LEARNER ========== */
       {
         path: "/dashboard",
-        element: <DashboardLayout />,
+        element: <LearnerLayout />,
         children: [
           { index: true, element: <Dashboard /> },
           { path: "learn", element: <Learn /> },
           { path: "lesson", element: <Lesson /> },
-          { path: "vocabulary", element: <Vocabulary /> },
           {
             path: "practice",
             children: [
@@ -60,10 +61,29 @@ export const router = createBrowserRouter([
               { path: "pronunciation", element: <Pronunciation /> },
             ],
           },
+          { path: "vocabulary", element: <Vocabulary /> },
           { path: "community", element: <Community /> },
           { path: "leaderboard", element: <Leaderboard /> },
           { path: "profile", element: <Profile /> },
           { path: "settings", element: <Settings /> },
+        ],
+      },
+
+      /* ========== ADMIN ========== */
+      {
+        path: "/admin",
+        element: <AdminLayout />,
+        children: [
+          { index: true, element: <AdminDashboard /> },
+        ],
+      },
+
+      /* ========== MODERATOR ========== */
+      {
+        path: "/moderator",
+        element: <ModeratorLayout />,
+        children: [
+          { index: true, element: <ModeratorDashboard /> },
         ],
       },
     ],

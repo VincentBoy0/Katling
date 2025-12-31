@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/learner/dashboard/sidebar";
 import { TopBar } from "@/components/learner/dashboard/top-bar";
 import { useAuth } from "@/context/auth-context";
 
-export default function DashboardLayout() {
+export default function LearnerLayout() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 

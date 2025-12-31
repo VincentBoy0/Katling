@@ -1,6 +1,6 @@
-"use client"
-
 import { createContext, useContext, useState, type ReactNode, useEffect } from "react"
+
+export type Role = "user" | "admin" | "moderator"
 
 export interface User {
   id: string
@@ -17,7 +17,9 @@ export interface User {
 
 interface AuthContextType {
   user: User | null
+  role: Role
   isAuthenticated: boolean
+  isLoading: boolean
   login: (email: string, password: string) => Promise<void>
   signup: (email: string, password: string, displayName: string) => Promise<void>
   loginWithOAuth: (provider: "google" | "facebook") => Promise<void>
@@ -29,6 +31,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const role: Role = "admin"
 
   // Load user from localStorage on mount
   useEffect(() => {
@@ -40,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Failed to parse saved user:", error)
       }
     }
+    setIsLoading(false)
   }, [])
 
   const login = async (email: string, password: string) => {
@@ -117,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, signup, loginWithOAuth, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, role, isAuthenticated: !!user, isLoading, login, signup, loginWithOAuth, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )
