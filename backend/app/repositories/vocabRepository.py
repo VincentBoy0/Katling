@@ -19,6 +19,43 @@ class VocabRepository:
         result = await self.session.exec(statement)
         return result.first()
 
+    async def get_vocab_by_word(self, word: str) -> Vocab | None:
+        statement = select(Vocab).where(Vocab.word == word)
+        result = await self.session.exec(statement)
+        return result.first()
+
+    async def create_vocab(
+        self,
+        word: str,
+        definition: Optional[Dict[str, Any]] = None,
+        audio_url: Optional[str] = None,
+    ) -> Vocab:
+        vocab = Vocab(word=word, definition=definition, audio_url=audio_url)
+        self.session.add(vocab)
+        try:
+            await self.session.commit()
+        except IntegrityError:
+            # Unique word hit (race) -> return existing
+            await self.session.rollback()
+            existing = await self.get_vocab_by_word(word)
+            if existing:
+                return existing
+            raise
+
+        await self.session.refresh(vocab)
+        return vocab
+
+    async def get_or_create_vocab(
+        self,
+        word: str,
+        definition: Optional[Dict[str, Any]] = None,
+        audio_url: Optional[str] = None,
+    ) -> Vocab:
+        existing = await self.get_vocab_by_word(word)
+        if existing:
+            return existing
+        return await self.create_vocab(word=word, definition=definition, audio_url=audio_url)
+
     async def get_user_word(self, user_id: int, vocab_id: int) -> UserWord | None:
         statement = select(UserWord).where(
             UserWord.user_id == user_id,

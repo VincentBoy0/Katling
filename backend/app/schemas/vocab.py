@@ -6,15 +6,16 @@ from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field
 
 
-class UserWordSaveIn(BaseModel):
-    vocab_id: int = Field(..., description="Vocab ID to save")
-    status: Optional[Dict[str, Any]] = Field(default=None, description="Optional metadata for saved word")
+class SaveVocabRequest(BaseModel):
+    word: str = Field(..., description="Word to save")
+    definition: Dict[str, Any] = Field(..., description="Definition payload for vocab")
+    audio_url: Optional[str] = Field(default=None, description="Audio URL for vocab")
 
 
 class UserWordOut(BaseModel):
     id: int
     user_id: int
-    word_id: int
+    vocab_id: int = Field(..., alias="word_id")
     status: Optional[Dict[str, Any]] = None
     review_status: str
     last_reviewed_at: datetime
@@ -23,3 +24,4 @@ class UserWordOut(BaseModel):
 
     class Config:
         from_attributes = True
+        allow_population_by_field_name = True

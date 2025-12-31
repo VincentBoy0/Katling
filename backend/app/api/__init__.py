@@ -1,3 +1,3 @@
 
-from . import user_words
+from . import vocab
 
