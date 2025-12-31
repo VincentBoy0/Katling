@@ -108,9 +108,8 @@ class VocabRepository:
         """Promote review_status for a saved word to the next level.
 
         Allowed transitions:
-        - NEWBIE -> SPECIALIST
-        - SPECIALIST -> EXPERT
-        - EXPERT -> MASTER
+        - NEW -> LEARNING
+        - LEARNING -> MASTERED
         """
 
         user_word = await self.get_user_word(user_id=user_id, vocab_id=vocab_id)
@@ -118,9 +117,8 @@ class VocabRepository:
             raise LookupError("UserWord not found")
 
         next_status_map: dict[ReviewStatus, ReviewStatus] = {
-            ReviewStatus.NEWBIE: ReviewStatus.SPECIALIST,
-            ReviewStatus.SPECIALIST: ReviewStatus.EXPERT,
-            ReviewStatus.EXPERT: ReviewStatus.MASTER,
+            ReviewStatus.NEW: ReviewStatus.LEARNING,
+            ReviewStatus.LEARNING: ReviewStatus.MASTERED,
         }
 
         next_status = next_status_map.get(user_word.review_status)

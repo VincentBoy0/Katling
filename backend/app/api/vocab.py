@@ -67,7 +67,7 @@ async def promote_user_word(
     """Promote review_status of a saved word to the next status.
 
     Transitions allowed:
-    NEWBIE -> SPECIALIST -> EXPERT -> MASTER
+    NEW -> LEARNING -> MASTERED
     """
 
     repo = VocabRepository(session)

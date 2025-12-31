@@ -13,10 +13,9 @@ def utc_now() -> datetime:
 
 
 class ReviewStatus(str, Enum):
-    NEWBIE = "NEWBIE"
-    SPECIALIST = "SPECIALIST"
-    EXPERT = "EXPERT"
-    MASTER = "MASTER"
+    NEW = "NEW"
+    LEARNING = "LEARNING"
+    MASTERED = "MASTERED"
 
 
 class Vocab(SQLModel, table=True):
@@ -34,7 +33,7 @@ class Vocab(SQLModel, table=True):
     )
     # review_status: ReviewStatus = Field(
     #     sa_column=Column(SAEnum(ReviewStatus, name="review_status_enum")), 
-    #     default=ReviewStatus.NEWBIE, 
+    #     default=ReviewStatus.NEW,
     # )
     created_at: datetime = Field(
         default_factory=utc_now,
@@ -59,7 +58,7 @@ class UserWord(SQLModel, table=True):
     )
     review_status: ReviewStatus = Field(
         sa_column=Column(SAEnum(ReviewStatus, name="review_status_enum")), 
-        default=ReviewStatus.NEWBIE
+        default=ReviewStatus.NEW
     )
     last_reviewed_at: datetime = Field(
         default_factory=utc_now, 
