@@ -10,6 +10,8 @@ from database.session import get_session
 
 
 
+from models.user import User
+
 logger = logging.getLogger(__name__)
 security = HTTPBearer(auto_error=True)
 
