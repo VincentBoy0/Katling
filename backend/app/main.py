@@ -6,7 +6,7 @@ from core.firebase import init_firebase
 from database.session import create_db_and_tables
 
 from api import (
-    test, login, role
+    test, user, login, role, learning
 )
 from api.general import auth, user
 from api.management import admin, moderator
@@ -36,7 +36,7 @@ app.include_router(test.router)
 app.include_router(user.router)
 app.include_router(role.router)
 app.include_router(login.router)
-app.include_router(admin.router)
+app.include_router(learning.router)
 #--------------------------------------------------------------------------------------------------
 
 # ------------------- Main -------------------
