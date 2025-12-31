@@ -32,10 +32,10 @@ class Vocab(SQLModel, table=True):
         default=None,
         max_length=512,
     )
-    review_status: ReviewStatus = Field(
-        sa_column=Column(SAEnum(ReviewStatus, name="review_status_enum")), 
-        default=ReviewStatus.NEWBIE, 
-    )
+    # review_status: ReviewStatus = Field(
+    #     sa_column=Column(SAEnum(ReviewStatus, name="review_status_enum")), 
+    #     default=ReviewStatus.NEWBIE, 
+    # )
     created_at: datetime = Field(
         default_factory=utc_now,
         sa_column=Column(DateTime(timezone=True), server_default=text("now()")),

@@ -4,6 +4,8 @@ from fastapi import HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from firebase_admin import auth
 
+from models.user import User
+
 logger = logging.getLogger(__name__)
 security = HTTPBearer(auto_error=True)
 
@@ -51,3 +53,14 @@ def verify_firebase_token(
         raise HTTPException(status_code=401, detail="Invalid token payload")
 
     return decoded_token
+
+async def get_current_user():
+    """
+    Temporary mock current user for local development.
+    Will be replaced by real authentication dependency.
+    """
+    return User(
+        id=1,
+        email="test@example.com",
+        firebase_uid="test_uid"
+    )
