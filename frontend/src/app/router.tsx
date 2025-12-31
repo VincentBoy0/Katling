@@ -53,7 +53,6 @@ export const router = createBrowserRouter([
           { path: "vocabulary", element: <Vocabulary /> },
           {
             path: "practice",
-            element: <Practice />,
             children: [
               { index: true, element: <Practice /> },
               { path: "chat", element: <Chat /> },

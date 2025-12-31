@@ -60,7 +60,7 @@ export default function SignUp() {
         <div className="text-center mb-2">
           <Link to="/">
             <img
-              src="/public/images/logo_with_name_under.png"
+              src="/img/logo_with_name_under.png"
               alt="Logo"
               className="w-2/5 h-auto mx-auto"
             />

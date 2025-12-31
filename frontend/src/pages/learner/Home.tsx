@@ -30,7 +30,7 @@ export default function Home() {
             onClick={() => navigate("/")}
           >
             <img
-              src="/logo_with_name.png"
+              src="/img/logo_with_name.png"
               alt="Logo"
               width={120}
               height={40}
@@ -72,7 +72,7 @@ export default function Home() {
 
               <div className="relative w-80 h-80 lg:w-96 lg:h-96">
                 <img
-                  src="/logo_with_name_under.png"
+                  src="/img/logo_with_name_under.png"
                   alt="Katling Mascot"
                   className="object-contain drop-shadow-xl hover:scale-105 transition-transform duration-500"
                 />

@@ -49,16 +49,8 @@ export default function SignIn() {
       <Card className="w-full max-w-md p-8">
         <div className="text-center mb-2">
           <Link to="/">
-            {/* <Image
-              src="/logo_with_name_under.png"
-              alt="Logo"
-              width={0}
-              height={0}
-              sizes="100vw"
-              className="w-2/5 h-auto mx-auto"
-            /> */}
             <img
-              src="/logo_with_name_under.png"
+              src="/img/logo_with_name_under.png"
               alt="Logo"
               className="w-2/5 h-auto mx-auto"
             />
@@ -165,7 +157,7 @@ export default function SignIn() {
 
           <div className="text-center text-sm text-muted-foreground">
             <Link
-              href="/forgot-password"
+              to="/forgot-password"
               className="text-primary hover:underline"
             >
               Quên mật khẩu?
@@ -177,7 +169,7 @@ export default function SignIn() {
           <p className="text-center text-sm text-muted-foreground">
             Chưa có tài khoản?{" "}
             <Link
-              href="/signup"
+              to="/signup"
               className="text-primary font-medium hover:underline"
             >
               Đăng ký ngay
