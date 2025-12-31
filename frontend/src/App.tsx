@@ -1,15 +1,23 @@
-import React, { useState } from 'react';
-import { firebaseConfig } from './config/firebase';
+import { useState } from 'react';
+import { firebaseConfig } from '@/config/firebase';
 // --- 1. FIREBASE SETUP ---
 import { initializeApp } from "firebase/app";
-import { 
-  getAuth, 
+import {
+  getAuth,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider
 } from "firebase/auth";
+import type { User } from 'firebase/auth';
+import type { CSSProperties } from 'react';
+import { FirebaseError } from 'firebase/app';
 
+
+type LoginProps = {
+  onSwitchToSignup: () => void;
+  onLoginSuccess: (token: string, user: User) => void;
+};
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -17,43 +25,45 @@ const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
 // --- 2. LOGIN COMPONENT ---
-function LoginComponent({ onSwitchToSignup, onLoginSuccess }) {
+function LoginComponent({ onSwitchToSignup, onLoginSuccess }: LoginProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isLoading) return;
 
     setIsLoading(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
       console.log("Attempting login with Firebase...");
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       const token = await user.getIdToken();
-      
+
       console.log("Login successful!", user.email);
       setSuccess("Login successful! Redirecting...");
       setEmail("");
       setPassword("");
-      
+
       onLoginSuccess(token, user);
-      
-    } catch (error) {
-      console.error("Login error:", error.code, error.message);
-      
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
-        setError("Invalid email or password.");
-      } else if (error.code === 'auth/invalid-email') {
-        setError("Please enter a valid email address.");
-      } else {
-        setError("Login failed. Please try again.");
+
+    } catch (error: unknown) {
+      if (error instanceof FirebaseError) {
+        console.error("Login error:", error.code, error.message);
+
+        if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+          setError("Invalid email or password.");
+        } else if (error.code === 'auth/invalid-email') {
+          setError("Please enter a valid email address.");
+        } else {
+          setError("Login failed. Please try again.");
+        }
       }
     } finally {
       setIsLoading(false);
@@ -64,25 +74,27 @@ function LoginComponent({ onSwitchToSignup, onLoginSuccess }) {
     setIsLoading(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
       console.log("Attempting Google Sign In...");
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       const token = await user.getIdToken();
-      
+
       console.log("Google Sign In successful!", user.email);
       setSuccess("Google Sign In successful! Redirecting...");
-      
+
       onLoginSuccess(token, user);
-      
-    } catch (error) {
-      console.error("Google Sign In error:", error.code, error.message);
-      
-      if (error.code === 'auth/popup-closed-by-user') {
-        setError("Sign In was cancelled.");
-      } else {
-        setError("Google Sign In failed. Please try again.");
+
+    } catch (error: unknown) {
+      if (error instanceof FirebaseError) {
+        console.error("Google Sign In error:", error.code, error.message);
+
+        if (error.code === 'auth/popup-closed-by-user') {
+          setError("Sign In was cancelled.");
+        } else {
+          setError("Google Sign In failed. Please try again.");
+        }
       }
     } finally {
       setIsLoading(false);
@@ -105,7 +117,7 @@ function LoginComponent({ onSwitchToSignup, onLoginSuccess }) {
             placeholder="your@email.com"
           />
         </div>
-        
+
         <div style={styles.inputGroup}>
           <label htmlFor="password">Password</label>
           <input
@@ -118,7 +130,7 @@ function LoginComponent({ onSwitchToSignup, onLoginSuccess }) {
             placeholder="Enter your password"
           />
         </div>
-        
+
         {error && <p style={styles.error}>{error}</p>}
         {success && <p style={styles.success}>{success}</p>}
 
@@ -129,10 +141,10 @@ function LoginComponent({ onSwitchToSignup, onLoginSuccess }) {
 
       <div style={styles.divider}>or</div>
 
-      <button 
-        type="button" 
-        onClick={handleGoogleSignIn} 
-        disabled={isLoading} 
+      <button
+        type="button"
+        onClick={handleGoogleSignIn}
+        disabled={isLoading}
         style={styles.googleButton}
       >
         🔐 Sign In with Google
@@ -140,9 +152,9 @@ function LoginComponent({ onSwitchToSignup, onLoginSuccess }) {
 
       <p style={styles.switchAuth}>
         Don't have an account?{' '}
-        <button 
-          type="button" 
-          onClick={onSwitchToSignup} 
+        <button
+          type="button"
+          onClick={onSwitchToSignup}
           style={styles.linkButton}
         >
           Sign Up
@@ -152,16 +164,21 @@ function LoginComponent({ onSwitchToSignup, onLoginSuccess }) {
   );
 }
 
+type SignUpProps = {
+  onSwitchToLogin: () => void;
+  onSignUpSuccess: (token: string, user: User) => void;
+};
+
 // --- 3. SIGN UP COMPONENT ---
-function SignUpComponent({ onSwitchToLogin, onSignUpSuccess }) {
+function SignUpComponent({ onSwitchToLogin, onSignUpSuccess }: SignUpProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const handleSignUp = async (e) => {
+  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isLoading) return;
 
@@ -180,32 +197,33 @@ function SignUpComponent({ onSwitchToLogin, onSignUpSuccess }) {
     setIsLoading(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
       console.log("Creating account with Firebase...");
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       const token = await user.getIdToken();
-      
+
       console.log("Account created successfully!", user.email);
       setSuccess("Account created! Logging you in...");
       setEmail("");
       setPassword("");
       setConfirmPassword("");
-      
+
       onSignUpSuccess(token, user);
-      
-    } catch (error) {
-      console.error("Sign Up error:", error.code, error.message);
-      
-      if (error.code === 'auth/email-already-in-use') {
-        setError("This email is already registered.");
-      } else if (error.code === 'auth/invalid-email') {
-        setError("Please enter a valid email address.");
-      } else if (error.code === 'auth/weak-password') {
-        setError("Password is too weak. Use a stronger password.");
-      } else {
-        setError("Sign Up failed. Please try again.");
+
+    } catch (error: unknown) {
+      if (error instanceof FirebaseError) {
+        console.error("Sign Up error:", error.code, error.message);
+        if (error.code === 'auth/email-already-in-use') {
+          setError("This email is already registered.");
+        } else if (error.code === 'auth/invalid-email') {
+          setError("Please enter a valid email address.");
+        } else if (error.code === 'auth/weak-password') {
+          setError("Password is too weak. Use a stronger password.");
+        } else {
+          setError("Sign Up failed. Please try again.");
+        }
       }
     } finally {
       setIsLoading(false);
@@ -216,25 +234,27 @@ function SignUpComponent({ onSwitchToLogin, onSignUpSuccess }) {
     setIsLoading(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
       console.log("Attempting Google Sign Up...");
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       const token = await user.getIdToken();
-      
+
       console.log("Google Sign Up successful!", user.email);
       setSuccess("Account created with Google! Redirecting...");
-      
+
       onSignUpSuccess(token, user);
-      
-    } catch (error) {
-      console.error("Google Sign Up error:", error.code, error.message);
-      
-      if (error.code === 'auth/popup-closed-by-user') {
-        setError("Sign Up was cancelled.");
-      } else {
-        setError("Google Sign Up failed. Please try again.");
+
+    } catch (error: unknown) {
+      if (error instanceof FirebaseError) {
+        console.error("Google Sign Up error:", error.code, error.message);
+
+        if (error.code === 'auth/popup-closed-by-user') {
+          setError("Sign Up was cancelled.");
+        } else {
+          setError("Google Sign Up failed. Please try again.");
+        }
       }
     } finally {
       setIsLoading(false);
@@ -257,7 +277,7 @@ function SignUpComponent({ onSwitchToLogin, onSignUpSuccess }) {
             placeholder="your@email.com"
           />
         </div>
-        
+
         <div style={styles.inputGroup}>
           <label htmlFor="signup-password">Password</label>
           <input
@@ -283,7 +303,7 @@ function SignUpComponent({ onSwitchToLogin, onSignUpSuccess }) {
             placeholder="Re-enter your password"
           />
         </div>
-        
+
         {error && <p style={styles.error}>{error}</p>}
         {success && <p style={styles.success}>{success}</p>}
 
@@ -294,10 +314,10 @@ function SignUpComponent({ onSwitchToLogin, onSignUpSuccess }) {
 
       <div style={styles.divider}>or</div>
 
-      <button 
-        type="button" 
-        onClick={handleGoogleSignUp} 
-        disabled={isLoading} 
+      <button
+        type="button"
+        onClick={handleGoogleSignUp}
+        disabled={isLoading}
         style={styles.googleButton}
       >
         🔐 Sign Up with Google
@@ -305,9 +325,9 @@ function SignUpComponent({ onSwitchToLogin, onSignUpSuccess }) {
 
       <p style={styles.switchAuth}>
         Already have an account?{' '}
-        <button 
-          type="button" 
-          onClick={onSwitchToLogin} 
+        <button
+          type="button"
+          onClick={onSwitchToLogin}
           style={styles.linkButton}
         >
           Log In
@@ -320,17 +340,17 @@ function SignUpComponent({ onSwitchToLogin, onSignUpSuccess }) {
 // --- 4. MAIN APP COMPONENT ---
 export default function App() {
   const [currentPage, setCurrentPage] = useState('login'); // 'login' or 'signup'
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
-  const handleLoginSuccess = (idToken, userData) => {
+  const handleLoginSuccess = (idToken: string, userData: User) => {
     setToken(idToken);
     setUser(userData);
     console.log("User authenticated:", userData.email);
     console.log("Token:", idToken);
   };
 
-  const handleSignUpSuccess = (idToken, userData) => {
+  const handleSignUpSuccess = (idToken: string, userData: User) => {
     setToken(idToken);
     setUser(userData);
     console.log("User created and authenticated:", userData.email);
@@ -351,10 +371,10 @@ export default function App() {
           <h1>✅ Welcome!</h1>
           <p>Successfully logged in as:</p>
           <p style={styles.userEmail}>{user.email}</p>
-          
+
           <div style={styles.tokenInfo}>
             <h3>Your Auth Token (first 30 chars):</h3>
-            <p style={styles.tokenText}>{token.substring(0, 30)}...</p>
+            <p style={styles.tokenText}>{token?.substring(0, 30)}...</p>
             <p style={styles.tokenNote}>Use this token to authenticate with your backend API</p>
           </div>
 
@@ -370,12 +390,12 @@ export default function App() {
   return (
     <div style={styles.appContainer}>
       {currentPage === 'login' ? (
-        <LoginComponent 
+        <LoginComponent
           onSwitchToSignup={() => setCurrentPage('signup')}
           onLoginSuccess={handleLoginSuccess}
         />
       ) : (
-        <SignUpComponent 
+        <SignUpComponent
           onSwitchToLogin={() => setCurrentPage('login')}
           onSignUpSuccess={handleSignUpSuccess}
         />
@@ -385,7 +405,7 @@ export default function App() {
 }
 
 // --- 5. STYLES ---
-const styles = {
+const styles: Record<string, CSSProperties> = {
   appContainer: {
     display: 'flex',
     justifyContent: 'center',
