@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { Lock, Mail, User } from "lucide-react";
 
 import { Input } from "@/components/learner/input";
+import { Card } from "@/components/learner/card"
+import { Button} from "@/components/learner/button"
 import { OAuthButtons } from "@/components/auth/OAuthButtons";
 import { ErrorAlert } from "@/components/auth/ErrorAlert";
 import { useSignUpForm } from "@/hooks/useAuthForm";
