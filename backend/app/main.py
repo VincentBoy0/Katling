@@ -9,6 +9,7 @@ from api import (
     test, login, role
 )
 from api.general import auth, user
+from api.management import admin, moderator
 
 
 # from app.database import engine
@@ -35,6 +36,7 @@ app.include_router(test.router)
 app.include_router(user.router)
 app.include_router(role.router)
 app.include_router(login.router)
+app.include_router(admin.router)
 #--------------------------------------------------------------------------------------------------
 
 # ------------------- Main -------------------
