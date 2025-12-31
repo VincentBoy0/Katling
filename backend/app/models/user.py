@@ -1,7 +1,7 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional, Dict, Any
 from sqlmodel import SQLModel, Field
-from sqlalchemy import UniqueConstraint, Column, Enum as SAEnum, DateTime, text
+from sqlalchemy import Date, Text, UniqueConstraint, Column, Enum as SAEnum, DateTime, text
 from enum import Enum
 
 
@@ -74,6 +74,52 @@ class UserXPLog(SQLModel, table=True):
         sa_column=Column(SAEnum(ActivityType, name="activity_type_enum")),
     )
     xp_amount: int = Field(default=0)
+    created_at: datetime = Field(
+        default_factory=utc_now,
+        sa_column=Column(DateTime(timezone=True), server_default=text("now()")),
+    )
+
+
+class Sex(str, Enum):
+    MALE = "MALE"
+    FEMALE = "FEMALE"
+    OTHER = "OTHER"
+    UNDISCLOSED = "UNDISCLOSED"
+
+
+class UserInfo(SQLModel, table=True):
+    __tablename__ = "user_info"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
+
+    # Name fields
+    first_name: Optional[str] = Field(default=None, max_length=100)
+    last_name: Optional[str] = Field(default=None, max_length=100)
+    full_name: Optional[str] = Field(default=None, max_length=255, index=True)
+
+    # Personal information
+    date_of_birth: Optional[date] = Field(
+        default=None,
+        sa_column=Column(Date, nullable=True),
+    )
+    sex: Optional[Sex] = Field(
+        default=None,
+        sa_column=Column(SAEnum(Sex, name="sex_enum")),
+    )
+
+    # Contact / location
+    phone: Optional[str] = Field(default=None, max_length=32)
+    email_alternate: Optional[str] = Field(default=None, max_length=255)
+    country: Optional[str] = Field(default=None, max_length=100)
+    city: Optional[str] = Field(default=None, max_length=100)
+    address: Optional[str] = Field(default=None, max_length=255)
+
+    # Profile
+    # avatar_url: Optional[str] = Field(default=None, max_length=512)
+    bio: Optional[str] = Field(default=None, sa_column=Column(Text))
+
+    # Timestamps
     created_at: datetime = Field(
         default_factory=utc_now,
         sa_column=Column(DateTime(timezone=True), server_default=text("now()")),
