@@ -12,6 +12,17 @@ from schemas.vocab import SaveVocabRequest, UserWordOut
 router = APIRouter(prefix="/user-words", tags=["UserWords"])
 
 
+@router.get("", response_model=list[UserWordOut])
+async def list_user_words(
+    session: AsyncSession = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """List all saved words of the current user."""
+
+    repo = VocabRepository(session)
+    return await repo.list_user_words(user_id=current_user.id)
+
+
 @router.post("", response_model=UserWordOut)
 async def save_user_word(
     payload: SaveVocabRequest,

@@ -71,6 +71,15 @@ class VocabRepository:
         result = await self.session.exec(statement)
         return result.first()
 
+    async def list_user_words(self, user_id: int) -> list[UserWord]:
+        statement = (
+            select(UserWord)
+            .where(UserWord.user_id == user_id)
+            .order_by(UserWord.created_at.desc())
+        )
+        result = await self.session.exec(statement)
+        return result.all()
+
     async def save_user_word_idempotent(
         self,
         user_id: int,
