@@ -27,3 +27,9 @@ class UserWordOut(BaseModel):
     class Config:
         from_attributes = True
         allow_population_by_field_name = True
+
+
+class VocabSearchResponse(BaseModel):
+    word: str
+    definition: Dict[str, list[str]]
+    audio_url: Optional[str] = None

@@ -6,13 +6,34 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from core.security import get_current_user
 from database.session import get_session
 from repositories.vocabRepository import VocabRepository
-from schemas.vocab import SaveVocabRequest, UserWordOut
+from schemas.vocab import SaveVocabRequest, UserWordOut, VocabSearchResponse
+from services.dictionary_service import (
+    DictionaryUpstreamError,
+    DictionaryWordNotFoundError,
+    lookup_word,
+)
 
 
-router = APIRouter(prefix="/user-words", tags=["UserWords"])
+router = APIRouter()
 
 
-@router.get("", response_model=list[UserWordOut])
+@router.get("/vocabs/search", response_model=VocabSearchResponse, tags=["Vocabs"])
+async def search_vocab(word: str):
+    """Search a vocab via dictionaryapi.dev."""
+
+    try:
+        payload = await lookup_word(word)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except DictionaryWordNotFoundError:
+        raise HTTPException(status_code=404, detail="Word not found")
+    except DictionaryUpstreamError:
+        raise HTTPException(status_code=502, detail="Dictionary service unavailable")
+
+    return payload
+
+
+@router.get("/user-words", response_model=list[UserWordOut], tags=["UserWords"])
 async def list_user_words(
     session: AsyncSession = Depends(get_session),
     current_user=Depends(get_current_user),
@@ -23,7 +44,7 @@ async def list_user_words(
     return await repo.list_user_words(user_id=current_user.id)
 
 
-@router.post("", response_model=UserWordOut)
+@router.post("/user-words", response_model=UserWordOut, tags=["UserWords"])
 async def save_user_word(
     payload: SaveVocabRequest,
     response: Response,
@@ -52,7 +73,7 @@ async def save_user_word(
     return user_word
 
 
-@router.delete("/{word}", status_code=204)
+@router.delete("/user-words/{word}", status_code=204, tags=["UserWords"])
 async def delete_user_word(
     word: str,
     session: AsyncSession = Depends(get_session),
@@ -70,7 +91,7 @@ async def delete_user_word(
     return Response(status_code=204)
 
 
-@router.post("/{vocab_id}/promote", response_model=UserWordOut)
+@router.post("/user-words/{vocab_id}/promote", response_model=UserWordOut, tags=["UserWords"])
 async def promote_user_word(
     vocab_id: int,
     session: AsyncSession = Depends(get_session),
