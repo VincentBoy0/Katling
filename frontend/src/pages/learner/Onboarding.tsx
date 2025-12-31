@@ -1,14 +1,13 @@
-import type React from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/learner/button";
+import { Button } from "@/components/ui/button";
 import {
-  Check,
-  Target,
-  BrainCircuit,
   ArrowRight,
+  BrainCircuit,
+  Check,
   Sparkles,
+  Target,
 } from "lucide-react";
 
 // Định nghĩa các bước

@@ -1,16 +1,6 @@
-import type React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/learner/button";
-import {
-  Mic,
-  BookOpen,
-  MessageCircle,
-  ArrowRight,
-  Sparkles,
-  Layers,
-  Bot,
-} from "lucide-react";
+import { Bot, Layers, Mic } from "lucide-react";
 
 export default function PracticePage() {
   const navigate = useNavigate();

@@ -1,13 +1,11 @@
-import type React from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/learner/button";
-import { Card } from "@/components/learner/card";
 import { Input } from "@/components/learner/input";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Eye, EyeOff, Loader2, Lock } from "lucide-react";
 import { toast } from "sonner"; // Nhớ cài sonner nếu chưa có
-
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -39,7 +37,7 @@ export default function ResetPasswordPage() {
         description: "Bây giờ bạn có thể đăng nhập bằng mật khẩu mới.",
       });
 
-      navigate("/signin");
+      navigate("/login");
     } catch (err) {
       toast.error("Có lỗi xảy ra, vui lòng thử lại.");
     } finally {

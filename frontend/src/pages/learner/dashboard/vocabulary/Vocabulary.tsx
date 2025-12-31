@@ -1,25 +1,3 @@
-"use client";
-
-import { useState } from "react";
-import {
-  Search,
-  Volume2,
-  BookOpen,
-  Plus,
-  Trash2,
-  Bookmark,
-  Sparkles,
-  Library,
-  Loader2,
-  Filter,
-  CheckCircle2,
-  FolderPlus,
-  Folder,
-  Check,
-} from "lucide-react";
-import { Button } from "@/components/learner/button";
-import { Input } from "@/components/learner/input";
-import { Card } from "@/components/learner/card";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +6,25 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/learner/dialog";
+import { Input } from "@/components/learner/input";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import {
+  Bookmark,
+  Check,
+  CheckCircle2,
+  Filter,
+  Folder,
+  FolderPlus,
+  Library,
+  Loader2,
+  Plus,
+  Search,
+  Sparkles,
+  Trash2,
+  Volume2,
+} from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 // --- TYPES ---
@@ -269,7 +266,7 @@ export default function VocabularyPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                className="pl-14 h-12 text-lg font-medium rounded-2xl border-2 
+                className="pl-14 h-12 text-lg font-medium rounded-2xl border-2
                  border-primary/20 bg-card"
               />
             </div>

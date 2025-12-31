@@ -5,36 +5,26 @@ import { Input } from "@/components/learner/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/context/auth-context";
-import { Lock, Mail, User } from "lucide-react";
+import { Lock, Mail } from "lucide-react";
 
-export default function SignUp() {
+export default function LogIn() {
   const navigate = useNavigate();
-  const { signup, loginWithOAuth } = useAuth();
+  const { login, loginWithOAuth } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    if (password !== confirmPassword) {
-      setError("Mật khẩu không khớp.");
-      setLoading(false);
-      return;
-    }
-
     try {
-      await signup(email, password, displayName);
-
-      // ⬇⬇⬇ Chuyển sang trang xác thực OTP
-      navigate(`/verify?email=${encodeURIComponent(email)}`);
+      await login(email, password);
+      navigate("/dashboard");
     } catch (err) {
-      setError("Đăng ký thất bại. Vui lòng thử lại.");
+      setError("Email hoặc mật khẩu không chính xác.");
     } finally {
       setLoading(false);
     }
@@ -47,7 +37,7 @@ export default function SignUp() {
       await loginWithOAuth(provider);
       navigate("/dashboard");
     } catch (err) {
-      setError(`Không thể đăng ký bằng ${provider}. Vui lòng thử lại.`);
+      setError(`Không thể đăng nhập bằng ${provider}. Vui lòng thử lại.`);
     } finally {
       setLoading(false);
     }
@@ -67,23 +57,6 @@ export default function SignUp() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Tên hiển thị
-            </label>
-            <div className="relative">
-              <User className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Nguyễn Văn A"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="pl-10"
-                required
-              />
-            </div>
-          </div>
-
           <div>
             <label className="block text-sm font-medium mb-2">Email</label>
             <div className="relative">
@@ -114,23 +87,6 @@ export default function SignUp() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Xác nhận mật khẩu
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="password"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="pl-10"
-                required
-              />
-            </div>
-          </div>
-
           {error && (
             <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-3 rounded">
               {error}
@@ -142,7 +98,7 @@ export default function SignUp() {
             className="w-full font-bold shadow-sm"
             disabled={loading}
           >
-            {loading ? "Đang tạo tài khoản..." : "Đăng ký"}
+            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </Button>
         </form>
 
@@ -178,7 +134,7 @@ export default function SignUp() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Đăng ký bằng Google
+            Đăng nhập bằng Google
           </Button>
 
           <Button
@@ -195,18 +151,27 @@ export default function SignUp() {
             >
               <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
             </svg>
-            Đăng ký bằng Facebook
+            Đăng nhập bằng Facebook
           </Button>
+
+          <div className="text-center text-sm text-muted-foreground">
+            <Link
+              to="/forgot-password"
+              className="text-primary hover:underline"
+            >
+              Quên mật khẩu?
+            </Link>
+          </div>
         </div>
 
         <div className="mt-2 pt-6 border-t">
           <p className="text-center text-sm text-muted-foreground">
-            Đã có tài khoản?{" "}
+            Chưa có tài khoản?{" "}
             <Link
-              to="/login"
+              to="/signup"
               className="text-primary font-medium hover:underline"
             >
-              Đăng nhập
+              Đăng ký ngay
             </Link>
           </p>
         </div>

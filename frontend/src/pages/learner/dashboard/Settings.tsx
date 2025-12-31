@@ -1,10 +1,9 @@
-import type React from "react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/learner/button";
-import { Card } from "@/components/learner/card";
 import { Switch } from "@/components/learner/switch";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { useAuth } from "@/context/auth-context";
 import { Bell, ChevronRight, Mic, Smartphone, Volume2 } from "lucide-react";
 

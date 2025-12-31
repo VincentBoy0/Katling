@@ -1,21 +1,20 @@
-import type React from "react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-import { Card } from "@/components/learner/card";
-import { Button } from "@/components/learner/button";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
-  ChevronLeft,
-  RotateCw,
-  Layers,
+  ArrowRight,
   BrainCircuit,
   CheckCircle2,
-  X,
-  Sparkles,
-  ArrowRight,
+  ChevronLeft,
   Folder,
+  Layers,
   Library,
   Play,
+  RotateCw,
+  Sparkles,
+  X,
 } from "lucide-react";
 
 // --- MOCK DATA (Đồng bộ cấu trúc với trang Vocabulary) ---

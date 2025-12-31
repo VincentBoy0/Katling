@@ -1,14 +1,14 @@
 import { useState } from "react";
 
+import AnalyticsReporting from "@/pages/admin/dashboard/analytics-reporting";
+import ContentLibrary from "@/pages/admin/dashboard/content-library";
+import ErrorChecking from "@/pages/admin/dashboard/error-checking";
 import AdminHeader from "@/components/admin/Header";
+import OverviewDashboard from "@/pages/admin/dashboard/overview-dashboard";
+import PostApproval from "@/pages/admin/dashboard/post-approval";
+import AdminSettings from "@/pages/admin/dashboard/Settings";
 import AdminSidebar from "@/components/admin/Sidebar";
-import OverviewDashboard from "@/components/admin/overview-dashboard";
-import UserManagement from "@/components/admin/user-management";
-import PostApproval from "@/components/admin/post-approval";
-import AnalyticsReporting from "@/components/admin/analytics-reporting";
-import ContentLibrary from "@/components/admin/content-library";
-import ErrorChecking from "@/components/admin/error-checking";
-import AdminSettings from "@/components/admin/Settings";
+import UserManagement from "@/pages/admin/dashboard/user-management";
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("overview");

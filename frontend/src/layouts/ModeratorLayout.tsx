@@ -8,7 +8,7 @@ export default function ModeratorLayout() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate("/signin");
+      navigate("/login");
       return;
     }
 
