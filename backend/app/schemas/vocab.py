@@ -10,12 +10,14 @@ class SaveVocabRequest(BaseModel):
     word: str = Field(..., description="Word to save")
     definition: Dict[str, Any] = Field(..., description="Definition payload for vocab")
     audio_url: Optional[str] = Field(default=None, description="Audio URL for vocab")
+    category: Optional[str] = Field(default=None, description="Category for user's saved word")
 
 
 class UserWordOut(BaseModel):
     id: int
     user_id: int
     vocab_id: int = Field(..., alias="word_id")
+    category: Optional[str] = None
     status: Optional[Dict[str, Any]] = None
     review_status: str
     last_reviewed_at: datetime

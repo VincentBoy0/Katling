@@ -34,6 +34,7 @@ async def save_user_word(
     user_word, created = await repo.save_user_word_idempotent(
         user_id=current_user.id,
         vocab_id=vocab.id,
+        category=payload.category,
     )
 
     response.status_code = 201 if created else 200

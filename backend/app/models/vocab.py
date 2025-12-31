@@ -52,6 +52,7 @@ class UserWord(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
     word_id: int = Field(foreign_key="vocabs.id", ondelete="CASCADE", index=True)
+    category: Optional[str] = Field(default=None, max_length=255)
     status: Optional[Dict[str, Any]] = Field(
         default=None,
         sa_column=Column(JSONB, nullable=True),

@@ -8,6 +8,13 @@ from sqlalchemy.exc import IntegrityError
 from models.vocab import Vocab, UserWord, ReviewStatus, utc_now
 
 
+def _normalize_category(category: Optional[str]) -> Optional[str]:
+    if category is None:
+        return None
+    normalized = " ".join(category.strip().split()).lower()
+    return normalized or None
+
+
 class VocabRepository:
     """Repository for Vocab/UserWord database operations."""
 
@@ -69,13 +76,24 @@ class VocabRepository:
         user_id: int,
         vocab_id: int,
         status: Optional[Dict[str, Any]] = None,
+        category: Optional[str] = None,
     ) -> tuple[UserWord, bool]:
         """Return (user_word, created)."""
+        normalized_category = _normalize_category(category)
         existing = await self.get_user_word(user_id=user_id, vocab_id=vocab_id)
         if existing:
+            if normalized_category is not None and existing.category != normalized_category:
+                existing.category = normalized_category
+                await self.session.commit()
+                await self.session.refresh(existing)
             return existing, False
 
-        user_word = UserWord(user_id=user_id, word_id=vocab_id, status=status)
+        user_word = UserWord(
+            user_id=user_id,
+            word_id=vocab_id,
+            status=status,
+            category=normalized_category,
+        )
         self.session.add(user_word)
         try:
             await self.session.commit()
@@ -84,6 +102,10 @@ class VocabRepository:
             await self.session.rollback()
             existing = await self.get_user_word(user_id=user_id, vocab_id=vocab_id)
             if existing:
+                if normalized_category is not None and existing.category != normalized_category:
+                    existing.category = normalized_category
+                    await self.session.commit()
+                    await self.session.refresh(existing)
                 return existing, False
             raise
 
