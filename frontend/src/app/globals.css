@@ -1,0 +1,223 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* --- BẢNG MÀU KATLING BRAND (New Logo Version) --- */
+
+  /* 
+     BACKGROUND: 
+     Không dùng trắng tinh (1 0 0), dùng màu trắng ánh tím hồng cực nhẹ 
+     để tiệp với màu da mặt của mèo và tạo cảm giác ấm áp.
+  */
+  --background: oklch(0.99 0.005 310);
+  
+  /* 
+     FOREGROUND (Text): 
+     Dùng chính màu viền đậm của logo (Tím Mận đậm) thay vì màu đen.
+     Giúp giao diện mềm hơn và đồng bộ.
+  */
+  --foreground: oklch(0.35 0.1 310);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.35 0.1 310);
+  
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.35 0.1 310);
+
+  /* 
+     PRIMARY: Màu chữ "KATLING" trong logo.
+     Tím Grape đậm đà, độ bão hòa vừa phải.
+  */
+  --primary: oklch(0.55 0.18 310);
+  --primary-foreground: oklch(1 0 0); /* Chữ trắng trên nền tím */
+
+  /* 
+     SECONDARY: Mảng màu tím nhạt (Lavender) trên trán mèo.
+     Dùng cho các nút phụ, nền nhẹ.
+  */
+  --secondary: oklch(0.92 0.06 300);
+  --secondary-foreground: oklch(0.55 0.18 310);
+
+  /* 
+     ACCENT: Mảng màu xanh (Cyan) ở tai mèo.
+     Tươi mát, dùng để tạo điểm nhấn khác biệt với tone tím chủ đạo.
+  */
+  --accent: oklch(0.82 0.12 230);
+  --accent-foreground: oklch(0.35 0.1 310); /* Chữ tím đậm trên nền xanh */
+
+  /* Muted: Màu xám tím nhạt */
+  --muted: oklch(0.96 0.02 310);
+  --muted-foreground: oklch(0.6 0.05 310);
+
+  /* Destructive: Màu hồng/đỏ san hô (giống má hồng của mèo nhưng đậm hơn để cảnh báo) */
+  --destructive: oklch(0.65 0.18 15);
+  --destructive-foreground: oklch(1 0 0);
+
+  --border: oklch(0.92 0.03 310);
+  --input: oklch(0.92 0.03 310);
+  
+  /* Ring: Khi focus sẽ hiện màu Tím Primary */
+  --ring: oklch(0.55 0.18 310);
+
+  /* 
+     Chart Colors: Lấy palette từ chính logo
+     1: Tím Mận (Chữ)
+     2: Xanh Cyan (Tai)
+     3: Tím Lavender (Trán)
+     4: Hồng Phấn (Má)
+     5: Vàng kem (Màu bổ trợ)
+  */
+  --chart-1: oklch(0.55 0.18 310);
+  --chart-2: oklch(0.82 0.12 230);
+  --chart-3: oklch(0.85 0.1 300);
+  --chart-4: oklch(0.90 0.1 350); 
+  --chart-5: oklch(0.90 0.15 95);
+
+  /* 
+     RADIUS: 1rem (16px) hoặc hơn.
+     Style Duolingo/Gamification rất chuộng bo góc lớn để tạo sự dễ thương.
+  */
+  --radius: 1rem;
+  
+  /* Sidebar */
+  --sidebar: oklch(0.98 0.01 310);
+  --sidebar-foreground: oklch(0.35 0.1 310);
+  --sidebar-primary: oklch(0.55 0.18 310);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.92 0.06 300);
+  --sidebar-accent-foreground: oklch(0.55 0.18 310);
+  --sidebar-border: oklch(0.92 0.03 310);
+  --sidebar-ring: oklch(0.55 0.18 310);
+}
+
+.dark {
+  /* --- DARK MODE (Modern Slate) --- */
+  
+  /* 
+     BACKGROUND: 
+     Giảm Chroma (số thứ 2) từ 0.08 xuống 0.02.
+     Kết quả: Màu xám đen thẫm, rất lì, không bị ám tím.
+  */
+  --background: oklch(0.12 0.02 285);
+  
+  /* Foreground: Trắng ngà nhẹ, không chói */
+  --foreground: oklch(0.98 0.01 285);
+
+  /* Card: Sáng hơn nền một chút để tạo lớp (Layering) */
+  --card: oklch(0.17 0.02 285);
+  --card-foreground: oklch(0.98 0.01 285);
+  
+  --popover: oklch(0.17 0.02 285);
+  --popover-foreground: oklch(0.98 0.01 285);
+
+  /* 
+     PRIMARY DARK: 
+     Vẫn giữ màu tím thương hiệu nhưng tăng độ sáng (Lightness) lên 0.7 
+     để nó nổi bật rõ ràng trên nền tối.
+  */
+  --primary: oklch(0.7 0.18 310);
+  --primary-foreground: oklch(0.15 0.05 300);
+
+  /* Secondary: Màu xám đậm trung tính */
+  --secondary: oklch(0.25 0.03 285);
+  --secondary-foreground: oklch(0.98 0.01 285);
+
+  /* Accent: Màu Cyan sáng (Neon) cho dark mode */
+  --accent: oklch(0.75 0.15 230);
+  --accent-foreground: oklch(0.15 0.05 300);
+
+  /* Muted: Xám tối cho các phần phụ */
+  --muted: oklch(0.2 0.02 285);
+  --muted-foreground: oklch(0.7 0.02 285);
+
+  --destructive: oklch(0.6 0.18 15);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  /* Border: Màu xám tối, hòa vào nền */
+  --border: oklch(0.25 0.02 285);
+  --input: oklch(0.25 0.02 285);
+  
+  /* Ring: Vẫn giữ ánh tím khi focus */
+  --ring: oklch(0.6 0.15 310);
+
+  /* Chart Colors: Tươi sáng hơn để dễ nhìn trên nền đen */
+  --chart-1: oklch(0.7 0.18 310); /* Tím sáng */
+  --chart-2: oklch(0.75 0.15 230); /* Cyan sáng */
+  --chart-3: oklch(0.75 0.1 300);
+  --chart-4: oklch(0.8 0.12 350);
+  --chart-5: oklch(0.85 0.15 95);
+
+  --sidebar: oklch(0.14 0.02 285);
+  --sidebar-foreground: oklch(0.98 0.01 285);
+  --sidebar-primary: oklch(0.7 0.18 310);
+  --sidebar-primary-foreground: oklch(0.15 0.05 300);
+  --sidebar-accent: oklch(0.25 0.03 285);
+  --sidebar-accent-foreground: oklch(0.98 0.01 285);
+  --sidebar-border: oklch(0.25 0.02 285);
+  --sidebar-ring: oklch(0.6 0.15 310);
+}
+
+@theme inline {
+  --font-sans: var(--font-roboto), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: monospace;
+  
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  
+  /* Giữ bo góc lớn để tạo cảm giác thân thiện */
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
