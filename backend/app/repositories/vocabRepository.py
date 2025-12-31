@@ -5,7 +5,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
-from models.vocab import Vocab, UserWord
+from models.vocab import Vocab, UserWord, ReviewStatus, utc_now
 
 
 class VocabRepository:
@@ -103,3 +103,35 @@ class VocabRepository:
         self.session.delete(existing)
         await self.session.commit()
         return True
+
+    async def promote_user_word(self, user_id: int, vocab_id: int) -> UserWord:
+        """Promote review_status for a saved word to the next level.
+
+        Allowed transitions:
+        - NEWBIE -> SPECIALIST
+        - SPECIALIST -> EXPERT
+        - EXPERT -> MASTER
+        """
+
+        user_word = await self.get_user_word(user_id=user_id, vocab_id=vocab_id)
+        if not user_word:
+            raise LookupError("UserWord not found")
+
+        next_status_map: dict[ReviewStatus, ReviewStatus] = {
+            ReviewStatus.NEWBIE: ReviewStatus.SPECIALIST,
+            ReviewStatus.SPECIALIST: ReviewStatus.EXPERT,
+            ReviewStatus.EXPERT: ReviewStatus.MASTER,
+        }
+
+        next_status = next_status_map.get(user_word.review_status)
+        if not next_status:
+            raise ValueError("Cannot promote review_status from current status")
+
+        now = utc_now()
+        user_word.review_status = next_status
+        user_word.last_reviewed_at = now
+        user_word.next_reviewed_at = now
+
+        await self.session.commit()
+        await self.session.refresh(user_word)
+        return user_word

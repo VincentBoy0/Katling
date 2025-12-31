@@ -6,7 +6,7 @@ from core.firebase import init_firebase
 from database.session import create_db_and_tables
 
 from api import (
-    test, user, login, role, user_words
+    test, user, login, role, vocab
 )
 # from app.database import engine
 
@@ -31,7 +31,7 @@ app.include_router(test.router)
 app.include_router(user.router)
 app.include_router(role.router)
 app.include_router(login.router)
-app.include_router(user_words.router)
+app.include_router(vocab.router)
 #--------------------------------------------------------------------------------------------------
 
 # ------------------- Main -------------------

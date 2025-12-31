@@ -56,3 +56,31 @@ async def delete_user_word(
 
     await repo.delete_user_word_idempotent(user_id=current_user.id, vocab_id=vocab.id)
     return Response(status_code=204)
+
+
+@router.post("/{vocab_id}/promote", response_model=UserWordOut)
+async def promote_user_word(
+    vocab_id: int,
+    session: AsyncSession = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    """Promote review_status of a saved word to the next status.
+
+    Transitions allowed:
+    NEWBIE -> SPECIALIST -> EXPERT -> MASTER
+    """
+
+    repo = VocabRepository(session)
+
+    vocab = await repo.get_vocab_by_id(vocab_id)
+    if not vocab:
+        raise HTTPException(status_code=404, detail="Vocab not found")
+
+    try:
+        user_word = await repo.promote_user_word(user_id=current_user.id, vocab_id=vocab_id)
+    except LookupError:
+        raise HTTPException(status_code=404, detail="User word not found")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return user_word
