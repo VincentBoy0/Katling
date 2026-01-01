@@ -22,6 +22,7 @@ from schemas.lesson import (
 )
 from models.lesson import QuestionType
 from models.progress import ProgressStatus
+from models.user import ActivityType
 from schemas.topic import TopicProgressOut, TopicsResponse
 
 router = APIRouter(tags=["Learning"])
@@ -226,6 +227,12 @@ async def complete_section(
 			commit=False,
 		)
 		await user_repo.add_xp(current_user.id, amount=XP_PER_SECTION, commit=False)
+		await user_repo.log_xp_activity(
+			current_user.id,
+			activity_type=ActivityType.LESSON_COMPLETE,
+			xp_amount=XP_PER_SECTION,
+			commit=False,
+		)
 
 	_, is_streak_increased_today = await user_repo.update_streak_on_activity(current_user.id)
 

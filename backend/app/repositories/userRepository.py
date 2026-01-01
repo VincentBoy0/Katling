@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 from fastapi import Depends, HTTPException
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from models.user import User, UserPoints, UserRole, Role, RoleType, UserInfo
+from models.user import ActivityType, User, UserPoints, UserRole, Role, RoleType, UserInfo, UserXPLog
 from schemas.user import UserProfileUpdate, UserSignUp, UserUpdate, UserPointsUpdate, UserInfoUpdate
 from database.session import get_session
 import logging
@@ -342,6 +342,38 @@ class UserRepository:
             await self.session.flush()
 
         return user_point
+
+    async def log_xp_activity(
+        self,
+        user_id: int,
+        *,
+        activity_type: ActivityType,
+        xp_amount: int,
+        commit: bool = True,
+    ) -> UserXPLog:
+        """Insert a XP log entry.
+
+        When `commit=False`, this will only flush so callers can wrap multiple
+        updates in a single outer transaction.
+        """
+
+        if xp_amount == 0:
+            raise HTTPException(status_code=400, detail="XP amount must be non-zero")
+
+        log_row = UserXPLog(
+            user_id=user_id,
+            activity_type=activity_type,
+            xp_amount=xp_amount,
+        )
+        self.session.add(log_row)
+
+        if commit:
+            await self.session.commit()
+            await self.session.refresh(log_row)
+        else:
+            await self.session.flush()
+
+        return log_row
 
     async def update_user_point(self, user_id: int, form: dict) -> UserPoints:
         """Update user points (XP and streak).
