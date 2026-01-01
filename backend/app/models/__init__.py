@@ -1,1 +1,1 @@
-from . import user, lesson, vocab, friend, post, progress
+from . import user, lesson, vocab, friend, post, progress, report
