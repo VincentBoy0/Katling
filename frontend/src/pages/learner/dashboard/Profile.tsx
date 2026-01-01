@@ -1,6 +1,12 @@
 import type React from "react";
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+} from "firebase/auth";
+import { auth } from "@/config/firebase";
 
 import {
   Dialog,
@@ -23,6 +29,7 @@ import {
   Award,
   Calendar,
   Camera,
+  Check,
   Edit2,
   Flame,
   Lock,
@@ -30,6 +37,7 @@ import {
   Target,
   Trophy,
   Upload,
+  X,
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -84,6 +92,30 @@ const PRESET_AVATARS = [
   },
 ];
 
+// Password validation requirements
+const passwordRequirements = [
+  {
+    id: "length",
+    label: "Ít nhất 8 ký tự",
+    test: (pwd: string) => pwd.length >= 8,
+  },
+  {
+    id: "uppercase",
+    label: "Có ít nhất 1 chữ hoa",
+    test: (pwd: string) => /[A-Z]/.test(pwd),
+  },
+  {
+    id: "lowercase",
+    label: "Có ít nhất 1 chữ thường",
+    test: (pwd: string) => /[a-z]/.test(pwd),
+  },
+  {
+    id: "number",
+    label: "Có ít nhất 1 số",
+    test: (pwd: string) => /[0-9]/.test(pwd),
+  },
+];
+
 export default function ProfilePage() {
   const { user, updateUser } = useAuth();
 
@@ -97,6 +129,8 @@ export default function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   // Avatar States
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
@@ -136,15 +170,92 @@ export default function ProfilePage() {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      toast.error("Mật khẩu không khớp!");
+    setPasswordError("");
+
+    // Validate password requirements
+    const failedRequirements = passwordRequirements.filter(
+      (req) => !req.test(newPassword)
+    );
+    if (failedRequirements.length > 0) {
+      setPasswordError(
+        "Mật khẩu không đáp ứng yêu cầu: " +
+          failedRequirements.map((req) => req.label).join(", ")
+      );
+      toast.error("Mật khẩu không hợp lệ", {
+        description: failedRequirements.map((req) => req.label).join(", "),
+      });
       return;
     }
-    toast.success("Mật khẩu đã được thay đổi!");
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setShowPasswordDialog(false);
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Mật khẩu xác nhận không khớp");
+      toast.error("Mật khẩu xác nhận không khớp");
+      return;
+    }
+
+    setPasswordLoading(true);
+
+    try {
+      const currentUser = auth.currentUser;
+
+      if (!currentUser || !currentUser.email) {
+        throw new Error("Không tìm thấy thông tin người dùng");
+      }
+
+      // Re-authenticate user with current password
+      const credential = EmailAuthProvider.credential(
+        currentUser.email,
+        currentPassword
+      );
+
+      await reauthenticateWithCredential(currentUser, credential);
+
+      // Update password
+      await updatePassword(currentUser, newPassword);
+
+      toast.success("Đổi mật khẩu thành công!", {
+        description: "Mật khẩu của bạn đã được cập nhật.",
+      });
+
+      // Reset form
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowPasswordDialog(false);
+    } catch (err: any) {
+      console.error("Password change error:", err);
+
+      if (
+        err.code === "auth/wrong-password" ||
+        err.code === "auth/invalid-credential"
+      ) {
+        setPasswordError("Mật khẩu hiện tại không đúng");
+        toast.error("Mật khẩu hiện tại không đúng", {
+          description: "Vui lòng kiểm tra lại mật khẩu hiện tại của bạn.",
+        });
+      } else if (err.code === "auth/weak-password") {
+        setPasswordError(
+          "Mật khẩu mới quá yếu. Vui lòng chọn mật khẩu mạnh hơn."
+        );
+        toast.error("Mật khẩu quá yếu", {
+          description: "Vui lòng chọn mật khẩu mạnh hơn.",
+        });
+      } else if (err.code === "auth/requires-recent-login") {
+        setPasswordError(
+          "Phiên đăng nhập đã hết hạn. Vui lòng đăng xuất và đăng nhập lại."
+        );
+        toast.error("Phiên đăng nhập hết hạn", {
+          description: "Vui lòng đăng xuất và đăng nhập lại.",
+        });
+      } else {
+        setPasswordError("Có lỗi xảy ra. Vui lòng thử lại.");
+        toast.error("Có lỗi xảy ra", {
+          description: "Vui lòng thử lại sau.",
+        });
+      }
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
   const badges = [
@@ -544,30 +655,144 @@ export default function ProfilePage() {
       </Dialog>
 
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <DialogContent className="sm:max-w-md border-2 border-border">
+        <DialogContent className="sm:max-w-md border-2 border-border rounded-3xl p-6">
           <DialogHeader>
-            <DialogTitle>Đổi mật khẩu</DialogTitle>
+            <DialogTitle className="text-2xl font-black text-foreground">
+              Đổi mật khẩu
+            </DialogTitle>
+            <DialogDescription className="font-medium text-muted-foreground">
+              Nhập mật khẩu hiện tại và mật khẩu mới của bạn.
+            </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleChangePassword} className="space-y-4 pt-2">
-            <Input
-              type="password"
-              placeholder="Mật khẩu mới"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              className="border-2"
-            />
-            <Input
-              type="password"
-              placeholder="Nhập lại mật khẩu"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              className="border-2"
-            />
-            <Button type="submit" className="w-full font-bold shadow-sm">
-              Cập nhật
-            </Button>
+          <form onSubmit={handleChangePassword} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-muted-foreground">
+                Mật khẩu hiện tại
+              </label>
+              <Input
+                type="password"
+                placeholder="••••••••"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+                className="border-2 h-11"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-muted-foreground">
+                Mật khẩu mới
+              </label>
+              <Input
+                type="password"
+                placeholder="Ít nhất 8 ký tự"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                className="border-2 h-11"
+              />
+
+              {/* Password Requirements */}
+              {newPassword && (
+                <div className="mt-2 p-3 bg-muted/30 rounded-lg border border-border/50 space-y-2">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Yêu cầu mật khẩu:
+                  </p>
+                  {passwordRequirements.map((req) => {
+                    const isValid = req.test(newPassword);
+                    return (
+                      <div key={req.id} className="flex items-center gap-2">
+                        <div
+                          className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                            isValid
+                              ? "bg-green-500/20 text-green-600"
+                              : "bg-red-500/20 text-red-600"
+                          }`}
+                        >
+                          {isValid ? (
+                            <Check className="w-3 h-3" />
+                          ) : (
+                            <X className="w-3 h-3" />
+                          )}
+                        </div>
+                        <span
+                          className={`text-sm font-medium ${
+                            isValid ? "text-green-600" : "text-muted-foreground"
+                          }`}
+                        >
+                          {req.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-muted-foreground">
+                Nhập lại mật khẩu mới
+              </label>
+              <Input
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                className="border-2 h-11"
+              />
+
+              {/* Password Match Indicator */}
+              {confirmPassword && (
+                <div className="mt-2">
+                  {newPassword === confirmPassword ? (
+                    <div className="flex items-center gap-2 text-green-600">
+                      <Check className="w-4 h-4" />
+                      <span className="text-sm font-medium">Mật khẩu khớp</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-red-600">
+                      <X className="w-4 h-4" />
+                      <span className="text-sm font-medium">
+                        Mật khẩu không khớp
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {passwordError && (
+              <div className="bg-red-50 border-2 border-red-100 text-red-600 text-sm font-bold p-3 rounded-xl flex items-center gap-2">
+                <span className="shrink-0">⚠️</span>
+                {passwordError}
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setShowPasswordDialog(false);
+                  setPasswordError("");
+                  setCurrentPassword("");
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }}
+                className="flex-1 font-bold"
+                disabled={passwordLoading}
+              >
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1 font-bold shadow-sm"
+                disabled={passwordLoading}
+              >
+                {passwordLoading ? "Đang cập nhật..." : "Cập nhật"}
+              </Button>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
