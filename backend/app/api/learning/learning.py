@@ -6,6 +6,7 @@ from core.security import get_current_user
 from repositories.lessonRepository import LessonRepository
 from repositories.progressRepository import UserProgressRepository
 from repositories.topicRepository import TopicRepository
+from repositories.userRepository import UserRepository
 from schemas.learning import (
 	CompleteSectionRequest,
 	CompleteSectionResponse,
@@ -210,10 +211,13 @@ async def complete_section(
 		score=payload.score,
 	)
 
+	user_repo = UserRepository(session)
+	_, is_streak_increased_today = await user_repo.update_streak_on_activity(current_user.id)
+
 	return CompleteSectionResponse(
 		lesson_id=lesson_id,
 		section_id=section_id,
 		score=payload.score,
 		xp=50,
-		streak=None,
+		streak=1 if is_streak_increased_today else 0,
 	)

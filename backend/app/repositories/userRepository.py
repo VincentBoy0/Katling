@@ -1,3 +1,6 @@
+from datetime import datetime, timezone, timedelta
+from typing import Optional, Tuple
+
 from fastapi import Depends, HTTPException
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -264,6 +267,110 @@ class UserRepository:
         except Exception as e:
             logger.exception("Failed to update user points: %s", e)
             raise HTTPException(status_code=500, detail="Failed to update user points")
+
+    async def update_streak_on_activity(self, user_id: int) -> tuple[int, bool]:
+        """Update user's streak based on last_active_date.
+
+        Returns:
+            (current_streak, is_streak_increased_today)
+        """
+
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        user_point = await self.get_user_point(user_id)
+        if not user_point:
+            # Be defensive: create if missing
+            user_point = UserPoints(user_id=user_id, xp=0, streak=0)
+            self.session.add(user_point)
+            await self.session.commit()
+            await self.session.refresh(user_point)
+
+        now_utc = datetime.now(timezone.utc)
+        today = now_utc.date()
+
+        last_active = user.last_active_date
+        current_streak = int(user_point.streak or 0)
+
+        if last_active is None:
+            # Case 1: First time learning
+            current_streak = 1
+            user_point.streak = current_streak
+            user.last_active_date = now_utc
+            self.session.add(user)
+            self.session.add(user_point)
+            await self.session.commit()
+            return current_streak, True
+
+        # Normalize last_active to UTC date for comparison
+        if isinstance(last_active, datetime):
+            if last_active.tzinfo is not None:
+                last_active_date = last_active.astimezone(timezone.utc).date()
+            else:
+                last_active_date = last_active.date()
+        else:
+            last_active_date = last_active  # type: ignore[assignment]
+
+        if last_active_date == today:
+            # Case 2: already active today
+            return current_streak, False
+
+        if last_active_date == today - timedelta(days=1):
+            # Case 3: consecutive day
+            current_streak = current_streak + 1
+        else:
+            # Case 4: broken streak
+            current_streak = 1
+
+        user_point.streak = current_streak
+        user.last_active_date = now_utc
+        self.session.add(user)
+        self.session.add(user_point)
+        await self.session.commit()
+        return current_streak, True
+
+    async def reconcile_streak_on_read(
+        self,
+        *,
+        user_id: int,
+        last_active_date: Optional[datetime],
+    ) -> Tuple[int, bool]:
+        """Reconcile streak when user opens the app (read-time).
+
+        This keeps the database in sync even if the user hasn't completed a section
+        for multiple days.
+
+        Returns:
+            (effective_streak, is_streak_active_today)
+        """
+
+        today = datetime.now(timezone.utc).date()
+
+        if last_active_date is None:
+            last_active_utc_date = None
+        else:
+            if last_active_date.tzinfo is not None:
+                last_active_utc_date = last_active_date.astimezone(timezone.utc).date()
+            else:
+                last_active_utc_date = last_active_date.date()
+
+        is_active_today = last_active_utc_date == today
+        is_broken = last_active_utc_date is None or last_active_utc_date < (today - timedelta(days=1))
+
+        user_point = await self.get_user_point(user_id)
+        effective_streak = 0 if is_broken else (int(user_point.streak or 0) if user_point else 0)
+
+        if is_broken and user_point and int(user_point.streak or 0) != 0:
+            user_point.streak = 0
+            self.session.add(user_point)
+            try:
+                await self.session.commit()
+                await self.session.refresh(user_point)
+            except Exception:
+                await self.session.rollback()
+
+        return effective_streak, is_active_today
 
     async def ban_user(self, user_id: int) -> User:
         """Ban a user.

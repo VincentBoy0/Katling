@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from core.firebase import init_firebase
 from database.session import create_db_and_tables
 
-from api import test
+from api import test, home
 from api.general import auth, user, report as user_report
 from api.management import admin, moderator, report as manager_report
 from api.learning import learning, vocab, flashcard
@@ -34,6 +34,7 @@ app.include_router(test.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(user.router)
+app.include_router(home.router)
 app.include_router(vocab.router)
 app.include_router(learning.router)
 app.include_router(flashcard.router)
