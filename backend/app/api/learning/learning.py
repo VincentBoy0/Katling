@@ -27,6 +27,9 @@ from schemas.topic import TopicProgressOut, TopicsResponse
 router = APIRouter(tags=["Learning"])
 
 
+XP_PER_SECTION = 20
+
+
 @router.get("/topics", response_model=TopicsResponse)
 async def get_topics(
 	session: AsyncSession = Depends(get_session),
@@ -210,20 +213,26 @@ async def complete_section(
 	if not next_section or next_section.id != section_id:
 		raise HTTPException(status_code=403, detail="Section is not the next section")
 
-	await progress_repo.upsert_section_completed(
-		user_id=current_user.id,
-		lesson_id=lesson_id,
-		section_id=section_id,
-		score=payload.score,
-	)
-
 	user_repo = UserRepository(session)
+
+	# Atomically: mark progress completed + add XP.
+	# If anything fails, both changes are rolled back.
+	async with session.begin():
+		await progress_repo.upsert_section_completed(
+			user_id=current_user.id,
+			lesson_id=lesson_id,
+			section_id=section_id,
+			score=payload.score,
+			commit=False,
+		)
+		await user_repo.add_xp(current_user.id, amount=XP_PER_SECTION, commit=False)
+
 	_, is_streak_increased_today = await user_repo.update_streak_on_activity(current_user.id)
 
 	return CompleteSectionResponse(
 		lesson_id=lesson_id,
 		section_id=section_id,
 		score=payload.score,
-		xp=50,
+		xp=XP_PER_SECTION,
 		streak=1 if is_streak_increased_today else 0,
 	)

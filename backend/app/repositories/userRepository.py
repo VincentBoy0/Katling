@@ -315,6 +315,34 @@ class UserRepository:
             logger.exception("Failed to get user points: %s", e)
             raise HTTPException(status_code=500, detail="Failed to get user points")
 
+    async def add_xp(self, user_id: int, *, amount: int, commit: bool = True) -> UserPoints:
+        """Increment user's XP by `amount`.
+
+        When `commit=False`, this will only flush so callers can wrap multiple
+        updates in a single outer transaction.
+        """
+
+        if amount <= 0:
+            raise HTTPException(status_code=400, detail="XP amount must be positive")
+
+        user_point = await self.get_user_point(user_id)
+        if not user_point:
+            user_point = UserPoints(user_id=user_id, xp=0, streak=0)
+            self.session.add(user_point)
+            await self.session.flush()
+
+        current_xp = int(getattr(user_point, "xp", 0) or 0)
+        user_point.xp = current_xp + amount
+        self.session.add(user_point)
+
+        if commit:
+            await self.session.commit()
+            await self.session.refresh(user_point)
+        else:
+            await self.session.flush()
+
+        return user_point
+
     async def update_user_point(self, user_id: int, form: dict) -> UserPoints:
         """Update user points (XP and streak).
         
