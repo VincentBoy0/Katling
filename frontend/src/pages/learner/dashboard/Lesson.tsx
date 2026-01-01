@@ -1,77 +1,37 @@
-import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { learningService } from "@/services/learningService";
 import { useAuth } from "@/context/auth-context";
+import { Question, QuestionContent, AnswerSubmitResponse } from "@/types/learning";
+import { QuestionRenderer } from "@/components/learner/questionRenderer";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/learner/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/learner/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, } from "@/components/learner/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/learner/select";
 import { Textarea } from "@/components/learner/textarea";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  AlertCircle,
-  CheckCircle,
-  ChevronLeft,
-  ChevronRight,
-  Flag,
-  Mic,
-  Volume2,
-  X,
-} from "lucide-react";
+import { AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Flag, Loader2, Volume2, X, } from "lucide-react";
 
-// Mock Data
-const lessonContent = [
-  {
-    id: 1,
-    title: "Giới thiệu cơ bản",
-    type: "vocab",
-    items: [
-      { word: "Hello", meaning: "Xin chào", example: "Hello, how are you?" },
-      {
-        word: "Goodbye",
-        meaning: "Tạm biệt",
-        example: "Goodbye, see you later!",
-      },
-      {
-        word: "Thank you",
-        meaning: "Cảm ơn",
-        example: "Thank you for your help.",
-      },
-    ],
-  },
-  {
-    id: 2,
-    title: "Thực hành phát âm",
-    type: "pronunciation",
-    items: [
-      { word: "Apple", pronunciation: "/ˈæpəl/", meaning: "Quả táo" },
-      { word: "Book", pronunciation: "/bʊk/", meaning: "Cuốn sách" },
-      { word: "Cat", pronunciation: "/kæt/", meaning: "Con mèo" },
-    ],
-  },
-];
 
 export default function LessonPage() {
   const navigate = useNavigate();
   const params = useParams();
   const { updateUser, user } = useAuth();
 
+  // States
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [completed, setCompleted] = useState(false);
   const [score, setScore] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sectionId, setSectionId] = useState<number | null>(null);
+
+  // User answers tracking
+  const [userAnswers, setUserAnswers] = useState<Map<number, QuestionContent>>(new Map());
+  const [answerResults, setAnswerResults] = useState<Map<number, AnswerSubmitResponse>>(new Map());
 
   // Dialog States
   const [showBugReportDialog, setShowBugReportDialog] = useState(false);
@@ -79,21 +39,109 @@ export default function LessonPage() {
   const [bugReport, setBugReport] = useState("");
   const [bugType, setBugType] = useState("");
 
-  const lessonId = Number.parseInt(params.id as string);
-  const lesson =
-    lessonContent.find((l) => l.id === lessonId) || lessonContent[0];
-  const progressPercent = ((currentStep + 1) / lesson.items.length) * 100;
+  const lessonId = Number(params.id);
 
-  const handleComplete = () => {
+  // Fetch next section and questions when component mounts
+  useEffect(() => {
+    const loadLessonData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // 1. Get next section for this lesson
+        const nextSectionData = await learningService.getNextSection(lessonId);
+
+        if (nextSectionData.status === 'completed') {
+          // Lesson đã hoàn thành
+          alert(nextSectionData.message);
+          navigate('/dashboard/learn');
+          return;
+        }
+
+        if (!nextSectionData.section) {
+          throw new Error('Không tìm thấy section');
+        }
+
+        const section = nextSectionData.section;
+        setSectionId(section.id);
+
+        // 2. Get questions for this section
+        const questionsData = await learningService.getSectionQuestions(section.id);
+        setQuestions(questionsData.questions);
+
+      } catch (err: any) {
+        console.error('Error loading lesson:', err);
+        setError(err.response?.data?.detail || 'Không thể tải bài học');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (lessonId) {
+      loadLessonData();
+    }
+  }, [lessonId, navigate]);
+
+  const currentQuestion = questions[currentStep];
+  const progressPercent = questions.length > 0
+    ? ((currentStep + 1) / questions.length) * 100
+    : 0;
+
+  const handleAnswerSubmit = async (answer: QuestionContent) => {
+    if (!currentQuestion) return;
+
+    try {
+      setSubmitting(true);
+      const result = await learningService.submitAnswer(currentQuestion.id, answer);
+
+      // Save answer and result
+      setUserAnswers((prev) => new Map(prev).set(currentQuestion.id, answer));
+      setAnswerResults((prev) => new Map(prev).set(currentQuestion.id, result));
+
+      if (result.is_correct) {
+        console.log('Answer correct!');
+      } else {
+        console.log('Answer incorrect. Correct answer', result.correct_answer);
+      }
+    } catch (err: any) {
+      console.error('Error submitting answer:', err);
+      alert(err.response?.data?.detail || 'Lỗi khi gửi câu trả lời');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCompleted = () => {
+    // Calculate score based on correct answers
+    const correctCount = Array.from(answerResults.values()).filter(result => result.is_correct).length;
+    const calculatedScore = questions.length > 0
+      ? (correctCount / questions.length) * 100
+      : 0;
+
+    // Update user exp and energy
     const newExp = (user?.exp || 0) + 50;
     const newEnergy = Math.max(0, (user?.energy || 0) - 1);
     updateUser({ exp: newExp, energy: newEnergy });
-    setScore(80 + Math.random() * 20);
+
+    setScore(calculatedScore);
     setCompleted(true);
   };
 
   const handleContinue = () => {
     navigate("/dashboard/learn");
+  }
+
+  const handleNext = async () => {
+    if (!answerResults.has(currentQuestion.id)) {
+      alert("Vui lòng trả lời câu hỏi trước khi tiếp tục.");
+      return;
+    }
+
+    if (currentStep === questions.length - 1) {
+      handleCompleted();
+    } else {
+      setCurrentStep((i) => i + 1);
+    }
   };
 
   const handleBugReport = async (e: React.FormEvent) => {
@@ -103,16 +151,35 @@ export default function LessonPage() {
     setBugReport("");
     setBugType("");
     setShowBugReportDialog(false);
-  };
+  }
 
-  const handleRecordPronunciation = async () => {
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    alert("Phát âm của bạn: 85% chính xác. Rất tốt!");
-    setShowPronunciationWindow(false);
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground font-medium">Đang tải bài học...</p>
+        </div>
+      </div>
+    );
+  }
 
-  // --- MÀN HÌNH HOÀN THÀNH ---
-  if (completed) {
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <Card className="p-8 text-center max-w-md border-2 border-destructive/20">
+          <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Có lỗi xảy ra</h2>
+          <p className="text-muted-foreground mb-6">{error}</p>
+          <Button onClick={() => navigate('/dashboard/learn')}>
+            Quay lại
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+if (completed) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background p-4">
         <Card className="w-full max-w-md p-8 text-center border-2 border-green-200 dark:border-green-900 shadow-sm animate-in zoom-in-95 duration-300">
@@ -160,6 +227,14 @@ export default function LessonPage() {
     );
   }
 
+  if (!currentQuestion) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-muted-foreground">Không có câu hỏi nào</p>
+      </div>
+    );
+  }
+
   // --- MÀN HÌNH HỌC TẬP ---
   return (
     <div className="min-h-screen bg-background flex flex-col max-w-3xl mx-auto p-4 md:p-6">
@@ -174,7 +249,6 @@ export default function LessonPage() {
           <X className="w-6 h-6" />
         </Button>
 
-        {/* Thanh tiến độ lớn, bo tròn */}
         <div className="flex-1 h-4 bg-muted rounded-full overflow-hidden border border-border">
           <div
             className="h-full bg-green-500 transition-all duration-500 ease-out rounded-full"
@@ -182,7 +256,6 @@ export default function LessonPage() {
           />
         </div>
 
-        {/* Nút báo lỗi nhỏ gọn */}
         <Button
           variant="ghost"
           size="icon"
@@ -196,71 +269,18 @@ export default function LessonPage() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col justify-center mb-8">
         <h1 className="text-2xl md:text-3xl font-extrabold text-center mb-8 text-foreground">
-          {lesson.title}
+          Câu {currentStep + 1}/{questions.length}
         </h1>
 
         <Card className="p-8 md:p-12 border-2 border-border rounded-2xl shadow-sm min-h-[300px] flex flex-col justify-center items-center text-center bg-card">
-          {lesson.type === "vocab" && (
-            <div className="space-y-8 w-full">
-              <div className="space-y-2">
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
-                  Từ vựng mới
-                </p>
-                <h2 className="text-5xl md:text-6xl font-black text-primary drop-shadow-sm">
-                  {lesson.items[currentStep].word}
-                </h2>
-                <p className="text-2xl font-medium text-foreground/80 mt-4">
-                  {lesson.items[currentStep].meaning}
-                </p>
-              </div>
-
-              <div className="bg-secondary/20 p-6 rounded-xl border-2 border-secondary/30 inline-block max-w-lg mx-auto">
-                <p className="text-lg italic font-medium text-secondary-foreground">
-                  "{lesson.items[currentStep].example}"
-                </p>
-              </div>
-            </div>
-          )}
-
-          {lesson.type === "pronunciation" && (
-            <div className="space-y-8 w-full">
-              <div className="space-y-2">
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
-                  Luyện phát âm
-                </p>
-                <h2 className="text-5xl md:text-6xl font-black text-primary">
-                  {lesson.items[currentStep].word}
-                </h2>
-                <div className="flex items-center justify-center gap-3 mt-4">
-                  <span className="px-3 py-1 bg-muted rounded-lg font-mono text-lg font-medium text-muted-foreground border border-border">
-                    {lesson.items[currentStep].pronunciation}
-                  </span>
-                </div>
-                <p className="text-2xl font-medium text-foreground/80 mt-2">
-                  {lesson.items[currentStep].meaning}
-                </p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md mx-auto pt-4">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="flex-1 h-14 text-lg font-bold border-2 hover:bg-primary/5 hover:text-primary hover:border-primary/30"
-                >
-                  <Volume2 className="w-5 h-5 mr-2" />
-                  Nghe
-                </Button>
-                <Button
-                  size="lg"
-                  className="flex-1 h-14 text-lg font-bold shadow-sm"
-                  onClick={() => setShowPronunciationWindow(true)}
-                >
-                  <Mic className="w-5 h-5 mr-2" />
-                  Thu âm
-                </Button>
-              </div>
-            </div>
-          )}
+          {/* Render question based on type */}
+          <QuestionRenderer
+            question={currentQuestion}
+            onAnswerSubmit={handleAnswerSubmit}
+            currentAnswer={userAnswers.get(currentQuestion.id)}
+            answerResult={answerResults.get(currentQuestion.id)}
+            submitting={submitting}
+          />
         </Card>
       </main>
 
@@ -278,29 +298,29 @@ export default function LessonPage() {
             Trước
           </Button>
 
-          {currentStep === lesson.items.length - 1 ? (
-            <Button
-              size="lg"
-              onClick={handleComplete}
-              className="px-10 h-12 font-bold bg-green-500 hover:bg-green-600 text-white shadow-md hover:translate-y-0.5 active:translate-y-1 transition-all"
-            >
-              HOÀN THÀNH
-              <CheckCircle className="w-5 h-5 ml-2" />
-            </Button>
-          ) : (
-            <Button
-              size="lg"
-              onClick={() => setCurrentStep(currentStep + 1)}
-              variant="default"
-            >
-              Tiếp
-              <ChevronRight className="w-5 h-5 ml-2" />
-            </Button>
-          )}
+          <Button
+            size="lg"
+            onClick={handleNext}
+            disabled={submitting || !answerResults.has(currentQuestion.id)}
+            className={currentStep === questions.length - 1
+              ? "px-10 h-12 font-bold bg-green-500 hover:bg-green-600 text-white shadow-md hover:translate-y-0.5 active:translate-y-1 transition-all"
+            : ""
+            }
+          >
+            {currentStep === questions.length - 1 ? (
+              <>
+                HOÀN THÀNH
+                <CheckCircle className="w-5 h-5 ml-2" />
+              </>
+            ) : (
+              <>
+                Tiếp
+                <ChevronRight className="w-5 h-5 ml-2" />
+              </>
+            )}
+          </Button>
         </div>
       </footer>
-
-      {/* --- DIALOGS --- */}
 
       {/* Bug Report Dialog */}
       <Dialog open={showBugReportDialog} onOpenChange={setShowBugReportDialog}>
@@ -366,56 +386,6 @@ export default function LessonPage() {
               </Button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Pronunciation Dialog */}
-      <Dialog
-        open={showPronunciationWindow}
-        onOpenChange={setShowPronunciationWindow}
-      >
-        <DialogContent className="sm:max-w-md border-2 border-border text-center">
-          <DialogHeader>
-            <DialogTitle className="text-center text-xl font-bold">
-              Luyện phát âm
-            </DialogTitle>
-            <DialogDescription className="text-center">
-              Đọc to từ vựng sau đây
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="py-8 space-y-6">
-            <div className="space-y-2">
-              <h3 className="text-4xl font-black text-primary">
-                {lesson.items[currentStep].word}
-              </h3>
-              <p className="font-mono text-muted-foreground text-lg">
-                {lesson.items[currentStep].pronunciation}
-              </p>
-            </div>
-
-            <div
-              className="relative inline-flex group cursor-pointer"
-              onClick={handleRecordPronunciation}
-            >
-              <div className="absolute inset-0 bg-red-500 rounded-full opacity-20 animate-ping"></div>
-              <div className="relative w-24 h-24 bg-red-500 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 hover:bg-red-600">
-                <Mic className="w-10 h-10 text-white" />
-              </div>
-            </div>
-
-            <p className="text-sm font-bold text-muted-foreground animate-pulse">
-              Đang nghe...
-            </p>
-          </div>
-
-          <Button
-            variant="ghost"
-            className="w-full font-bold"
-            onClick={() => setShowPronunciationWindow(false)}
-          >
-            Đóng
-          </Button>
         </DialogContent>
       </Dialog>
     </div>
