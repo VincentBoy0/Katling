@@ -29,3 +29,15 @@ class NextSectionCompleted(BaseModel):
 
 
 NextSectionResponse = Union[NextSectionAvailable, NextSectionCompleted]
+
+
+class CompleteSectionRequest(BaseModel):
+    score: int = Field(..., ge=0, le=100, description="Score for the section (0-100)")
+
+
+class CompleteSectionResponse(BaseModel):
+    lesson_id: int = Field(..., description="Lesson ID")
+    section_id: int = Field(..., description="Section ID")
+    score: int = Field(..., description="Submitted score")
+    xp: int = Field(..., description="Earned XP")
+    streak: Optional[int] = Field(default=None, description="Current streak (if applicable)")
