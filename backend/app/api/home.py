@@ -28,6 +28,7 @@ async def get_summary(
     return {
         "streak": effective_streak,
         "is_streak_active_today": is_active_today,
+        "xp": int(getattr(user_point, "xp", 0) or 0),
         "energy": int(getattr(user_point, "energy", 0) or 0),
         "max_energy": user_repo.MAX_ENERGY,
     }
