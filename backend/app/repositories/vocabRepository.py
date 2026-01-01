@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Optional, Dict, Any
-from sqlmodel import select
+from sqlmodel import select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
@@ -81,6 +81,45 @@ class VocabRepository:
         )
         result = await self.session.exec(statement)
         return result.all()
+
+    async def list_flashcards(
+        self,
+        *,
+        user_id: int,
+        review_status: ReviewStatus | None = None,
+        category: str | None = None,
+    ) -> list[tuple[UserWord, Vocab]]:
+        statement = (
+            select(UserWord, Vocab)
+            .join(Vocab, UserWord.word_id == Vocab.id)
+            .where(UserWord.user_id == user_id)
+        )
+
+        if review_status is not None:
+            statement = statement.where(UserWord.review_status == review_status)
+
+        normalized_category = _normalize_category(category)
+        if normalized_category is not None:
+            statement = statement.where(UserWord.category == normalized_category)
+
+        result = await self.session.exec(statement)
+        return result.all()
+
+    async def touch_last_reviewed_at(self, *, user_id: int, user_word_ids: list[int]) -> int:
+        if not user_word_ids:
+            return 0
+
+        now = utc_now()
+        statement = (
+            update(UserWord)
+            .where(UserWord.user_id == user_id)
+            .where(UserWord.id.in_(user_word_ids))
+            .values(last_reviewed_at=now)
+        )
+
+        result = await self.session.exec(statement)
+        await self.session.commit()
+        return int(getattr(result, "rowcount", 0) or 0)
 
     async def list_user_words_with_vocab(self, user_id: int) -> list[dict[str, Any]]:
         statement = (

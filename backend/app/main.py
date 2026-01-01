@@ -8,7 +8,7 @@ from database.session import create_db_and_tables
 from api import test
 from api.general import auth, user
 from api.management import admin, moderator
-from api.learning import learning, vocab
+from api.learning import learning, vocab, flashcard
 
 
 # from app.database import engine
@@ -36,6 +36,7 @@ app.include_router(admin.router)
 app.include_router(user.router)
 app.include_router(vocab.router)
 app.include_router(learning.router)
+app.include_router(flashcard.router)
 #--------------------------------------------------------------------------------------------------
 
 # ------------------- Main -------------------
