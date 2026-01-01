@@ -31,6 +31,9 @@ import AdminDashboard from "@/pages/admin/Dashboard";
 
 /* Moderator */
 import ModeratorDashboard from "@/pages/moderator/Dashboard";
+import ForgotPasswordPage from "@/pages/learner/forgot-password/ForgotPassword";
+import ResetPasswordPage from "@/pages/learner/forgot-password/Reset";
+import ActionHandler from "@/pages/learner/forgot-password/ActionHandler";
 
 export const router = createBrowserRouter([
   {
@@ -41,6 +44,9 @@ export const router = createBrowserRouter([
       { path: "/login", element: <LogIn /> },
       { path: "/signup", element: <SignUp /> },
       { path: "/verify", element: <Verify /> },
+      { path: "/forgot-password", element: <ForgotPasswordPage /> },
+      { path: "/forgot-password/reset", element: <ResetPasswordPage /> },
+      { path: "/auth/action", element: <ActionHandler /> },
 
       /* ========== LEARNER ========== */
       {
