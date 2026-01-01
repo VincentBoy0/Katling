@@ -1,0 +1,58 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Any, Dict, Optional
+
+from pydantic import BaseModel, Field
+
+
+class SaveVocabRequest(BaseModel):
+    word: str = Field(..., description="Word to save")
+    definition: Dict[str, Any] = Field(..., description="Definition payload for vocab")
+    audio_url: Optional[str] = Field(default=None, description="Audio URL for vocab")
+    phonetic: Optional[str] = Field(default=None, description="Phonetic for vocab")
+    category: Optional[str] = Field(default=None, description="Category for user's saved word")
+
+
+class UserWordOut(BaseModel):
+    id: int
+    user_id: int
+    vocab_id: int = Field(..., alias="word_id")
+    category: Optional[str] = None
+    status: Optional[Dict[str, Any]] = None
+    review_status: str
+    last_reviewed_at: datetime
+    next_reviewed_at: datetime
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+        allow_population_by_field_name = True
+
+
+class UserWordWithVocabOut(BaseModel):
+    id: int
+    user_id: int
+    vocab_id: int = Field(..., alias="word_id")
+    category: Optional[str] = None
+    status: Optional[Dict[str, Any]] = None
+    review_status: str
+    last_reviewed_at: datetime
+    next_reviewed_at: datetime
+    created_at: datetime
+
+    word: str
+    definition: Optional[Dict[str, Any]] = None
+    audio_url: Optional[str] = None
+    phonetic: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+        allow_population_by_field_name = True
+
+
+class VocabSearchResponse(BaseModel):
+    word: str
+    definition: Dict[str, list[str]]
+    audio_url: Optional[str] = None
+    phonetic: Optional[str] = None

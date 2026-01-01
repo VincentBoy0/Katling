@@ -13,10 +13,9 @@ def utc_now() -> datetime:
 
 
 class ReviewStatus(str, Enum):
-    NEWBIE = "NEWBIE"
-    SPECIALIST = "SPECIALIST"
-    EXPERT = "EXPERT"
-    MASTER = "MASTER"
+    NEW = "NEW"
+    LEARNING = "LEARNING"
+    MASTERED = "MASTERED"
 
 
 class Vocab(SQLModel, table=True):
@@ -32,10 +31,14 @@ class Vocab(SQLModel, table=True):
         default=None,
         max_length=512,
     )
-    review_status: ReviewStatus = Field(
-        sa_column=Column(SAEnum(ReviewStatus, name="review_status_enum")), 
-        default=ReviewStatus.NEWBIE, 
+    phonetic: Optional[str] = Field(
+        default=None,
+        max_length=255,
     )
+    # review_status: ReviewStatus = Field(
+    #     sa_column=Column(SAEnum(ReviewStatus, name="review_status_enum")), 
+    #     default=ReviewStatus.NEW,
+    # )
     created_at: datetime = Field(
         default_factory=utc_now,
         sa_column=Column(DateTime(timezone=True), server_default=text("now()")),
@@ -53,13 +56,14 @@ class UserWord(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
     word_id: int = Field(foreign_key="vocabs.id", ondelete="CASCADE", index=True)
+    category: Optional[str] = Field(default=None, max_length=255)
     status: Optional[Dict[str, Any]] = Field(
         default=None,
         sa_column=Column(JSONB, nullable=True),
     )
     review_status: ReviewStatus = Field(
         sa_column=Column(SAEnum(ReviewStatus, name="review_status_enum")), 
-        default=ReviewStatus.NEWBIE
+        default=ReviewStatus.NEW
     )
     last_reviewed_at: datetime = Field(
         default_factory=utc_now, 

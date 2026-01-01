@@ -1,14 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from database.session import get_session
-from core.security import decode_id_token
-from schemas.user import UserCreate, UserInfo
+from core.security import decode_id_token, verify_firebase_token
+
 from repositories.userRepository import UserRepository
 
-router = APIRouter(prefix="/login", tags=["Login"])
+from schemas.user import TraditionalSignUp, UserCreate
 
-@router.post("/")
+router = APIRouter(prefix="/auth", tags=["Auth"])
+
+@router.post("/login")
 async def login(
     token: str,
     session: AsyncSession = Depends(get_session)
@@ -21,7 +23,6 @@ async def login(
         raise HTTPException(status_code=400, detail="Missing email or uid from Firebase token")
 
     user_repo = UserRepository(session)
-
     user = await user_repo.get_user_by_firebase_uid(firebase_uid)
 
     if not user:
@@ -36,3 +37,4 @@ async def login(
         "user": user,
         "firebase": decoded
     }
+
