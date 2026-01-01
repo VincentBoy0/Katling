@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
 
-export default function Login() {
+export default function AdminLogin() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -27,9 +27,7 @@ export default function Login() {
           <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
             <ShieldCheck className="w-6 h-6 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Moderator Portal
-          </h1>
+          <h1 className="text-2xl font-bold text-foreground">Admin Portal</h1>
           <p className="text-sm text-muted-foreground mt-2">
             Đăng nhập để quản lý hệ thống
           </p>

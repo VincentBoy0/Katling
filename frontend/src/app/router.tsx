@@ -31,6 +31,7 @@ import AdminDashboard from "@/pages/admin/Dashboard";
 
 /* Moderator */
 import ModeratorDashboard from "@/pages/moderator/Dashboard";
+import AdminLogin from "@/pages/admin/AdminLogIn";
 
 export const router = createBrowserRouter([
   {
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
       { path: "/login", element: <LogIn /> },
       { path: "/signup", element: <SignUp /> },
       { path: "/verify", element: <Verify /> },
+      { path: "/admin/login", element: <AdminLogin /> },
 
       /* ========== LEARNER ========== */
       {
