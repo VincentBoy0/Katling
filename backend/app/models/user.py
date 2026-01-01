@@ -16,7 +16,7 @@ class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     firebase_uid: Optional[str] = Field(default=None, max_length=255, index=True, unique=True)
     email: Optional[str] = Field(default=None, max_length=255, unique=True, index=True)
-    username: Optional[str] = Field(default="User", max_length=150, unique=True, index=True)
+    username: Optional[str] = Field(default="User", max_length=150)
     is_banned: bool = Field(default=False)
     last_active_date: Optional[datetime] = Field(
         default=None, 
