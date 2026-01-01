@@ -46,30 +46,10 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
     )
 
-    # Create topics table
-    op.create_table(
-        "topics",
-        sa.Column("id", sa.Integer(), primary_key=True, nullable=False),
-        sa.Column("name", sa.String(length=255), nullable=False),
-        sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("order_index", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-    )
-
-    # Create Lesson enum and lessons table
-    op.create_table(
-        "lessons",
-        sa.Column("id", sa.Integer(), primary_key=True, nullable=False),
-        sa.Column("topic_id", sa.Integer(), sa.ForeignKey("topics.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("type", sa.Enum("READING", "LISTENING", "GRAMMAR", name="lessontype"), nullable=False),
-        sa.Column("title", sa.String(length=150), nullable=False),
-        sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("audio_url", sa.String(length=512), nullable=True),
-        sa.Column("image_url", sa.String(length=512), nullable=True),
-        sa.Column("content", sa.JSON(), nullable=True),
-        sa.Column("order_index", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-    )
+    # NOTE:
+    # `topics` and `lessons` are created later in revision 6231d684203c.
+    # Keeping them out of the initial migration avoids duplicate-table errors
+    # when running `alembic upgrade head` from scratch.
 
     # Create user_roles table (FKs to users and roles)
     op.create_table(
@@ -85,16 +65,10 @@ def downgrade() -> None:
     """Downgrade schema."""
     # Drop tables in reverse dependency order
     op.drop_table("user_roles")
-    op.drop_table("lessons")
-    op.drop_table("topics")
     op.drop_table("users")
     op.drop_table("roles")
 
     # Drop ENUM types if they exist (PostgreSQL)
-    try:
-        op.execute("DROP TYPE IF EXISTS lessontype")
-    except Exception:
-        pass
     try:
         op.execute("DROP TYPE IF EXISTS roletype")
     except Exception:
