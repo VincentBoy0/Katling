@@ -6,7 +6,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from core.security import get_current_user
 from database.session import get_session
 from repositories.vocabRepository import VocabRepository
-from schemas.vocab import SaveVocabRequest, UserWordOut, VocabSearchResponse
+from schemas.vocab import SaveVocabRequest, UserWordOut, UserWordWithVocabOut, VocabSearchResponse
 from services.dictionary_service import (
     DictionaryUpstreamError,
     DictionaryWordNotFoundError,
@@ -33,7 +33,7 @@ async def search_vocab(word: str):
     return payload
 
 
-@router.get("/user-words", response_model=list[UserWordOut], tags=["UserWords"])
+@router.get("/user-words", response_model=list[UserWordWithVocabOut], tags=["UserWords"])
 async def list_user_words(
     session: AsyncSession = Depends(get_session),
     current_user=Depends(get_current_user),
@@ -41,7 +41,7 @@ async def list_user_words(
     """List all saved words of the current user."""
 
     repo = VocabRepository(session)
-    return await repo.list_user_words(user_id=current_user.id)
+    return await repo.list_user_words_with_vocab(user_id=current_user.id)
 
 
 @router.post("/user-words", response_model=UserWordOut, tags=["UserWords"])
@@ -61,6 +61,7 @@ async def save_user_word(
             word=payload.word,
             definition=payload.definition,
             audio_url=payload.audio_url,
+            phonetic=payload.phonetic,
         )
 
     user_word, created = await repo.save_user_word_idempotent(
