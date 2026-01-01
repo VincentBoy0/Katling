@@ -18,6 +18,83 @@ class UserRepository:
 
     MAX_ENERGY: int = 30
     ENERGY_REGEN_INTERVAL: timedelta = timedelta(minutes=10)
+
+    @staticmethod
+    def _normalize_energy_last_update(last_update: datetime, *, now_utc: datetime) -> datetime:
+        if last_update.tzinfo is None:
+            return last_update.replace(tzinfo=timezone.utc)
+        return last_update.astimezone(timezone.utc)
+
+    def _apply_energy_regen(
+        self,
+        *,
+        energy: int,
+        last_update_utc: datetime,
+        now_utc: datetime,
+    ) -> tuple[int, datetime, bool]:
+        """Return (new_energy, new_last_update, did_regen)."""
+
+        if energy < 0:
+            energy = 0
+        if energy >= self.MAX_ENERGY:
+            # Full energy does not advance last_update.
+            return self.MAX_ENERGY, last_update_utc, False
+
+        elapsed_seconds = (now_utc - last_update_utc).total_seconds()
+        if elapsed_seconds <= 0:
+            return energy, last_update_utc, False
+
+        interval_seconds = self.ENERGY_REGEN_INTERVAL.total_seconds()
+        regen_units = int(elapsed_seconds // interval_seconds)
+        if regen_units <= 0:
+            return energy, last_update_utc, False
+
+        applied_units = min(regen_units, self.MAX_ENERGY - energy)
+        if applied_units <= 0:
+            return energy, last_update_utc, False
+
+        return (
+            energy + applied_units,
+            last_update_utc + applied_units * self.ENERGY_REGEN_INTERVAL,
+            True,
+        )
+
+    async def regen_energy_if_needed(self, user_id: int) -> UserPoints:
+        """Lazily regenerate energy for a user.
+
+        - Does not consume energy
+        - Persists changes only when regen actually occurs (or row is created)
+        """
+
+        user_point = await self.get_user_point(user_id)
+        if not user_point:
+            user_point = UserPoints(user_id=user_id)
+            self.session.add(user_point)
+            await self.session.commit()
+            await self.session.refresh(user_point)
+            return user_point
+
+        now_utc = datetime.now(timezone.utc)
+
+        current_energy = int(getattr(user_point, "energy", 0) or 0)
+        last_update = getattr(user_point, "last_energy_update", None) or now_utc
+        last_update_utc = self._normalize_energy_last_update(last_update, now_utc=now_utc)
+
+        new_energy, new_last_update, did_regen = self._apply_energy_regen(
+            energy=current_energy,
+            last_update_utc=last_update_utc,
+            now_utc=now_utc,
+        )
+
+        if not did_regen:
+            return user_point
+
+        user_point.energy = new_energy
+        user_point.last_energy_update = new_last_update
+        self.session.add(user_point)
+        await self.session.commit()
+        await self.session.refresh(user_point)
+        return user_point
     
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -359,25 +436,15 @@ class UserRepository:
         now_utc = datetime.now(timezone.utc)
 
         current_energy = int(getattr(user_point, "energy", 0) or 0)
-        if current_energy < 0:
-            current_energy = 0
-
         last_update = getattr(user_point, "last_energy_update", None) or now_utc
-        if isinstance(last_update, datetime) and last_update.tzinfo is None:
-            last_update = last_update.replace(tzinfo=timezone.utc)
-        else:
-            last_update = last_update.astimezone(timezone.utc)
+        last_update_utc = self._normalize_energy_last_update(last_update, now_utc=now_utc)
 
-        # Incremental regen: floor(elapsed / 10 minutes)
-        elapsed_seconds = max(0.0, (now_utc - last_update).total_seconds())
-        interval_seconds = self.ENERGY_REGEN_INTERVAL.total_seconds()
-        regen_units = int(elapsed_seconds // interval_seconds)
-
-        if regen_units > 0 and current_energy < self.MAX_ENERGY:
-            applied_units = min(regen_units, self.MAX_ENERGY - current_energy)
-            if applied_units > 0:
-                current_energy += applied_units
-                last_update = last_update + applied_units * self.ENERGY_REGEN_INTERVAL
+        # Regen (no commits here)
+        current_energy, last_update_utc, _ = self._apply_energy_regen(
+            energy=current_energy,
+            last_update_utc=last_update_utc,
+            now_utc=now_utc,
+        )
 
         # Single validation
         if current_energy < cost:
@@ -388,10 +455,9 @@ class UserRepository:
 
         # Consume updates last_energy_update
         current_energy -= cost
-        last_update = now_utc
-
         user_point.energy = current_energy
-        user_point.last_energy_update = last_update
+        user_point.last_energy_update = now_utc
+
         self.session.add(user_point)
         await self.session.commit()
         await self.session.refresh(user_point)
