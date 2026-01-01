@@ -16,9 +16,7 @@ class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     firebase_uid: Optional[str] = Field(default=None, max_length=255, index=True, unique=True)
     email: Optional[str] = Field(default=None, max_length=255, unique=True, index=True)
-    username: Optional[str] = Field(default=None, max_length=150, unique=True, index=True)
-    xp: Optional[int] = Field(default=0)
-    streak: Optional[int] = Field(default=0)
+    username: Optional[str] = Field(default="User", max_length=150, unique=True, index=True)
     is_banned: bool = Field(default=False)
     last_active_date: Optional[datetime] = Field(
         default=None, 
@@ -28,6 +26,16 @@ class User(SQLModel, table=True):
         default_factory=utc_now, 
         sa_column=Column(DateTime(timezone=True), server_default=text("now()"))
     )
+
+
+class UserPoints(SQLModel, table=True):
+    __tablename__ = "user_points"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
+    xp: Optional[int] = Field(default=0)
+    streak: Optional[int] = Field(default=0)
+
 
 
 class RoleType(str, Enum):

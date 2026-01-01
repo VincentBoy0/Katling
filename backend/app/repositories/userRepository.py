@@ -1,8 +1,8 @@
 from fastapi import Depends, HTTPException
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from models.user import User, UserRole, Role, RoleType, UserInfo
-from schemas.user import UserProfileUpdate, UserSignUp, UserUpdate, UserRoleSchemas
+from models.user import User, UserPoints, UserRole, Role, RoleType, UserInfo
+from schemas.user import UserProfileUpdate, UserSignUp, UserUpdate, UserPointsUpdate, UserInfoUpdate
 from database.session import get_session
 import logging
 
@@ -56,6 +56,8 @@ class UserRepository:
                 # create an empty user profile row linked to the user
                 user_info = UserInfo(user_id=user.id)
                 self.session.add(user_info)
+                user_point = UserPoints(user_id=user.id)
+                self.session.add(user_point)
             else:
                 async with self.session.begin():
                     self.session.add(user)
@@ -65,6 +67,8 @@ class UserRepository:
                     # create an empty user profile row linked to the user
                     user_info = UserInfo(user_id=user.id)
                     self.session.add(user_info)
+                    user_point = UserPoints(user_id=user.id)
+                    self.session.add(user_point)
 
             # refresh user instance after commit/flush
             await self.session.commit()
@@ -172,30 +176,32 @@ class UserRepository:
         return user
     
     
-
-    async def update_user_info(self, user_id: int, data: dict) -> UserInfo:
-        """Create or update a UserInfo row for the given user_id.
+    async def update_user_info(self, user_id: int, data: UserInfoUpdate) -> UserInfo:
+        """Update a UserInfo row for the given user_id.
 
         Args:
             user_id: ID of the user whose profile to update
-            user_info: Partial update data (only provided fields will be applied)
+            data: UserInfoUpdate schema with partial update data (only provided fields will be applied)
 
         Returns:
-            The created or updated UserInfo instance
+            The updated UserInfo instance
 
         Raises:
-            HTTPException: If the operation fails
+            HTTPException: If user not found or operation fails
         """
         # fetch existing profile
         stmt = select(UserInfo).where(UserInfo.user_id == user_id)
         result = await self.session.exec(stmt)
         profile = result.first()
 
-        update_fields = {k: v for k, v in data.items() if v is not None}
+        if not profile:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        # update_fields = {k: v for k, v in data.dict(exclude_unset=True).items() if v is not None}
 
         try:
             # update only provided fields
-            for field, value in update_fields.items():
+            for field, value in data.items():
                 setattr(profile, field, value)
 
             self.session.add(profile)
@@ -206,6 +212,59 @@ class UserRepository:
             logger.exception("Failed to update user_info: %s", e)
             raise HTTPException(status_code=500, detail="Failed to update user info")
     
+    async def get_user_point(self, user_id: int) -> UserPoints:
+        """Get user points (XP and streak) by user ID.
+        
+        Args:
+            user_id: ID of the user
+            
+        Returns:
+            UserPoints instance or None if not found
+            
+        Raises:
+            HTTPException: If query fails
+        """
+        try:
+            stmt = select(UserPoints).where(UserPoints.user_id == user_id)
+            result = await self.session.exec(stmt)
+            return result.first()
+        except Exception as e:
+            logger.exception("Failed to get user points: %s", e)
+            raise HTTPException(status_code=500, detail="Failed to get user points")
+
+    async def update_user_point(self, user_id: int, form: dict) -> UserPoints:
+        """Update user points (XP and streak).
+        
+        Args:
+            user_id: ID of the user
+            form: Dictionary containing fields to update (xp, streak)
+            
+        Returns:
+            Updated UserPoints instance
+            
+        Raises:
+            HTTPException: If user not found or update fails
+        """
+        try:
+            user_point = await self.get_user_point(user_id)
+            if not user_point:
+                raise HTTPException(status_code=404, detail="User points not found")
+            
+            # Update only provided fields
+            update_data = {k: v for k, v in form.items() if v is not None}
+            for field, value in update_data.items():
+                setattr(user_point, field, value)
+            
+            self.session.add(user_point)
+            await self.session.commit()
+            await self.session.refresh(user_point)
+            return user_point
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception("Failed to update user points: %s", e)
+            raise HTTPException(status_code=500, detail="Failed to update user points")
+
     async def ban_user(self, user_id: int) -> User:
         """Ban a user.
 

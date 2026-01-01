@@ -127,3 +127,28 @@ class UserProfileUpdate(BaseModel):
     class Config:
         extra = "forbid"
 
+class UserInfoUpdate(BaseModel):
+    """Schema for updating user profile information (UserInfo table)."""
+    first_name: Optional[str] = Field(default=None, max_length=100, description="First name")
+    last_name: Optional[str] = Field(default=None, max_length=100, description="Last name")
+    full_name: Optional[str] = Field(default=None, max_length=255, description="Full name")
+    date_of_birth: Optional[date] = Field(default=None, description="Date of birth")
+    sex: Optional[Sex] = Field(default=None, description="Sex")
+    phone: Optional[str] = Field(default=None, max_length=32, description="Phone number")
+    email_alternate: Optional[EmailStr] = Field(default=None, description="Alternate email")
+    country: Optional[str] = Field(default=None, max_length=100, description="Country")
+    city: Optional[str] = Field(default=None, max_length=100, description="City")
+    address: Optional[str] = Field(default=None, max_length=255, description="Address")
+    bio: Optional[str] = Field(default=None, description="Short biography")
+
+    class Config:
+        extra = "forbid"  # Reject unknown fields
+
+class UserPointsUpdate(BaseModel):
+    """Schema for updating user points (XP and streak)."""
+    xp: Optional[int] = Field(default=None, ge=0, description="Experience points")
+    streak: Optional[int] = Field(default=None, ge=0, description="Streak count")
+
+    class Config:
+        extra = "forbid"  # Reject unknown fields
+
