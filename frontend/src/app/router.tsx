@@ -31,7 +31,6 @@ import AdminDashboard from "@/pages/admin/Dashboard";
 
 /* Moderator */
 import ModeratorDashboard from "@/pages/moderator/Dashboard";
-import ModeratorDashboard from "@/pages/moderator/Dashboard";
 import ForgotPasswordPage from "@/pages/learner/forgot-password/ForgotPassword";
 import ResetPasswordPage from "@/pages/learner/forgot-password/Reset";
 import ActionHandler from "@/pages/learner/forgot-password/ActionHandler";
