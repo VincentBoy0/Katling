@@ -1,15 +1,14 @@
-"use client";
-
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
+
+import { Input } from "@/components/learner/input";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Lock, Check, Loader2, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock } from "lucide-react";
 import { toast } from "sonner"; // Nhớ cài sonner nếu chưa có
 
 export default function ResetPasswordPage() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -38,7 +37,7 @@ export default function ResetPasswordPage() {
         description: "Bây giờ bạn có thể đăng nhập bằng mật khẩu mới.",
       });
 
-      router.push("/signin");
+      navigate("/login");
     } catch (err) {
       toast.error("Có lỗi xảy ra, vui lòng thử lại.");
     } finally {

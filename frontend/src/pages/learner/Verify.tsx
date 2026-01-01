@@ -1,41 +1,60 @@
 import type React from "react";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
-import { Mail, ArrowRight, Loader2, RotateCw } from "lucide-react";
-import { toast } from "sonner"; // Nhớ cài Toaster ở layout gốc
+import { Card } from "@/components/learner/card";
+import { Button } from "@/components/learner/button";
+import { Mail, ArrowRight, Loader2, RotateCw, CheckCircle } from "lucide-react";
+import { toast } from "sonner";
+import { useAuth } from "@/context/auth-context";
 
 export default function VerifyPage() {
   const navigate = useNavigate();
-  const [otp, setOtp] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [searchParams] = useSearchParams();
+  const email = searchParams.get("email") || "your email";
+  const { isEmailVerified, resendVerificationEmail, isAuthenticated } =
+    useAuth();
+  const [isResending, setIsResending] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
-  const handleVerify = async () => {
-    if (otp.length < 6) return;
+  // Check if email is verified and redirect
+  useEffect(() => {
+    if (isEmailVerified && isAuthenticated) {
+      toast.success("Email đã được xác minh!", {
+        description: "Chào mừng bạn đến với Katling.",
+      });
+      navigate("/dashboard");
+    }
+  }, [isEmailVerified, isAuthenticated, navigate]);
 
-    setIsLoading(true);
-    // Giả lập call API
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+  // Countdown timer for resend button
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
 
-    toast.success("Xác minh thành công!", {
-      description: "Chào mừng bạn đến với Katling.",
-    });
-
-    // Chuyển sang trang điền thông tin bổ sung
-    navigate("/onboarding");
+  const handleResend = async () => {
+    setIsResending(true);
+    try {
+      await resendVerificationEmail();
+      toast.success("Đã gửi lại email!", {
+        description: "Vui lòng kiểm tra hộp thư của bạn.",
+      });
+      setCountdown(60); // 60 seconds cooldown
+    } catch (error) {
+      toast.error("Không thể gửi email", {
+        description: "Vui lòng thử lại sau.",
+      });
+    } finally {
+      setIsResending(false);
+    }
   };
 
-  const handleResend = () => {
-    toast.info("Đã gửi lại mã", {
-      description: "Vui lòng kiểm tra hộp thư của bạn.",
-    });
+  const handleOpenEmail = () => {
+    // Try to open email client
+    window.open("https://mail.google.com", "_blank");
   };
 
   return (
@@ -49,55 +68,47 @@ export default function VerifyPage() {
         <h1 className="text-3xl font-black text-foreground mb-2">
           Kiểm tra Email
         </h1>
-        <p className="text-muted-foreground font-medium mb-8">
-          Chúng tôi đã gửi mã xác minh gồm 6 số đến{" "}
-          <span className="text-foreground font-bold">user@example.com</span>
+        <p className="text-muted-foreground font-medium mb-4">
+          Chúng tôi đã gửi link xác minh đến{" "}
+          <span className="text-foreground font-bold">{email}</span>
         </p>
-
-        {/* Input OTP */}
-        <div className="flex justify-center mb-8">
-          <InputOTP
-            maxLength={6}
-            value={otp}
-            onChange={(value) => setOtp(value)}
-          >
-            <InputOTPGroup className="gap-2 rounded-none">
-              {[0, 1, 2, 3, 4, 5].map((index) => (
-                <InputOTPSlot
-                  key={index}
-                  index={index}
-                  className="w-12 h-14 text-2xl font-black border-2 border-border rounded-xl! focus:border-primary focus:ring-primary/20 bg-muted/20"
-                />
-              ))}
-            </InputOTPGroup>
-          </InputOTP>
-        </div>
+        <p className="text-sm text-muted-foreground mb-8">
+          Nhấn vào link trong email để xác minh tài khoản của bạn.
+        </p>
 
         {/* Actions */}
         <div className="space-y-3">
           <Button
-            onClick={handleVerify}
-            disabled={otp.length < 6 || isLoading}
-            className="w-full h-auto font-bol text-white shadow-md active:border-b-0 active:translate-y-1 transition-all"
+            onClick={handleOpenEmail}
+            className="w-full h-auto font-bold text-white shadow-md active:border-b-0 active:translate-y-1 transition-all"
           >
-            {isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <span className="flex items-center gap-2">
-                Xác minh ngay <ArrowRight className="w-5 h-5" />
-              </span>
-            )}
+            <span className="flex items-center gap-2">
+              Mở Email <ArrowRight className="w-5 h-5" />
+            </span>
           </Button>
 
           <Button
             variant="ghost"
             onClick={handleResend}
+            disabled={isResending || countdown > 0}
             className="w-full font-bold text-muted-foreground hover:text-primary"
           >
-            <RotateCw className="w-4 h-4 mr-2" />
-            Gửi lại mã
+            {isResending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RotateCw className="w-4 h-4 mr-2" />
+            )}
+            {countdown > 0 ? `Gửi lại sau ${countdown}s` : "Gửi lại email"}
           </Button>
         </div>
+
+        {/* Back to login */}
+        <p className="mt-8 text-sm text-muted-foreground">
+          Đã xác minh?{" "}
+          <Link to="/signin" className="text-primary font-bold hover:underline">
+            Đăng nhập
+          </Link>
+        </p>
       </Card>
     </div>
   );

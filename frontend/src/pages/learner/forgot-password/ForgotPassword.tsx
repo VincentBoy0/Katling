@@ -1,28 +1,25 @@
-"use client";
-
-import type React from "react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+import { Link, useNavigate } from "react-router-dom";
+
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/learner/dialog";
+import { Input } from "@/components/learner/input";
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
-} from "@/components/ui/input-otp";
-import Link from "next/link";
-import { Mail, ArrowLeft, LockKeyhole, KeyRound } from "lucide-react";
+} from "@/components/learner/input-otp";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ArrowLeft, LockKeyhole, Mail } from "lucide-react";
 
 export default function ForgotPasswordPage() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -57,8 +54,8 @@ export default function ForgotPasswordPage() {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // --- THAY ĐỔI Ở ĐÂY ---
-      // Thay vì alert xong về signin, ta chuyển sang trang reset
-      router.push("/forgot-password/reset");
+      // Thay vì alert xong về login, ta chuyển sang trang reset
+      navigate("/forgot-password/reset");
     } catch (err) {
       setError("Mã xác minh không đúng. Vui lòng thử lại.");
     } finally {
@@ -72,7 +69,7 @@ export default function ForgotPasswordPage() {
         {/* Back Button */}
         <Button
           variant="ghost"
-          onClick={() => router.back()}
+          onClick={() => navigate(-1)}
           className="mb-6 -ml-2 text-muted-foreground hover:bg-muted font-bold"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
@@ -134,7 +131,7 @@ export default function ForgotPasswordPage() {
           <p className="text-sm font-medium text-muted-foreground">
             Bạn đã nhớ ra mật khẩu?{" "}
             <Link
-              href="/signin"
+              to="/login"
               className="text-primary font-bold hover:underline ml-1"
             >
               Đăng nhập ngay
@@ -179,32 +176,32 @@ export default function ForgotPasswordPage() {
                     <InputOTPGroup className="gap-2">
                       <InputOTPSlot
                         index={0}
-                        className="otp-slot w-12 h-14 text-2xl font-black border-2 border-border rounded-xl! 
+                        className="otp-slot w-12 h-14 text-2xl font-black border-2 border-border rounded-xl!
 bg-muted/20 focus:border-primary focus:ring-primary/20"
                       />
                       <InputOTPSlot
                         index={1}
-                        className="otp-slot w-12 h-14 text-2xl font-black border-2 border-border rounded-xl 
+                        className="otp-slot w-12 h-14 text-2xl font-black border-2 border-border rounded-xl
 bg-muted/20 focus:border-primary focus:ring-primary/20"
                       />
                       <InputOTPSlot
                         index={2}
-                        className="otp-slot w-12 h-14 text-2xl font-black border-2 border-border rounded-xl 
+                        className="otp-slot w-12 h-14 text-2xl font-black border-2 border-border rounded-xl
 bg-muted/20 focus:border-primary focus:ring-primary/20"
                       />
                       <InputOTPSlot
                         index={3}
-                        className="otp-slot w-12 h-14 text-2xl font-black border-2 border-border rounded-xl 
+                        className="otp-slot w-12 h-14 text-2xl font-black border-2 border-border rounded-xl
 bg-muted/20 focus:border-primary focus:ring-primary/20"
                       />
                       <InputOTPSlot
                         index={4}
-                        className="otp-slot w-12 h-14 text-2xl font-black border-2 border-border rounded-xl 
+                        className="otp-slot w-12 h-14 text-2xl font-black border-2 border-border rounded-xl
 bg-muted/20 focus:border-primary focus:ring-primary/20"
                       />
                       <InputOTPSlot
                         index={5}
-                        className="otp-slot w-12 h-14 text-2xl font-black border-2 border-border rounded-xl! 
+                        className="otp-slot w-12 h-14 text-2xl font-black border-2 border-border rounded-xl!
 bg-muted/20 focus:border-primary focus:ring-primary/20"
                       />
                     </InputOTPGroup>
