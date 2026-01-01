@@ -1,11 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
-from typing import Any
+from typing import Any, List
 
 from core.security import get_current_user
 from repositories.lessonRepository import LessonRepository
 from repositories.progressRepository import UserProgressRepository
-from schemas.learning import NextSectionResponse
+from repositories.topicRepository import TopicRepository
+from schemas.learning import (
+	CompleteSectionRequest,
+	CompleteSectionResponse,
+	NextSectionResponse,
+)
 from database.session import get_session
 from repositories.questionRepository import QuestionRepository
 from schemas.lesson import (
@@ -14,8 +19,56 @@ from schemas.lesson import (
 	SectionQuestionsResponse,
 )
 from models.lesson import QuestionType
+from models.progress import ProgressStatus
+from schemas.topic import TopicProgressOut, TopicsResponse
 
 router = APIRouter(tags=["Learning"])
+
+
+@router.get("/topics", response_model=TopicsResponse)
+async def get_topics(
+	session: AsyncSession = Depends(get_session),
+	current_user=Depends(get_current_user),
+) -> TopicsResponse:
+	"""Return topics with derived status and progress for current user."""
+
+	topic_repo = TopicRepository(session)
+	topics_raw = await topic_repo.get_topics_progress(user_id=current_user.id)
+
+	if not topics_raw:
+		return TopicsResponse(topics=[])
+
+	# Determine the single "current" topic:
+	# - first topic that isn't fully completed
+	# - if all are completed, make the last topic "current" (progress=100)
+	current_index = None
+	for idx, t in enumerate(topics_raw):
+		if t["total_sections"] > 0 and t["completed_sections"] < t["total_sections"]:
+			current_index = idx
+			break
+	if current_index is None:
+		current_index = len(topics_raw) - 1
+
+	topics_out: List[TopicProgressOut] = []
+	for idx, t in enumerate(topics_raw):
+		if idx < current_index:
+			status = "completed"
+		elif idx == current_index:
+			status = "current"
+		else:
+			status = "locked"
+
+		topics_out.append(
+			TopicProgressOut(
+				id=t["id"],
+				name=t["name"],
+				description=t["description"],
+				status=status,  # type: ignore[arg-type]
+				progress=t["progress"],
+			)
+		)
+
+	return TopicsResponse(topics=topics_out)
 
 
 def _canonicalize(value: Any, *, string_casefold: bool, unordered_lists: bool) -> Any:
@@ -110,3 +163,57 @@ async def get_next_section(
         "lesson_id": lesson_id,
         "section": section
     }
+
+
+@router.post(
+	"/lessons/{lesson_id}/sections/{section_id}/complete",
+	response_model=CompleteSectionResponse,
+)
+async def complete_section(
+	lesson_id: int,
+	section_id: int,
+	payload: CompleteSectionRequest,
+	session: AsyncSession = Depends(get_session),
+	current_user=Depends(get_current_user),
+) -> CompleteSectionResponse:
+	"""Mark a section as completed for the current user."""
+
+	lesson_repo = LessonRepository(session)
+	progress_repo = UserProgressRepository(session)
+
+	lesson = await lesson_repo.get_lesson_by_id(lesson_id)
+	if not lesson:
+		raise HTTPException(status_code=404, detail="Lesson not found")
+
+	section = await progress_repo.get_section_by_id(section_id)
+	if not section:
+		raise HTTPException(status_code=404, detail="Section not found")
+
+	if section.lesson_id != lesson_id:
+		raise HTTPException(status_code=400, detail="Section does not belong to lesson")
+
+	# Section must be the next uncompleted section
+	next_section = await progress_repo.get_next_section(user_id=current_user.id, lesson_id=lesson_id)
+
+	# Reject re-submitting completed section
+	progress = await progress_repo.get_user_progress_by_section(user_id=current_user.id, section_id=section_id)
+	if progress and progress.status == ProgressStatus.COMPLETED:
+		raise HTTPException(status_code=409, detail="Section already completed")
+
+	if not next_section or next_section.id != section_id:
+		raise HTTPException(status_code=403, detail="Section is not the next section")
+
+	await progress_repo.upsert_section_completed(
+		user_id=current_user.id,
+		lesson_id=lesson_id,
+		section_id=section_id,
+		score=payload.score,
+	)
+
+	return CompleteSectionResponse(
+		lesson_id=lesson_id,
+		section_id=section_id,
+		score=payload.score,
+		xp=50,
+		streak=None,
+	)
