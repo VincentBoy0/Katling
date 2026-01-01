@@ -16,6 +16,16 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = Field(..., env="ACCESS_TOKEN_EXPIRE_MINUTES")
     api_v1_str: str = Field(..., env="API_V1_STR")
 
+    app_timezone: str = Field("Asia/Ho_Chi_Minh", env="APP_TIMEZONE")
+    scheduler_enabled: bool = Field(True, env="SCHEDULER_ENABLED")
+
+    smtp_host: str = Field("", env="SMTP_HOST")
+    smtp_port: int = Field(587, env="SMTP_PORT")
+    smtp_username: str | None = Field(None, env="SMTP_USERNAME")
+    smtp_password: str | None = Field(None, env="SMTP_PASSWORD")
+    smtp_from_email: str = Field("", env="SMTP_FROM_EMAIL")
+    smtp_use_tls: bool = Field(True, env="SMTP_USE_TLS")
+
     class Config:
         env_file = "../.env"
 

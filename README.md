@@ -49,6 +49,21 @@ SECRET_KEY=
 ALGORITHM=
 ACCESS_TOKEN_EXPIRE_MINUTES=
 API_V1_STR=
+
+# --- Daily 20:00 reminder job ---
+# Timezone used by the app (IANA tz database name)
+APP_TIMEZONE=Asia/Ho_Chi_Minh
+
+# Enable/disable APScheduler background jobs
+SCHEDULER_ENABLED=true
+
+# SMTP config for reminder emails
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USERNAME= <email name>
+SMTP_PASSWORD= <Google Account -> 2FA Auth -> App Password -> Create -> 16-char password>
+SMTP_FROM_EMAIL= 
+SMTP_USE_TLS=true
 ```
 
 - Trên Windows (cmd):
@@ -61,6 +76,22 @@ cp envStyle.txt .env
 ```
 
 > **Lưu ý:** KHÔNG commit file `.env` chứa secrets lên Git. Nếu chưa có, hãy thêm `.env` vào `.gitignore` hoặc tạo `.env.example` (không chứa giá trị thực).
+
+---
+
+## ⏰ Cron job nhắc học 20:00 mỗi ngày
+
+- Job được khởi động tự động khi app chạy (FastAPI `startup`).
+- Scheduler dùng APScheduler và chạy theo `APP_TIMEZONE`.
+- Job sẽ lấy danh sách user trong DB và gửi email cho user **chưa học hôm nay** (theo `last_active_date`).
+
+Điểm bắt đầu:
+- Scheduler được cấu hình ở [backend/app/main.py](backend/app/main.py)
+- Logic job ở [backend/app/services/daily_study_reminder_job.py](backend/app/services/daily_study_reminder_job.py)
+- SMTP email service ở [backend/app/services/email_service.py](backend/app/services/email_service.py)
+
+Ghi chú triển khai:
+- Nên chạy API với **1 worker** để tránh gửi trùng email nếu deploy nhiều process.
 
 ---
 
