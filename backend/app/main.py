@@ -6,8 +6,8 @@ from core.firebase import init_firebase
 from database.session import create_db_and_tables
 
 from api import test
-from api.general import auth, user
-from api.management import admin, moderator
+from api.general import auth, user, report as user_report
+from api.management import admin, moderator, report as manager_report
 from api.learning import learning, vocab, flashcard
 
 
@@ -37,6 +37,8 @@ app.include_router(user.router)
 app.include_router(vocab.router)
 app.include_router(learning.router)
 app.include_router(flashcard.router)
+app.include_router(user_report.router)
+app.include_router(manager_report.router)
 #--------------------------------------------------------------------------------------------------
 
 # ------------------- Main -------------------
