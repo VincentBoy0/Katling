@@ -15,6 +15,9 @@ logger = logging.getLogger(__name__)
 
 class UserRepository:
     """Repository for User database operations."""
+
+    MAX_ENERGY: int = 30
+    ENERGY_REGEN_INTERVAL: timedelta = timedelta(minutes=10)
     
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -329,6 +332,70 @@ class UserRepository:
         self.session.add(user_point)
         await self.session.commit()
         return current_streak, True
+
+    async def consume_learning_energy(self, user_id: int, *, cost: int = 1) -> int:
+        """Regenerate energy (incremental) and consume energy for a learning action.
+
+        Rules:
+        - Max energy = 30
+        - Regen: +1 per 10 minutes (floor)
+        - If energy <= 0 after regen, raise 403
+        - Consume `cost` energy
+
+        Returns:
+            Remaining energy after consuming.
+        """
+
+        if cost <= 0:
+            raise HTTPException(status_code=400, detail="Energy cost must be positive")
+
+        user_point = await self.get_user_point(user_id)
+        if not user_point:
+            # Create row if missing; keep a single commit at the end.
+            user_point = UserPoints(user_id=user_id)
+            self.session.add(user_point)
+            await self.session.flush()
+
+        now_utc = datetime.now(timezone.utc)
+
+        current_energy = int(getattr(user_point, "energy", 0) or 0)
+        if current_energy < 0:
+            current_energy = 0
+
+        last_update = getattr(user_point, "last_energy_update", None) or now_utc
+        if isinstance(last_update, datetime) and last_update.tzinfo is None:
+            last_update = last_update.replace(tzinfo=timezone.utc)
+        else:
+            last_update = last_update.astimezone(timezone.utc)
+
+        # Incremental regen: floor(elapsed / 10 minutes)
+        elapsed_seconds = max(0.0, (now_utc - last_update).total_seconds())
+        interval_seconds = self.ENERGY_REGEN_INTERVAL.total_seconds()
+        regen_units = int(elapsed_seconds // interval_seconds)
+
+        if regen_units > 0 and current_energy < self.MAX_ENERGY:
+            applied_units = min(regen_units, self.MAX_ENERGY - current_energy)
+            if applied_units > 0:
+                current_energy += applied_units
+                last_update = last_update + applied_units * self.ENERGY_REGEN_INTERVAL
+
+        # Single validation
+        if current_energy < cost:
+            raise HTTPException(
+                status_code=403,
+                detail="Not enough energy to answer. Please wait for energy to regenerate.",
+            )
+
+        # Consume updates last_energy_update
+        current_energy -= cost
+        last_update = now_utc
+
+        user_point.energy = current_energy
+        user_point.last_energy_update = last_update
+        self.session.add(user_point)
+        await self.session.commit()
+        await self.session.refresh(user_point)
+        return int(user_point.energy)
 
     async def reconcile_streak_on_read(
         self,

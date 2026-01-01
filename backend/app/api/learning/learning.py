@@ -17,6 +17,7 @@ from repositories.questionRepository import QuestionRepository
 from schemas.lesson import (
 	QuestionAnswerSubmitRequest,
 	QuestionAnswerSubmitResponse,
+	LearningState,
 	SectionQuestionsResponse,
 )
 from models.lesson import QuestionType
@@ -111,7 +112,11 @@ async def submit_question_answer(
 	question_id: int,
 	payload: QuestionAnswerSubmitRequest,
 	session: AsyncSession = Depends(get_session),
+	current_user=Depends(get_current_user),
 ) -> QuestionAnswerSubmitResponse:
+	user_repo = UserRepository(session)
+	remaining_energy = await user_repo.consume_learning_energy(current_user.id, cost=1)
+
 	question_repo = QuestionRepository(session)
 	question = await question_repo.get_question_by_id(question_id)
 	if not question:
@@ -126,6 +131,7 @@ async def submit_question_answer(
 		section_id=question.section_id,
 		is_correct=is_correct,
 		correct_answer=None if is_correct else question.correct_answer,
+		learning_state=LearningState(energy=remaining_energy),
 	)
 
 

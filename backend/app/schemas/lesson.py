@@ -32,6 +32,10 @@ class QuestionAnswerSubmitRequest(BaseModel):
     answer: Dict[str, Any] = Field(..., description="Submitted answer payload")
 
 
+class LearningState(BaseModel):
+    energy: int = Field(..., description="Remaining energy")
+
+
 class QuestionAnswerSubmitResponse(BaseModel):
     question_id: int = Field(..., description="Question ID")
     section_id: int = Field(..., description="Section ID")
@@ -40,3 +44,4 @@ class QuestionAnswerSubmitResponse(BaseModel):
         default=None,
         description="Correct answer (only returned when submitted answer is wrong)",
     )
+    learning_state: LearningState = Field(..., description="Learning state after submitting the answer")
