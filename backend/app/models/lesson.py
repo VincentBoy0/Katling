@@ -13,6 +13,15 @@ def utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+class LessonStatus(str, Enum):
+    """Status for lessons and content."""
+    DRAFT = "DRAFT"               # Work in progress, not published
+    PENDING = "PENDING"           # Awaiting moderation review
+    PUBLISHED = "PUBLISHED"       # Approved and visible to users
+    ARCHIVED = "ARCHIVED"         # No longer active but kept for history
+    REJECTED = "REJECTED"         # Declined by moderator
+
+
 class Topic(SQLModel, table=True):
     __tablename__ = "topics"
 
@@ -51,6 +60,10 @@ class Lesson(SQLModel, table=True):
     content: Optional[Dict[str, Any]] = Field(
         default=None, 
         sa_column=Column(JSONB, nullable=True)
+    )
+    status: LessonStatus = Field(
+        sa_column=Column(SAEnum(LessonStatus, name="lesson_status_enum")),
+        default=LessonStatus.DRAFT,
     )
     order_index: int = Field(default=0, index=True)
     created_at: datetime = Field(

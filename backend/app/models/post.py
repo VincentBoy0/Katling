@@ -11,6 +11,15 @@ def utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+class PostStatus(str, Enum):
+    """Status for posts (user-generated content)."""
+    PENDING = "PENDING"           # Awaiting moderation review
+    ACCEPTED = "ACCEPTED"         # Approved by moderator
+    DECLINED = "DECLINED"         # Rejected by moderator
+    FLAGGED = "FLAGGED"           # Flagged for review due to reports
+    ARCHIVED = "ARCHIVED"         # No longer active
+
+
 class Post(SQLModel, table=True):
     __tablename__ = "posts"
 
@@ -19,6 +28,10 @@ class Post(SQLModel, table=True):
     content: Optional[Dict[str, Any]] = Field(
         default=None,
         sa_column=Column(JSONB, nullable=True),
+    )
+    status: PostStatus = Field(
+        sa_column=Column(SAEnum(PostStatus, name="post_status_enum")),
+        default=PostStatus.PENDING,
     )
     like_count: int = Field(default=0)
     comment_count: int = Field(default=0)
