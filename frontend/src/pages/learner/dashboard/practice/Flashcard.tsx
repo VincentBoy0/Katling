@@ -1,194 +1,121 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  ArrowRight,
-  BrainCircuit,
-  CheckCircle2,
-  ChevronLeft,
-  Folder,
-  Layers,
-  Library,
-  Play,
-  RotateCw,
-  Sparkles,
-  X,
+import { BrainCircuit, CheckCircle2, ChevronLeft, Folder, Layers, Library, Play, RotateCw, Sparkles, X,
 } from "lucide-react";
 
-// --- MOCK DATA (Đồng bộ cấu trúc với trang Vocabulary) ---
+import { flashcardService } from "@/services/flashcardService";
+import { vocabService } from "@/services/vocabService";
 
-interface VocabItem {
+
+type FlashcardItem ={
+  user_word_id: number;
+  word: string;
+  definition: string;
+  phonetic?: string | null;
+  audio_url?: string | null;
+}
+
+type SavedWord = {
   id: number;
-  front: string;
-  back: string;
-  example?: string;
-  status: "new" | "learning" | "mastered";
-  type: string;
-  folderId: string; // Liên kết với folder
-}
-
-interface FolderData {
-  id: string;
-  name: string;
-  color: string;
-  iconColor: string;
-}
-
-const mockFolders: FolderData[] = [
-  {
-    id: "ielts",
-    name: "IELTS Core",
-    color: "bg-rose-50 border-rose-200 hover:border-rose-400",
-    iconColor: "text-rose-600 bg-rose-100",
-  },
-  {
-    id: "travel",
-    name: "Du lịch",
-    color: "bg-blue-50 border-blue-200 hover:border-blue-400",
-    iconColor: "text-blue-600 bg-blue-100",
-  },
-  {
-    id: "business",
-    name: "Công sở",
-    color: "bg-teal-50 border-teal-200 hover:border-teal-400",
-    iconColor: "text-teal-600 bg-teal-100",
-  },
-];
-
-const savedVocab: VocabItem[] = [
-  {
-    id: 1,
-    front: "Serendipity",
-    back: "Sự tình cờ may mắn",
-    example: "Finding this shop was pure serendipity.",
-    status: "mastered",
-    type: "noun",
-    folderId: "ielts",
-  },
-  {
-    id: 2,
-    front: "Ephemeral",
-    back: "Phù du",
-    example: "Fashions are ephemeral.",
-    status: "learning",
-    type: "adj",
-    folderId: "ielts",
-  },
-  {
-    id: 3,
-    front: "Itinerary",
-    back: "Lịch trình",
-    example: "Check the travel itinerary.",
-    status: "new",
-    type: "noun",
-    folderId: "travel",
-  },
-  {
-    id: 4,
-    front: "Agenda",
-    back: "Chương trình nghị sự",
-    status: "new",
-    type: "noun",
-    folderId: "business",
-  },
-  {
-    id: 5,
-    front: "Passport",
-    back: "Hộ chiếu",
-    status: "mastered",
-    type: "noun",
-    folderId: "travel",
-  },
-  {
-    id: 6,
-    front: "Deadline",
-    back: "Hạn chót",
-    status: "learning",
-    type: "noun",
-    folderId: "business",
-  },
-];
-
-// --- MOCK DATA BÀI HỌC CHÍNH KHÓA (Giữ nguyên) ---
-const curriculumSets = [
-  {
-    id: 101,
-    name: "Unit 1 - Cơ bản",
-    description: "Chào hỏi, số đếm",
-    cards: [
-      {
-        id: 1011,
-        front: "Hello",
-        back: "Xin chào",
-        status: "new",
-        type: "noun",
-        folderId: "unit1",
-      },
-      {
-        id: 1012,
-        front: "Goodbye",
-        back: "Tạm biệt",
-        status: "new",
-        type: "noun",
-        folderId: "unit1",
-      },
-    ],
-  },
-  {
-    id: 102,
-    name: "Unit 2 - Gia đình",
-    description: "Thành viên gia đình",
-    cards: [
-      {
-        id: 1021,
-        front: "Father",
-        back: "Bố",
-        status: "new",
-        type: "noun",
-        folderId: "unit2",
-      },
-    ],
-  },
-];
+  vocab_id: number;
+  word: string;
+  phonetic?: string | null;
+  audio_url?: string | null;
+  definition: Record<string, string[]>;
+  category?: string | null;
+  review_status: "NEW" | "LEARNING" | "MASTERED";
+  created_at: string;
+};
 
 export default function FlashcardPracticePage() {
   const navigate = useNavigate();
-
-  // State quản lý
-  const [selectedSet, setSelectedSet] = useState<VocabItem[] | null>(null);
+  const [selectedSet, setSelectedSet] = useState<FlashcardItem[] | null>(null);
   const [setName, setSetName] = useState("");
-  const [deckColor, setDeckColor] = useState("indigo"); // Để đổi màu theme khi học
-
-  // State học
+  const [deckColor, setDeckColor] = useState("indigo");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [savedWords, setSavedWords] = useState<SavedWord[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [sessionStats, setSessionStats] = useState({
-    mastered: 0,
-    learning: 0,
-    new: 0,
-  });
 
-  // --- LOGIC CHỌN BỘ THẺ ---
+  useEffect(() => {
+    vocabService.getUserWords().then((res) => {
+      setSavedWords(res.data);
+    });
+  }, []);
 
-  const startSession = (
-    cards: VocabItem[],
-    name: string,
-    color: string = "indigo"
-  ) => {
-    if (cards.length === 0) {
-      alert("Không có thẻ nào trong mục này!");
-      return;
+  const folders = useMemo(() => {
+    const set = new Set<string>();
+
+    savedWords.forEach((w) => {
+      if (w.category) set.add(w.category);
+    });
+
+    return Array.from(set);
+  }, [savedWords]);
+
+  const startSession = async (
+    mode: "all" | "review_status" | "category",
+    options?: {
+      reviewStatus?: "NEW" | "LEARNING" | "MASTERED";
+      category?: string;
+      name?: string;
+      color?: string;
     }
-    setSelectedSet(cards);
-    setSetName(name);
-    setDeckColor(color);
-    setCurrentIndex(0);
-    setIsFlipped(false);
+  ) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const res = await flashcardService.getFlashcards(
+        mode,
+        options?.reviewStatus,
+        options?.category
+      );
+
+      if (res.cards.length === 0) {
+        alert("Không có thẻ nào trong mục này!");
+        return;
+      }
+
+      setSelectedSet(
+        res.cards.map((c) => ({
+          user_word_id: c.user_word_id,
+          word: c.word,
+          definition: c.definition,
+          phonetic: c.phonetic,
+          audio_url: c.audio_url,
+        }))
+      );
+
+      setSetName(options?.name ?? "Flashcards");
+      setDeckColor(options?.color ?? "indigo");
+      setCurrentIndex(0);
+      setIsFlipped(false);
+    } catch (e) {
+      setError("Không tải được flashcards");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // --- MÀN HÌNH CHỌN (SELECTION SCREEN) ---
+  const folderCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    folders.forEach((folder) => {
+      counts[folder] = savedWords.filter((w) => w.category === folder).length;
+    });
+    return counts;
+  }, [folders, savedWords]);
+
+  const statusCounts = useMemo(() => ({
+    NEW: savedWords.filter((w) => w.review_status === "NEW").length,
+    LEARNING: savedWords.filter((w) => w.review_status === "LEARNING").length,
+    MASTERED: savedWords.filter((w) => w.review_status === "MASTERED").length,
+  }), [savedWords]);
+
   if (!selectedSet) {
     return (
       <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8 min-h-screen">
@@ -217,7 +144,10 @@ export default function FlashcardPracticePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div
               onClick={() =>
-                startSession(savedVocab, "Tất cả từ vựng", "indigo")
+                startSession("all", {
+                  name: "Tất cả từ vựng",
+                  color: "indigo",
+                })
               }
               className="bg-card border-2 border-indigo-200 dark:border-indigo-900 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 transition-all hover:border-indigo-400 group flex items-center gap-4"
             >
@@ -227,18 +157,18 @@ export default function FlashcardPracticePage() {
               <div>
                 <h3 className="font-bold text-lg">Ôn tập tất cả</h3>
                 <p className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md inline-block mt-1">
-                  {savedVocab.length} thẻ
+                  Bắt đầu học
                 </p>
               </div>
             </div>
 
             <div
               onClick={() =>
-                startSession(
-                  savedVocab.filter((v) => v.status === "new"),
-                  "Từ mới chưa học",
-                  "blue"
-                )
+                startSession("review_status", {
+                  reviewStatus: "NEW",
+                  name: "Từ mới",
+                  color: "blue",
+                })
               }
               className="bg-card border-2 border-blue-200 dark:border-blue-900 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 transition-all hover:border-blue-400 group flex items-center gap-4"
             >
@@ -248,18 +178,18 @@ export default function FlashcardPracticePage() {
               <div>
                 <h3 className="font-bold text-lg">Từ mới</h3>
                 <p className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md inline-block mt-1">
-                  {savedVocab.filter((v) => v.status === "new").length} thẻ
+                  {statusCounts.NEW} thẻ
                 </p>
               </div>
             </div>
 
             <div
               onClick={() =>
-                startSession(
-                  savedVocab.filter((v) => v.status === "learning"),
-                  "Đang ghi nhớ",
-                  "yellow"
-                )
+                startSession("review_status", {
+                  reviewStatus: "LEARNING",
+                  name: "Đang học",
+                  color: "yellow",
+                })
               }
               className="bg-card border-2 border-yellow-200 dark:border-yellow-900 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 transition-all hover:border-yellow-400 group flex items-center gap-4"
             >
@@ -269,7 +199,7 @@ export default function FlashcardPracticePage() {
               <div>
                 <h3 className="font-bold text-lg">Đang học</h3>
                 <p className="text-xs font-bold text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-md inline-block mt-1">
-                  {savedVocab.filter((v) => v.status === "learning").length} thẻ
+                  {statusCounts.LEARNING} thẻ
                 </p>
               </div>
             </div>
@@ -280,36 +210,26 @@ export default function FlashcardPracticePage() {
             Theo Thư mục
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {mockFolders.map((folder) => {
-              const count = savedVocab.filter(
-                (v) => v.folderId === folder.id
-              ).length;
+            {folders.map((folder) => {
               return (
                 <div
-                  key={folder.id}
+                  key={folder}
                   onClick={() =>
-                    startSession(
-                      savedVocab.filter((v) => v.folderId === folder.id),
-                      folder.name,
-                      "slate"
-                    )
+                    startSession("category", {
+                      category: folder,
+                      name: folder,
+                      color: "slate",
+                    })
                   }
-                  className={`
-                    flex flex-col justify-between p-4 rounded-2xl border-2 cursor-pointer hover:-translate-y-1 transition-all
-                    ${folder.color} bg-white dark:bg-slate-900
-                  `}
+                  className="flex flex-col justify-between p-4 rounded-2xl border-2 cursor-pointer hover:-translate-y-1 transition-all bg-white dark:bg-slate-900"
                 >
-                  <div
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${folder.iconColor}`}
-                  >
-                    <Folder className="w-5 h-5 fill-current" />
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3">
+                    <Folder className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-foreground truncate">
-                      {folder.name}
-                    </h4>
+                    <h4 className="font-bold text-foreground truncate">{folder}</h4>
                     <p className="text-xs text-muted-foreground font-bold">
-                      {count} thẻ
+                      {folderCounts[folder]} thẻ
                     </p>
                   </div>
                 </div>
@@ -317,51 +237,13 @@ export default function FlashcardPracticePage() {
             })}
           </div>
         </section>
-
-        {/* SECTION 2: BÀI HỌC CHÍNH KHÓA */}
-        <section className="space-y-4 pt-6 border-t-2 border-dashed border-border">
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <Play className="w-5 h-5 text-primary" />
-            Bài học theo lộ trình
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {curriculumSets.map((set) => (
-              <div
-                key={set.id}
-                onClick={() =>
-                  startSession(set.cards as VocabItem[], set.name, "primary")
-                }
-                className="bg-card border-2 border-border rounded-2xl p-6 cursor-pointer hover:-translate-y-1 transition-all hover:border-primary group flex items-center gap-4"
-              >
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary shrink-0">
-                  {set.id % 100}
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg group-hover:text-primary transition-colors">
-                    {set.name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {set.description}
-                  </p>
-                  <p className="text-xs font-bold text-primary mt-1">
-                    {set.cards.length} từ vựng
-                  </p>
-                </div>
-                <ArrowRight className="w-5 h-5 ml-auto text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-1" />
-              </div>
-            ))}
-          </div>
-        </section>
       </div>
     );
   }
 
-  // --- LOGIC HỌC FLASHCARD (SESSION SCREEN) ---
   const currentCard = selectedSet[currentIndex];
   const progressPercent = ((currentIndex + 1) / selectedSet.length) * 100;
 
-  // Helper để đổi màu theme dựa trên deckColor
   const getThemeColor = () => {
     switch (deckColor) {
       case "blue":
@@ -375,21 +257,21 @@ export default function FlashcardPracticePage() {
 
   const handleNext = () => {
     if (currentIndex < selectedSet.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+      setCurrentIndex((i) => i + 1);
       setIsFlipped(false);
     } else {
-      alert(
-        `Hoàn thành! \nĐã thuộc: ${sessionStats.mastered} \nĐang học: ${sessionStats.learning} \nCần ôn: ${sessionStats.new}`
-      );
-      setSelectedSet(null);
-      setSessionStats({ mastered: 0, learning: 0, new: 0 });
+      completeSession();
     }
   };
 
-  const updateStatus = (status: "mastered" | "learning" | "new") => {
-    setSessionStats((prev) => ({ ...prev, [status]: prev[status] + 1 }));
-    handleNext();
+  const completeSession = async () => {
+    await flashcardService.completeFlashcards(
+      selectedSet.map((c) => c.user_word_id)
+    );
+    alert("Hoàn thành buổi ôn tập 🎉");
+    setSelectedSet(null);
   };
+
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center p-4 md:p-8">
@@ -442,12 +324,9 @@ export default function FlashcardPracticePage() {
           <Card
             className={`absolute inset-0 backface-hidden w-full h-full flex flex-col items-center justify-center p-8 border-2 border-b-8 bg-card rounded-3xl shadow-xl ${getThemeColor()}`}
           >
-            <span className="absolute top-6 left-6 px-3 py-1 bg-muted text-muted-foreground rounded-lg text-xs font-bold uppercase">
-              {currentCard.type}
+            <span className="text-5xl font-black text-foreground mb-4 text-center">
+              {currentCard.word}
             </span>
-            <h2 className="text-5xl font-black text-foreground mb-4 text-center">
-              {currentCard.front}
-            </h2>
             <p className="text-sm font-bold text-muted-foreground animate-pulse mt-8">
               Chạm để lật thẻ
             </p>
@@ -459,15 +338,8 @@ export default function FlashcardPracticePage() {
             style={{ transform: "rotateY(180deg)" }}
           >
             <h2 className="text-4xl font-bold text-emerald-700 dark:text-emerald-400 mb-4 text-center">
-              {currentCard.back}
+              {currentCard.definition}
             </h2>
-            {currentCard.example && (
-              <div className="mt-4 p-4 bg-background/60 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
-                <p className="text-center italic text-muted-foreground">
-                  "{currentCard.example}"
-                </p>
-              </div>
-            )}
           </Card>
         </div>
       </div>
@@ -482,7 +354,7 @@ export default function FlashcardPracticePage() {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              updateStatus("new");
+              handleNext();
             }}
             className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 active:translate-y-1 transition-all"
           >
@@ -495,7 +367,7 @@ export default function FlashcardPracticePage() {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              updateStatus("learning");
+              handleNext();
             }}
             className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-yellow-200 bg-white hover:bg-yellow-50 hover:border-yellow-300 active:translate-y-1 transition-all"
           >
@@ -508,7 +380,7 @@ export default function FlashcardPracticePage() {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              updateStatus("mastered");
+              handleNext();
             }}
             className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-green-200 bg-white hover:bg-green-50 hover:border-green-300 active:translate-y-1 transition-all"
           >
