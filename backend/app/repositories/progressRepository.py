@@ -72,6 +72,7 @@ class UserProgressRepository:
         lesson_id: int,
         section_id: int,
         score: int,
+        commit: bool = True,
     ) -> UserProgress:
         existing = await self.get_user_progress_by_section(user_id=user_id, section_id=section_id)
 
@@ -81,8 +82,11 @@ class UserProgressRepository:
             existing.score = score
             existing.completed_at = utc_now()
             self.session.add(existing)
-            await self.session.commit()
-            await self.session.refresh(existing)
+            if commit:
+                await self.session.commit()
+                await self.session.refresh(existing)
+            else:
+                await self.session.flush()
             return existing
 
         created = UserProgress(
@@ -94,6 +98,9 @@ class UserProgressRepository:
             completed_at=utc_now(),
         )
         self.session.add(created)
-        await self.session.commit()
-        await self.session.refresh(created)
+        if commit:
+            await self.session.commit()
+            await self.session.refresh(created)
+        else:
+            await self.session.flush()
         return created

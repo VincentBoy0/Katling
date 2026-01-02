@@ -17,13 +17,18 @@ from repositories.questionRepository import QuestionRepository
 from schemas.lesson import (
 	QuestionAnswerSubmitRequest,
 	QuestionAnswerSubmitResponse,
+	LearningState,
 	SectionQuestionsResponse,
 )
 from models.lesson import QuestionType
 from models.progress import ProgressStatus
+from models.user import ActivityType
 from schemas.topic import TopicProgressOut, TopicsResponse
 
 router = APIRouter(tags=["Learning"])
+
+
+XP_PER_SECTION = 20
 
 
 @router.get("/topics", response_model=TopicsResponse)
@@ -111,7 +116,11 @@ async def submit_question_answer(
 	question_id: int,
 	payload: QuestionAnswerSubmitRequest,
 	session: AsyncSession = Depends(get_session),
+	current_user=Depends(get_current_user),
 ) -> QuestionAnswerSubmitResponse:
+	user_repo = UserRepository(session)
+	remaining_energy = await user_repo.consume_learning_energy(current_user.id, cost=1)
+
 	question_repo = QuestionRepository(session)
 	question = await question_repo.get_question_by_id(question_id)
 	if not question:
@@ -126,6 +135,7 @@ async def submit_question_answer(
 		section_id=question.section_id,
 		is_correct=is_correct,
 		correct_answer=None if is_correct else question.correct_answer,
+		learning_state=LearningState(energy=remaining_energy),
 	)
 
 
@@ -204,20 +214,32 @@ async def complete_section(
 	if not next_section or next_section.id != section_id:
 		raise HTTPException(status_code=403, detail="Section is not the next section")
 
-	await progress_repo.upsert_section_completed(
-		user_id=current_user.id,
-		lesson_id=lesson_id,
-		section_id=section_id,
-		score=payload.score,
-	)
-
 	user_repo = UserRepository(session)
+
+	# Atomically: mark progress completed + add XP.
+	# If anything fails, both changes are rolled back.
+	async with session.begin():
+		await progress_repo.upsert_section_completed(
+			user_id=current_user.id,
+			lesson_id=lesson_id,
+			section_id=section_id,
+			score=payload.score,
+			commit=False,
+		)
+		await user_repo.add_xp(current_user.id, amount=XP_PER_SECTION, commit=False)
+		await user_repo.log_xp_activity(
+			current_user.id,
+			activity_type=ActivityType.LESSON_COMPLETE,
+			xp_amount=XP_PER_SECTION,
+			commit=False,
+		)
+
 	_, is_streak_increased_today = await user_repo.update_streak_on_activity(current_user.id)
 
 	return CompleteSectionResponse(
 		lesson_id=lesson_id,
 		section_id=section_id,
 		score=payload.score,
-		xp=50,
+		xp=XP_PER_SECTION,
 		streak=1 if is_streak_increased_today else 0,
 	)
