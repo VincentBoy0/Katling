@@ -78,11 +78,15 @@ class MissionService:
         }
         return mapping.get(lesson_type)
 
-    async def on_lesson_completed(self, *, user_id: int, lesson_type: LessonType) -> None:
+    async def on_lesson_completed(self, *, user_id: int, lesson_type: LessonType, score: int) -> None:
         date_value = self.today_local()
         await self.assign_daily_missions(user_id=user_id, date_value=date_value)
 
         mission_types: list[MissionType] = [MissionType.COMPLETE_SECTION]
+        if score >= 80:
+            mission_types.append(MissionType.COMPLETE_SECTION_SCORE_80)
+        if score >= 90:
+            mission_types.append(MissionType.COMPLETE_SECTION_SCORE_90)
         specific = self._lesson_specific_mission_type(lesson_type)
         if specific is not None:
             mission_types.append(specific)
