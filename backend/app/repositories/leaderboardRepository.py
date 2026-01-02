@@ -5,7 +5,8 @@ from enum import Enum
 
 from sqlalchemy import and_, func
 from sqlalchemy.orm import aliased
-from sqlmodel import Select, select
+from sqlalchemy.sql import Select
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models.leaderboard_snapshot import LeaderboardSnapshot, LeaderboardType
