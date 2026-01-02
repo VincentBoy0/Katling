@@ -19,24 +19,18 @@ import {
 } from "firebase/auth";
 import { auth } from "@/config/firebase";
 import { loginWithBackend } from "@/services/authService";
+import { User } from "@/types/user";
 
 export type Role = "user" | "admin" | "moderator";
 
-export interface User {
-  id: string;
-  email: string;
-  displayName: string;
-  avatar?: string;
-  level: number;
-  exp: number;
-  streak: number;
-  energy: number;
-  maxEnergy: number;
+// Extended User for UI state with optional Firebase fields
+export interface AuthUser extends User {
+  displayName?: string;
   authProvider?: "email" | "google" | "facebook";
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   role: Role;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -49,14 +43,14 @@ interface AuthContextType {
   ) => Promise<void>;
   loginWithOAuth: (provider: "google" | "facebook") => Promise<void>;
   logout: () => void;
-  updateUser: (updates: Partial<User>) => void;
+  updateUser: (updates: Partial<AuthUser>) => void;
   resendVerificationEmail: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const role: Role = "user"; // TODO: Get from backend
@@ -108,10 +102,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Step 3: Verify with backend
     const backendData = await loginWithBackend(firebaseToken);
 
-    // Step 4: Save to localStorage & state
+    // Step 4: Enrich user data with Firebase info
+    const enrichedUser: AuthUser = {
+      ...backendData.user,
+      displayName:
+        firebaseUser.displayName ||
+        backendData.user.email?.split("@")[0] ||
+        "User",
+      authProvider: "email",
+    };
+
+    // Step 5: Save to localStorage & state
     localStorage.setItem("firebase_token", firebaseToken);
-    localStorage.setItem("katling_user", JSON.stringify(backendData.user));
-    setUser(backendData.user);
+    localStorage.setItem("katling_user", JSON.stringify(enrichedUser));
+    setUser(enrichedUser);
   };
 
   /**
@@ -143,10 +147,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Step 5: Register with backend
     const backendData = await loginWithBackend(firebaseToken);
 
-    // Step 6: Save to localStorage & state
+    // Step 6: Enrich user data with Firebase info
+    const enrichedUser: AuthUser = {
+      ...backendData.user,
+      displayName:
+        displayName || backendData.user.email?.split("@")[0] || "User",
+      authProvider: "email",
+    };
+
+    // Step 7: Save to localStorage & state
     localStorage.setItem("firebase_token", firebaseToken);
-    localStorage.setItem("katling_user", JSON.stringify(backendData.user));
-    setUser(backendData.user);
+    localStorage.setItem("katling_user", JSON.stringify(enrichedUser));
+    setUser(enrichedUser);
     setIsEmailVerified(false);
   };
 
@@ -185,10 +197,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Step 4: Verify with backend
     const backendData = await loginWithBackend(firebaseToken);
 
-    // Step 5: Save to localStorage & state
+    // Step 5: Enrich user data with Firebase info
+    const enrichedUser: AuthUser = {
+      ...backendData.user,
+      displayName:
+        firebaseUser.displayName ||
+        backendData.user.email?.split("@")[0] ||
+        "User",
+      authProvider: provider,
+    };
+
+    // Step 6: Save to localStorage & state
     localStorage.setItem("firebase_token", firebaseToken);
-    localStorage.setItem("katling_user", JSON.stringify(backendData.user));
-    setUser(backendData.user);
+    localStorage.setItem("katling_user", JSON.stringify(enrichedUser));
+    setUser(enrichedUser);
   };
 
   /**
@@ -205,7 +227,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Update user data locally
    */
-  const updateUser = (updates: Partial<User>) => {
+  const updateUser = (updates: Partial<AuthUser>) => {
     if (user) {
       const updatedUser = { ...user, ...updates };
       setUser(updatedUser);
