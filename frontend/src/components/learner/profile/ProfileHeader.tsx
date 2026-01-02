@@ -1,15 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useUserInfo } from "@/hooks/useUserInfo";
+import { useUser } from "@/hooks/useUser";
 import { Calendar, Camera, Edit2, Lock } from "lucide-react";
 
 interface ProfileHeaderProps {
-  user: {
-    displayName?: string;
-    email?: string;
-    level?: number;
-    exp?: number;
-    streak?: number;
-  } | null;
   previewImage: string | null;
   onAvatarClick: () => void;
   onEditName: () => void;
@@ -17,12 +12,22 @@ interface ProfileHeaderProps {
 }
 
 export default function ProfileHeader({
-  user,
   previewImage,
   onAvatarClick,
   onEditName,
   onChangePassword,
 }: ProfileHeaderProps) {
+  const { user, loading } = useUser();
+  const { userInfo } = useUserInfo();
+
+  if (loading) return <p>Đang tải...</p>;
+  if (!user || !userInfo) return null;
+
+  const date = new Date(userInfo.created_at);
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yyyy = String(date.getFullYear());
+  const joinDate = `${mm}/${yyyy}`;
+
   return (
     <Card className="relative overflow-hidden border-2 border-border rounded-3xl p-6 md:p-8 bg-card shadow-sm">
       <div className="absolute top-0 left-0 w-full h-32 bg-primary/5 -z-10"></div>
@@ -37,7 +42,7 @@ export default function ProfileHeader({
             />
           ) : (
             <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white dark:border-slate-900 bg-primary flex items-center justify-center text-white text-6xl font-black shadow-lg">
-              {user?.displayName?.charAt(0).toUpperCase()}
+              {userInfo.full_name.charAt(0).toUpperCase()}
             </div>
           )}
 
@@ -49,13 +54,13 @@ export default function ProfileHeader({
         <div className="flex-1 text-center md:text-left space-y-4">
           <div>
             <h2 className="text-3xl md:text-4xl font-black text-foreground">
-              {user?.displayName}
+              {userInfo.full_name}
             </h2>
             <p className="text-muted-foreground font-medium flex items-center justify-center md:justify-start gap-2 mt-1">
               <Calendar className="w-4 h-4" />
-              Tham gia tháng 12/2024
+              Tham gia vào {joinDate}
             </p>
-            <p className="text-sm text-muted-foreground mt-1">{user?.email}</p>
+            <p className="text-sm text-muted-foreground mt-1">{user.email}</p>
           </div>
           <div className="flex flex-wrap justify-center md:justify-start gap-3">
             <Button
@@ -75,28 +80,6 @@ export default function ProfileHeader({
               Đổi mật khẩu
             </Button>
           </div>
-        </div>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-3 gap-4 mt-8 pt-8 border-t-2 border-dashed border-border">
-        <div className="text-center space-y-1">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            Cấp độ
-          </p>
-          <p className="text-3xl font-black text-primary">{user?.level}</p>
-        </div>
-        <div className="text-center space-y-1">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            Kinh nghiệm
-          </p>
-          <p className="text-3xl font-black text-emerald-500">{user?.exp}</p>
-        </div>
-        <div className="text-center space-y-1">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            Chuỗi
-          </p>
-          <p className="text-3xl font-black text-orange-500">{user?.streak}</p>
         </div>
       </div>
     </Card>

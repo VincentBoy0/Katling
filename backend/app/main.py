@@ -13,7 +13,7 @@ from core.config import settings
 from database.session import create_db_and_tables
 from database.session import async_session_maker
 
-from api import test, home
+from api import test, home, daily_missions
 from api.general import auth, user, report as user_report
 from api.management import admin, admin_moderator, moderator, report as manager_report
 from api.learning import learning, vocab, flashcard
@@ -102,6 +102,7 @@ app.include_router(moderator.router)
 app.include_router(admin_moderator.router)
 app.include_router(user.router)
 app.include_router(home.router)
+app.include_router(daily_missions.router)
 app.include_router(vocab.router)
 app.include_router(learning.router)
 app.include_router(flashcard.router)
