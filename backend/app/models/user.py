@@ -36,6 +36,12 @@ class UserPoints(SQLModel, table=True):
     xp: Optional[int] = Field(default=0)
     streak: Optional[int] = Field(default=0)
 
+    energy: int = Field(default=30)
+    last_energy_update: datetime = Field(
+        default_factory=utc_now,
+        sa_column=Column(DateTime(timezone=True), server_default=text("now()"), nullable=False),
+    )
+
 
 
 class RoleType(str, Enum):

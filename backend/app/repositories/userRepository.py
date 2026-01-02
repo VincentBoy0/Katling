@@ -1,7 +1,10 @@
+from datetime import datetime, timezone, timedelta
+from typing import Optional, Tuple
+
 from fastapi import Depends, HTTPException
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from models.user import User, UserPoints, UserRole, Role, RoleType, UserInfo
+from models.user import ActivityType, User, UserPoints, UserRole, Role, RoleType, UserInfo, UserXPLog
 from schemas.user import UserProfileUpdate, UserSignUp, UserUpdate, UserPointsUpdate, UserInfoUpdate
 from database.session import get_session
 import logging
@@ -12,6 +15,86 @@ logger = logging.getLogger(__name__)
 
 class UserRepository:
     """Repository for User database operations."""
+
+    MAX_ENERGY: int = 30
+    ENERGY_REGEN_INTERVAL: timedelta = timedelta(minutes=10)
+
+    @staticmethod
+    def _normalize_energy_last_update(last_update: datetime, *, now_utc: datetime) -> datetime:
+        if last_update.tzinfo is None:
+            return last_update.replace(tzinfo=timezone.utc)
+        return last_update.astimezone(timezone.utc)
+
+    def _apply_energy_regen(
+        self,
+        *,
+        energy: int,
+        last_update_utc: datetime,
+        now_utc: datetime,
+    ) -> tuple[int, datetime, bool]:
+        """Return (new_energy, new_last_update, did_regen)."""
+
+        if energy < 0:
+            energy = 0
+        if energy >= self.MAX_ENERGY:
+            # Full energy does not advance last_update.
+            return self.MAX_ENERGY, last_update_utc, False
+
+        elapsed_seconds = (now_utc - last_update_utc).total_seconds()
+        if elapsed_seconds <= 0:
+            return energy, last_update_utc, False
+
+        interval_seconds = self.ENERGY_REGEN_INTERVAL.total_seconds()
+        regen_units = int(elapsed_seconds // interval_seconds)
+        if regen_units <= 0:
+            return energy, last_update_utc, False
+
+        applied_units = min(regen_units, self.MAX_ENERGY - energy)
+        if applied_units <= 0:
+            return energy, last_update_utc, False
+
+        return (
+            energy + applied_units,
+            last_update_utc + applied_units * self.ENERGY_REGEN_INTERVAL,
+            True,
+        )
+
+    async def regen_energy_if_needed(self, user_id: int) -> UserPoints:
+        """Lazily regenerate energy for a user.
+
+        - Does not consume energy
+        - Persists changes only when regen actually occurs (or row is created)
+        """
+
+        user_point = await self.get_user_point(user_id)
+        if not user_point:
+            user_point = UserPoints(user_id=user_id)
+            self.session.add(user_point)
+            await self.session.commit()
+            await self.session.refresh(user_point)
+            return user_point
+
+        now_utc = datetime.now(timezone.utc)
+
+        current_energy = int(getattr(user_point, "energy", 0) or 0)
+        last_update = getattr(user_point, "last_energy_update", None) or now_utc
+        last_update_utc = self._normalize_energy_last_update(last_update, now_utc=now_utc)
+
+        new_energy, new_last_update, did_regen = self._apply_energy_regen(
+            energy=current_energy,
+            last_update_utc=last_update_utc,
+            now_utc=now_utc,
+        )
+
+        if not did_regen:
+            return user_point
+
+        user_point.energy = new_energy
+        user_point.last_energy_update = new_last_update
+        self.session.add(user_point)
+        await self.session.commit()
+        await self.session.refresh(user_point)
+        return user_point
     
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -232,6 +315,66 @@ class UserRepository:
             logger.exception("Failed to get user points: %s", e)
             raise HTTPException(status_code=500, detail="Failed to get user points")
 
+    async def add_xp(self, user_id: int, *, amount: int, commit: bool = True) -> UserPoints:
+        """Increment user's XP by `amount`.
+
+        When `commit=False`, this will only flush so callers can wrap multiple
+        updates in a single outer transaction.
+        """
+
+        if amount <= 0:
+            raise HTTPException(status_code=400, detail="XP amount must be positive")
+
+        user_point = await self.get_user_point(user_id)
+        if not user_point:
+            user_point = UserPoints(user_id=user_id, xp=0, streak=0)
+            self.session.add(user_point)
+            await self.session.flush()
+
+        current_xp = int(getattr(user_point, "xp", 0) or 0)
+        user_point.xp = current_xp + amount
+        self.session.add(user_point)
+
+        if commit:
+            await self.session.commit()
+            await self.session.refresh(user_point)
+        else:
+            await self.session.flush()
+
+        return user_point
+
+    async def log_xp_activity(
+        self,
+        user_id: int,
+        *,
+        activity_type: ActivityType,
+        xp_amount: int,
+        commit: bool = True,
+    ) -> UserXPLog:
+        """Insert a XP log entry.
+
+        When `commit=False`, this will only flush so callers can wrap multiple
+        updates in a single outer transaction.
+        """
+
+        if xp_amount == 0:
+            raise HTTPException(status_code=400, detail="XP amount must be non-zero")
+
+        log_row = UserXPLog(
+            user_id=user_id,
+            activity_type=activity_type,
+            xp_amount=xp_amount,
+        )
+        self.session.add(log_row)
+
+        if commit:
+            await self.session.commit()
+            await self.session.refresh(log_row)
+        else:
+            await self.session.flush()
+
+        return log_row
+
     async def update_user_point(self, user_id: int, form: dict) -> UserPoints:
         """Update user points (XP and streak).
         
@@ -264,6 +407,163 @@ class UserRepository:
         except Exception as e:
             logger.exception("Failed to update user points: %s", e)
             raise HTTPException(status_code=500, detail="Failed to update user points")
+
+    async def update_streak_on_activity(self, user_id: int) -> tuple[int, bool]:
+        """Update user's streak based on last_active_date.
+
+        Returns:
+            (current_streak, is_streak_increased_today)
+        """
+
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        user_point = await self.get_user_point(user_id)
+        if not user_point:
+            # Be defensive: create if missing
+            user_point = UserPoints(user_id=user_id, xp=0, streak=0)
+            self.session.add(user_point)
+            await self.session.commit()
+            await self.session.refresh(user_point)
+
+        now_utc = datetime.now(timezone.utc)
+        today = now_utc.date()
+
+        last_active = user.last_active_date
+        current_streak = int(user_point.streak or 0)
+
+        if last_active is None:
+            # Case 1: First time learning
+            current_streak = 1
+            user_point.streak = current_streak
+            user.last_active_date = now_utc
+            self.session.add(user)
+            self.session.add(user_point)
+            await self.session.commit()
+            return current_streak, True
+
+        # Normalize last_active to UTC date for comparison
+        if isinstance(last_active, datetime):
+            if last_active.tzinfo is not None:
+                last_active_date = last_active.astimezone(timezone.utc).date()
+            else:
+                last_active_date = last_active.date()
+        else:
+            last_active_date = last_active  # type: ignore[assignment]
+
+        if last_active_date == today:
+            # Case 2: already active today
+            return current_streak, False
+
+        if last_active_date == today - timedelta(days=1):
+            # Case 3: consecutive day
+            current_streak = current_streak + 1
+        else:
+            # Case 4: broken streak
+            current_streak = 1
+
+        user_point.streak = current_streak
+        user.last_active_date = now_utc
+        self.session.add(user)
+        self.session.add(user_point)
+        await self.session.commit()
+        return current_streak, True
+
+    async def consume_learning_energy(self, user_id: int, *, cost: int = 1) -> int:
+        """Regenerate energy (incremental) and consume energy for a learning action.
+
+        Rules:
+        - Max energy = 30
+        - Regen: +1 per 10 minutes (floor)
+        - If energy <= 0 after regen, raise 403
+        - Consume `cost` energy
+
+        Returns:
+            Remaining energy after consuming.
+        """
+
+        if cost <= 0:
+            raise HTTPException(status_code=400, detail="Energy cost must be positive")
+
+        user_point = await self.get_user_point(user_id)
+        if not user_point:
+            # Create row if missing; keep a single commit at the end.
+            user_point = UserPoints(user_id=user_id)
+            self.session.add(user_point)
+            await self.session.flush()
+
+        now_utc = datetime.now(timezone.utc)
+
+        current_energy = int(getattr(user_point, "energy", 0) or 0)
+        last_update = getattr(user_point, "last_energy_update", None) or now_utc
+        last_update_utc = self._normalize_energy_last_update(last_update, now_utc=now_utc)
+
+        # Regen (no commits here)
+        current_energy, last_update_utc, _ = self._apply_energy_regen(
+            energy=current_energy,
+            last_update_utc=last_update_utc,
+            now_utc=now_utc,
+        )
+
+        # Single validation
+        if current_energy < cost:
+            raise HTTPException(
+                status_code=403,
+                detail="Not enough energy to answer. Please wait for energy to regenerate.",
+            )
+
+        # Consume updates last_energy_update
+        current_energy -= cost
+        user_point.energy = current_energy
+        user_point.last_energy_update = now_utc
+
+        self.session.add(user_point)
+        await self.session.commit()
+        await self.session.refresh(user_point)
+        return int(user_point.energy)
+
+    async def reconcile_streak_on_read(
+        self,
+        *,
+        user_id: int,
+        last_active_date: Optional[datetime],
+    ) -> Tuple[int, bool]:
+        """Reconcile streak when user opens the app (read-time).
+
+        This keeps the database in sync even if the user hasn't completed a section
+        for multiple days.
+
+        Returns:
+            (effective_streak, is_streak_active_today)
+        """
+
+        today = datetime.now(timezone.utc).date()
+
+        if last_active_date is None:
+            last_active_utc_date = None
+        else:
+            if last_active_date.tzinfo is not None:
+                last_active_utc_date = last_active_date.astimezone(timezone.utc).date()
+            else:
+                last_active_utc_date = last_active_date.date()
+
+        is_active_today = last_active_utc_date == today
+        is_broken = last_active_utc_date is None or last_active_utc_date < (today - timedelta(days=1))
+
+        user_point = await self.get_user_point(user_id)
+        effective_streak = 0 if is_broken else (int(user_point.streak or 0) if user_point else 0)
+
+        if is_broken and user_point and int(user_point.streak or 0) != 0:
+            user_point.streak = 0
+            self.session.add(user_point)
+            try:
+                await self.session.commit()
+                await self.session.refresh(user_point)
+            except Exception:
+                await self.session.rollback()
+
+        return effective_streak, is_active_today
 
     async def ban_user(self, user_id: int) -> User:
         """Ban a user.

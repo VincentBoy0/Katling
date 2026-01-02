@@ -9,7 +9,7 @@ from repositories.userRepository import UserRepository
 
 from schemas.user import TraditionalSignUp, UserCreate, UserPointsUpdate, UserProfileUpdate, UserInfoUpdate
 
-from models.user import RoleType, User, UserInfo
+from models.user import Role, RoleType, User, UserInfo, UserRole
 
 
 router = APIRouter(prefix="/user", tags=["User"])
@@ -20,6 +20,15 @@ def get_me(
 ):
     return user
 
+@router.get("/roles")
+async def get_user_roles(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    stmt = select(Role).join(UserRole, Role.id == UserRole.role_id).where(UserRole.user_id == user.id)
+    result = await session.exec(stmt)
+    result = result.all()
+    return result
 
 @router.get("/info")
 async def get_user_info(
