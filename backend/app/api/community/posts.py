@@ -54,11 +54,16 @@ async def create_post(
 	current_user: User = Depends(get_current_user),
 ):
 	repo = PostRepository(session)
-	post = await repo.create_post(
-		user_id=current_user.id,
-		content={"title": payload.title, "body": payload.body},
-	)
-	return {"id": post.id}
+	try:
+		post = await repo.create_post(
+			user_id=current_user.id,
+			content={"title": payload.title, "body": payload.body},
+		)
+		await session.commit()
+		return {"id": post.id}
+	except Exception:
+		await session.rollback()
+		raise
 
 
 @router.delete("/posts/{post_id}")
@@ -68,15 +73,23 @@ async def delete_post(
 	current_user: User = Depends(get_current_user),
 ):
 	repo = PostRepository(session)
-	post = await repo.get_post_by_id(post_id)
-	if not post or post.is_deleted:
-		raise HTTPException(status_code=404, detail="Post not found")
+	try:
+		post = await repo.get_post_by_id(post_id)
+		if not post or post.is_deleted:
+			raise HTTPException(status_code=404, detail="Post not found")
 
-	if post.user_id != current_user.id:
-		raise HTTPException(status_code=403, detail="Not allowed")
+		if post.user_id != current_user.id:
+			raise HTTPException(status_code=403, detail="Not allowed")
 
-	await repo.soft_delete_post(post, archive=True)
-	return {"message": "Post deleted"}
+		await repo.soft_delete_post(post, archive=True)
+		await session.commit()
+		return {"message": "Post deleted"}
+	except HTTPException:
+		await session.rollback()
+		raise
+	except Exception:
+		await session.rollback()
+		raise
 
 
 @router.post("/posts/{post_id}/like")
@@ -88,12 +101,17 @@ async def like_post(
 	repo = PostRepository(session)
 	try:
 		like = await repo.like_post(post_id=post_id, user_id=current_user.id)
+		await session.commit()
 	except ValueError as exc:
+		await session.rollback()
 		msg = str(exc)
 		if msg == "Post not found":
 			raise HTTPException(status_code=404, detail="Post not found") from exc
 		if msg == "Already liked":
 			raise HTTPException(status_code=400, detail="Already liked") from exc
+		raise
+	except Exception:
+		await session.rollback()
 		raise
 
 	return {"id": like.id}
@@ -108,9 +126,14 @@ async def unlike_post(
 	repo = PostRepository(session)
 	try:
 		await repo.unlike_post(post_id=post_id, user_id=current_user.id)
+		await session.commit()
 	except ValueError as exc:
+		await session.rollback()
 		if str(exc) == "Not liked":
 			raise HTTPException(status_code=400, detail="Not liked") from exc
+		raise
+	except Exception:
+		await session.rollback()
 		raise
 
 	return {"message": "Unliked"}
@@ -130,9 +153,14 @@ async def create_comment(
 			user_id=current_user.id,
 			content=payload.content,
 		)
+		await session.commit()
 	except ValueError as exc:
+		await session.rollback()
 		if str(exc) == "Post not found":
 			raise HTTPException(status_code=404, detail="Post not found") from exc
+		raise
+	except Exception:
+		await session.rollback()
 		raise
 
 	return {"id": comment.id}
@@ -146,21 +174,28 @@ async def delete_comment(
 	current_user: User = Depends(get_current_user),
 ):
 	repo = PostRepository(session)
-	comment = await repo.get_comment_by_id(comment_id)
-	if not comment or comment.post_id != post_id:
-		raise HTTPException(status_code=404, detail="Comment not found")
-
-	if comment.user_id != current_user.id:
-		raise HTTPException(status_code=403, detail="Not allowed")
-
-	if comment.is_deleted:
-		raise HTTPException(status_code=400, detail="Comment already deleted")
-
 	try:
+		comment = await repo.get_comment_by_id(comment_id)
+		if not comment or comment.post_id != post_id:
+			raise HTTPException(status_code=404, detail="Comment not found")
+
+		if comment.user_id != current_user.id:
+			raise HTTPException(status_code=403, detail="Not allowed")
+
+		if comment.is_deleted:
+			raise HTTPException(status_code=400, detail="Comment already deleted")
+
 		await repo.soft_delete_comment(post_id=post_id, comment=comment)
+		await session.commit()
+		return {"message": "Comment deleted"}
 	except ValueError as exc:
+		await session.rollback()
 		if str(exc) == "Post not found":
 			raise HTTPException(status_code=404, detail="Post not found") from exc
 		raise
-
-	return {"message": "Comment deleted"}
+	except HTTPException:
+		await session.rollback()
+		raise
+	except Exception:
+		await session.rollback()
+		raise

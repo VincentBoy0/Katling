@@ -138,7 +138,7 @@ class PostRepository:
             is_deleted=False,
         )
         self.session.add(post)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(post)
         return post
 
@@ -147,7 +147,7 @@ class PostRepository:
         if archive:
             post.status = PostStatus.ARCHIVED
         self.session.add(post)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(post)
         return post
 
@@ -164,26 +164,25 @@ class PostRepository:
         Raises:
             ValueError: for domain validation errors.
         """
-        async with self.session.begin():
-            post = await self.get_post_by_id(post_id)
-            if not post or post.is_deleted:
-                raise ValueError("Post not found")
+        post = await self.get_post_by_id(post_id)
+        if not post or post.is_deleted:
+            raise ValueError("Post not found")
 
-            existing = await self.get_like(post_id=post_id, user_id=user_id)
-            if existing is not None:
-                raise ValueError("Already liked")
+        existing = await self.get_like(post_id=post_id, user_id=user_id)
+        if existing is not None:
+            raise ValueError("Already liked")
 
-            like = PostLike(post_id=post_id, user_id=user_id)
-            self.session.add(like)
+        like = PostLike(post_id=post_id, user_id=user_id)
+        self.session.add(like)
 
-            post.like_count = max(int(post.like_count or 0) + 1, 0)
-            self.session.add(post)
+        post.like_count = max(int(post.like_count or 0) + 1, 0)
+        self.session.add(post)
 
-            try:
-                await self.session.flush()
-            except IntegrityError as exc:
-                # UniqueConstraint(post_id, user_id) – handle race conditions.
-                raise ValueError("Already liked") from exc
+        try:
+            await self.session.flush()
+        except IntegrityError as exc:
+            # UniqueConstraint(post_id, user_id) – handle race conditions.
+            raise ValueError("Already liked") from exc
 
         await self.session.refresh(like)
         return like
@@ -194,18 +193,18 @@ class PostRepository:
         Raises:
             ValueError: if the user hasn't liked the post.
         """
-        async with self.session.begin():
-            like = await self.get_like(post_id=post_id, user_id=user_id)
-            if like is None:
-                raise ValueError("Not liked")
+        like = await self.get_like(post_id=post_id, user_id=user_id)
+        if like is None:
+            raise ValueError("Not liked")
 
-            post = await self.get_post_by_id(post_id)
-            # If post is missing (shouldn't happen due to FK), still allow deleting like.
-            if post is not None:
-                post.like_count = max(int(post.like_count or 0) - 1, 0)
-                self.session.add(post)
+        post = await self.get_post_by_id(post_id)
+        # If post is missing (shouldn't happen due to FK), still allow deleting like.
+        if post is not None:
+            post.like_count = max(int(post.like_count or 0) - 1, 0)
+            self.session.add(post)
 
-            await self.session.delete(like)
+        await self.session.delete(like)
+        await self.session.flush()
 
     async def create_comment(self, *, post_id: int, user_id: int, content: str) -> PostComment:
         """Create a comment and increment counter atomically.
@@ -213,18 +212,17 @@ class PostRepository:
         Raises:
             ValueError: for domain validation errors.
         """
-        async with self.session.begin():
-            post = await self.get_post_by_id(post_id)
-            if not post or post.is_deleted:
-                raise ValueError("Post not found")
+        post = await self.get_post_by_id(post_id)
+        if not post or post.is_deleted:
+            raise ValueError("Post not found")
 
-            comment = PostComment(post_id=post_id, user_id=user_id, content=content)
-            self.session.add(comment)
+        comment = PostComment(post_id=post_id, user_id=user_id, content=content)
+        self.session.add(comment)
 
-            post.comment_count = max(int(post.comment_count or 0) + 1, 0)
-            self.session.add(post)
+        post.comment_count = max(int(post.comment_count or 0) + 1, 0)
+        self.session.add(post)
 
-            await self.session.flush()
+        await self.session.flush()
 
         await self.session.refresh(comment)
         return comment
@@ -245,13 +243,13 @@ class PostRepository:
         Raises:
             ValueError: if post not found.
         """
-        async with self.session.begin():
-            post = await self.get_post_by_id(post_id)
-            if not post:
-                raise ValueError("Post not found")
+        post = await self.get_post_by_id(post_id)
+        if not post:
+            raise ValueError("Post not found")
 
-            comment.is_deleted = True
-            self.session.add(comment)
+        comment.is_deleted = True
+        self.session.add(comment)
 
-            post.comment_count = max(int(post.comment_count or 0) - 1, 0)
-            self.session.add(post)
+        post.comment_count = max(int(post.comment_count or 0) - 1, 0)
+        self.session.add(post)
+        await self.session.flush()
