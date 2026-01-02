@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { learningService } from "@/services/learningService";
 import { useAuth } from "@/context/auth-context";
-import { Question, QuestionContent, AnswerSubmitResponse } from "@/types/learning";
+import { Question, QuestionContent, AnswerSubmitResponse, CompleteSectionResponse } from "@/types/learning";
 import { QuestionRenderer } from "@/components/learner/questionRenderer";
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, } from "@/components/learner/dialog";
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "
 import { Textarea } from "@/components/learner/textarea";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Flag, Loader2, Volume2, X, } from "lucide-react";
+import { AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Flag, Loader2, X, Flame, } from "lucide-react";
 
 
 export default function LessonPage() {
@@ -23,10 +23,13 @@ export default function LessonPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [completed, setCompleted] = useState(false);
-  const [score, setScore] = useState(0);
+  const [completionData, setCompletionData] = useState<CompleteSectionResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lessonId, setLessonId] = useState<number | null>(null);
+  const [score, setScore] = useState(0);
   const [sectionId, setSectionId] = useState<number | null>(null);
 
   // User answers tracking
@@ -39,7 +42,7 @@ export default function LessonPage() {
   const [bugReport, setBugReport] = useState("");
   const [bugType, setBugType] = useState("");
 
-  const lessonId = Number(params.id);
+  const lessonIdFromParams = Number.parseInt(params.id as string);
 
   // Fetch next section and questions when component mounts
   useEffect(() => {
@@ -49,20 +52,20 @@ export default function LessonPage() {
         setError(null);
 
         // 1. Get next section for this lesson
-        const nextSectionData = await learningService.getNextSection(lessonId);
+        const nextSectionData = await learningService.getNextSection(lessonIdFromParams);
 
         if (nextSectionData.status === 'completed') {
-          // Lesson đã hoàn thành
           alert(nextSectionData.message);
           navigate('/dashboard/learn');
           return;
         }
 
-        if (!nextSectionData.section) {
+        if (!nextSectionData.section || !nextSectionData.lesson_id) {
           throw new Error('Không tìm thấy section');
         }
 
         const section = nextSectionData.section;
+        setLessonId(nextSectionData.lesson_id);
         setSectionId(section.id);
 
         // 2. Get questions for this section
@@ -98,11 +101,6 @@ export default function LessonPage() {
       setUserAnswers((prev) => new Map(prev).set(currentQuestion.id, answer));
       setAnswerResults((prev) => new Map(prev).set(currentQuestion.id, result));
 
-      if (result.is_correct) {
-        console.log('Answer correct!');
-      } else {
-        console.log('Answer incorrect. Correct answer', result.correct_answer);
-      }
     } catch (err: any) {
       console.error('Error submitting answer:', err);
       alert(err.response?.data?.detail || 'Lỗi khi gửi câu trả lời');
@@ -111,20 +109,35 @@ export default function LessonPage() {
     }
   };
 
-  const handleCompleted = () => {
+  const handleCompleted = async () => {
+    if (!lessonId || !sectionId) {
+      alert("Dữ liệu bài học không hợp lệ.");
+      return;
+    }
+
     // Calculate score based on correct answers
     const correctCount = Array.from(answerResults.values()).filter(result => result.is_correct).length;
     const calculatedScore = questions.length > 0
-      ? (correctCount / questions.length) * 100
+      ? Math.round((correctCount / questions.length) * 100)
       : 0;
 
-    // Update user exp and energy
-    const newExp = (user?.exp || 0) + 50;
-    const newEnergy = Math.max(0, (user?.energy || 0) - 1);
-    updateUser({ exp: newExp, energy: newEnergy });
-
-    setScore(calculatedScore);
-    setCompleted(true);
+    try {
+      setCompleting(true);
+      const result = await learningService.completeSection(
+        lessonId,
+        sectionId,
+        calculatedScore
+      );
+      setCompletionData(result);
+      const newExp = (user?.exp || 0) + 50;
+      updateUser({ exp: newExp });
+      setCompleted(true);
+    } catch (err: any) {
+      console.error('Error completing section:', err);
+      alert(err.response?.data?.detail || 'Lỗi khi hoàn thành bài học');
+    } finally {
+      setCompleting(false);
+    }
   };
 
   const handleContinue = () => {
@@ -140,7 +153,7 @@ export default function LessonPage() {
     if (currentStep === questions.length - 1) {
       handleCompleted();
     } else {
-      setCurrentStep((i) => i + 1);
+      setCurrentStep(currentStep + 1);
     }
   };
 
@@ -179,7 +192,7 @@ export default function LessonPage() {
     );
   }
 
-if (completed) {
+  if (completed && completionData) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background p-4">
         <Card className="w-full max-w-md p-8 text-center border-2 border-green-200 dark:border-green-900 shadow-sm animate-in zoom-in-95 duration-300">
@@ -206,12 +219,12 @@ if (completed) {
           <div className="flex gap-4 mb-8 justify-center">
             <div className="bg-yellow-100 dark:bg-yellow-900/30 px-4 py-2 rounded-lg border-2 border-yellow-200 dark:border-yellow-800">
               <span className="font-bold text-yellow-700 dark:text-yellow-500 text-sm">
-                +50 XP
+                +{completionData.xp} XP
               </span>
             </div>
             <div className="bg-blue-100 dark:bg-blue-900/30 px-4 py-2 rounded-lg border-2 border-blue-200 dark:border-blue-800">
               <span className="font-bold text-blue-700 dark:text-blue-500 text-sm">
-                +1 Streak
+                +{completionData.streak} Streak
               </span>
             </div>
           </div>
@@ -307,7 +320,12 @@ if (completed) {
             : ""
             }
           >
-            {currentStep === questions.length - 1 ? (
+            {completing ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Đang lưu...
+              </>
+            ) : currentStep === questions.length - 1 ? (
               <>
                 HOÀN THÀNH
                 <CheckCircle className="w-5 h-5 ml-2" />
