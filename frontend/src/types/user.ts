@@ -5,6 +5,12 @@ export enum Sex {
   UNDISCLOSED = "UNDISCLOSED",
 }
 
+export enum RoleType {
+  ADMIN = "ADMIN",
+  MODERATOR = "MODERATOR",
+  LEARNER = "LEARNER"
+}
+
 export interface User {
   id: number;
   firebase_uid: string;

@@ -17,7 +17,7 @@ export const authService = {
    */
   async login(firebaseToken: string): Promise<BackendAuthResponse> {
     const response = await api.post<BackendAuthResponse>(
-      '/auth/login/',
+      '/auth/login',
       null,
       {
         params: { token: firebaseToken }
