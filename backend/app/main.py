@@ -15,7 +15,7 @@ from database.session import async_session_maker
 
 from api import test, home
 from api.general import auth, user, report as user_report
-from api.management import admin, moderator, report as manager_report
+from api.management import admin, admin_moderator, moderator, report as manager_report
 from api.learning import learning, vocab, flashcard
 
 from services.email_service import SMTPEmailConfig, SMTPEmailService
@@ -98,6 +98,8 @@ app.add_middleware(
 app.include_router(test.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
+app.include_router(moderator.router)
+app.include_router(admin_moderator.router)
 app.include_router(user.router)
 app.include_router(home.router)
 app.include_router(vocab.router)
