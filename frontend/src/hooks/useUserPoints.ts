@@ -3,7 +3,7 @@ import { userService } from "@/services/userService";
 import { UserPoints } from "@/types/user";
 
 export function useUserPoints() {
-    const [data, setData] = useState< UserPoints | null>(null);
+    const [userPoints, setData] = useState< UserPoints | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState< string | null >(null);
 
@@ -14,5 +14,5 @@ export function useUserPoints() {
             .finally(() => setLoading(false));
     }, []);
 
-    return {data, loading, error};
+    return {userPoints, loading, error};
 }

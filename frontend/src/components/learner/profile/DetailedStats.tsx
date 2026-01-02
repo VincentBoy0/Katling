@@ -3,10 +3,10 @@ import { useUserPoints } from "@/hooks/useUserPoints";
 import { Flame, Target, Trophy, Zap } from "lucide-react";
 
 export default function DetailedStats() {
-  const { data, loading } = useUserPoints();
+  const { userPoints, loading } = useUserPoints();
 
   if (loading) return <p>Đang tải...</p>;
-  if (!data) return null;
+  if (!userPoints) return null;
 
   return (
     <>
@@ -22,7 +22,7 @@ export default function DetailedStats() {
           </div>
           <div>
             <p className="text-2xl font-black text-orange-700 dark:text-orange-500">
-              {data.streak} ngày
+              {userPoints.streak} ngày
             </p>
           </div>
         </Card>
@@ -33,7 +33,7 @@ export default function DetailedStats() {
           </div>
           <div>
             <p className="text-2xl font-black text-emerald-700 dark:text-emerald-500">
-              {data.xp} XP
+              {userPoints.xp} XP
             </p>
           </div>
         </Card>
