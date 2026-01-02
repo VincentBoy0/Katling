@@ -1,74 +1,41 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
-import { Clock, Flame, Gift, Mic, Target, Trophy, Zap } from "lucide-react";
-import { toast } from "sonner";
+import { Flame, Target, Trophy, Zap } from "lucide-react";
 
 // Components
 import WelcomeHeader from "@/components/learner/dashboard/WelcomeHeader";
 import ContinueLearningCard from "@/components/learner/dashboard/ContinueLearningCard";
 import EventBanner from "@/components/learner/dashboard/EventBanner";
 import StatCard from "@/components/learner/dashboard/StatCard";
-import DailyQuestsSection from "@/components/learner/dashboard/DailyQuestsSection";
-import { DailyTask } from "@/components/learner/dashboard/DailyTaskItem";
+import DailyMissionsSection from "@/components/learner/dashboard/DailyMissionsSection";
 
+// Hooks
 import { useUserInfo } from "@/hooks/useUserInfo";
 import { useUserPoints } from "@/hooks/useUserPoints";
+import { useDailyMissions } from "@/hooks/useDailyMissions";
 
 export default function Dashboard() {
   const { user, updateUser } = useAuth();
   const { userInfo } = useUserInfo();
-  const { userPoints } = useUserPoints();
+  const { userPoints, refetchUserPoints } = useUserPoints();
   const navigate = useNavigate();
 
-  const [claimedTasks, setClaimedTasks] = useState<number[]>([]);
+  // Use custom hook for daily missions
+  const {
+    missions,
+    loading: loadingMissions,
+    claimingId,
+    timeRemaining,
+    claimMission,
+  } = useDailyMissions((xp, totalXp) => {
+    // Callback when claim success
+    updateUser({ exp: totalXp });
 
-  const dailyTasks: DailyTask[] = [
-    {
-      id: 1,
-      name: "Kiếm 20 XP",
-      icon: Zap,
-      reward: 10,
-      progress: 20,
-      total: 20,
-    },
-    {
-      id: 2,
-      name: "Luyện phát âm 5 từ",
-      icon: Mic,
-      reward: 15,
-      progress: 2,
-      total: 5,
-    },
-    {
-      id: 3,
-      name: "Duy trì chuỗi Streak",
-      icon: Flame,
-      reward: 20,
-      progress: 1,
-      total: 1,
-    },
-    {
-      id: 4,
-      name: "Học đủ 15 phút",
-      icon: Clock,
-      reward: 20,
-      progress: 15,
-      total: 15,
-    },
-  ];
-
-  const handleClaim = (taskId: number, reward: number) => {
-    setClaimedTasks([...claimedTasks, taskId]);
-    const newExp = (user?.exp || 0) + reward;
-    updateUser({ exp: newExp });
-
-    toast.success("Nhận thưởng thành công!", {
-      description: `Bạn đã nhận được +${reward} XP`,
-      icon: <Gift className="w-5 h-5 text-green-600" />,
-      duration: 3000,
-    });
-  };
+    // Refetch user points if function exists
+    if (refetchUserPoints) {
+      refetchUserPoints();
+    }
+  });
 
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-5xl mx-auto min-h-screen">
@@ -125,12 +92,13 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* 3. DAILY QUESTS */}
-      <DailyQuestsSection
-        tasks={dailyTasks}
-        claimedTasks={claimedTasks}
-        onClaim={handleClaim}
-        timeRemaining="8h"
+      {/* 3. DAILY MISSIONS */}
+      <DailyMissionsSection
+        missions={missions}
+        onClaim={claimMission}
+        claimingId={claimingId}
+        timeRemaining={timeRemaining}
+        loading={loadingMissions}
       />
     </div>
   );
