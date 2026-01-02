@@ -46,3 +46,27 @@ export interface NextSectionResponse {
   lesson_id?: number;
   section?: Section;
 }
+
+export interface TopicProgressOut {
+  id: number;
+  name: string;
+  description: string;
+  status: 'completed' | 'current' | 'locked';
+  progress: number;
+}
+
+export interface TopicsResponse {
+  topics: TopicProgressOut[];
+}
+
+export interface CompleteSectionRequest {
+  score: number;
+}
+
+export interface CompleteSectionResponse {
+  lesson_id: number;
+  section_id: number;
+  score: number;
+  xp: number;
+  streak: number;
+}
