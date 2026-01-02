@@ -64,12 +64,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Check if we have user info in localStorage
         const savedUser = localStorage.getItem("katling_user");
-        if (savedUser) {
+        const savedToken = localStorage.getItem("firebase_token");
+
+        if (savedUser && savedToken) {
+          // We have saved data, restore it
           try {
             setUser(JSON.parse(savedUser));
           } catch (error) {
             console.error("Failed to parse saved user:", error);
+            // If parse fails, re-fetch from backend
+            await restoreUserSession(firebaseUser);
           }
+        } else {
+          // Firebase session exists but no local data - restore from backend
+          await restoreUserSession(firebaseUser);
         }
       } else {
         setUser(null);
@@ -82,6 +90,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => unsubscribe();
   }, []);
+
+  /**
+   * Restore user session from backend when Firebase is authenticated but local data is missing
+   */
+  const restoreUserSession = async (firebaseUser: FirebaseUser) => {
+    try {
+      const firebaseToken = await firebaseUser.getIdToken();
+      const backendData = await loginWithBackend(firebaseToken);
+
+      const enrichedUser: AuthUser = {
+        ...backendData.user,
+        displayName:
+          firebaseUser.displayName ||
+          backendData.user.email?.split("@")[0] ||
+          "User",
+        authProvider: firebaseUser.providerData[0]?.providerId.includes(
+          "google"
+        )
+          ? "google"
+          : firebaseUser.providerData[0]?.providerId.includes("facebook")
+          ? "facebook"
+          : "email",
+      };
+
+      localStorage.setItem("firebase_token", firebaseToken);
+      localStorage.setItem("katling_user", JSON.stringify(enrichedUser));
+      setUser(enrichedUser);
+    } catch (error) {
+      console.error("Failed to restore user session:", error);
+      // If backend fails, sign out from Firebase
+      await firebaseSignOut(auth);
+      setUser(null);
+      localStorage.removeItem("katling_user");
+      localStorage.removeItem("firebase_token");
+    }
+  };
 
   /**
    * Login with Email & Password
