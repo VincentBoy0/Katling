@@ -1,11 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 
 import { Input } from "@/components/learner/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { vocabService } from "@/services/vocabService";
-import { Library, Loader2, Plus, Search, Volume2, Trash2, Check, } from "lucide-react";
+import { Library, Loader2, Plus, Search, Volume2, Trash2, Check, Folder, Filter, Sparkles, Bookmark, CheckCircle2 } from "lucide-react";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/learner/dialog";
 
 
 type SavedWord = {
@@ -15,13 +24,19 @@ type SavedWord = {
   phonetic?: string | null;
   audio_url?: string | null;
   definition: Record<string, string[]>;
+  category?: string | null;
   review_status: "NEW" | "LEARNING" | "MASTERED";
+  created_at: string;
 };
 
 export default function VocabularyPage() {
   const [activeTab, setActiveTab] = useState<"dictionary" | "library">("dictionary");
   const [dictResult, setDictResult] = useState<any | null>(null);
   const [savedWords, setSavedWords] = useState<SavedWord[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [newFolderName, setNewFolderName] = useState("");
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<"all" | "NEW" | "LEARNING" | "MASTERED">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -49,7 +64,7 @@ export default function VocabularyPage() {
       definition: dictResult.definition,
       phonetic: dictResult.phonetic,
       audio_url: dictResult.audio_url,
-      category: null,
+      category: selectedCategory,
     });
 
     toast.success("Đã lưu từ vựng");
@@ -57,15 +72,6 @@ export default function VocabularyPage() {
     if (activeTab === "library") {
       const res = await vocabService.getUserWords();
       setSavedWords(res.data);
-    }
-  };
-
-
-  const playAudio = (url?: string) => {
-    if (url) {
-      new Audio(url).play();
-    } else {
-      toast.error("Không có file âm thanh");
     }
   };
 
@@ -96,8 +102,27 @@ export default function VocabularyPage() {
     }
   }, [activeTab]);
 
-  return (
+  const folders = useMemo(() => {
+    const set = new Set<string>();
 
+    savedWords.forEach((w) => {
+      if (w.category) set.add(w.category);
+    });
+
+    return Array.from(set);
+  }, [savedWords]);
+
+  const filteredWords = savedWords.filter((w) => {
+    const matchCategory =
+      selectedCategory === "all" || w.category === selectedCategory;
+
+    const matchStatus =
+      filterStatus === "all" || w.review_status === filterStatus;
+
+    return matchCategory && matchStatus;
+  });
+
+  return (
     <div className="p-4 md:p-8 space-y-8 max-w-5xl mx-auto min-h-screen">
       {/* HEADER & TABS */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
@@ -164,20 +189,21 @@ export default function VocabularyPage() {
             </div>
           )}
 
-          {dictResult && (
-            <Card className="p-6 space-y-4">
-              <div className="flex justify-between">
+          {dictResult && !error && (
+            <Card className="max-w-2xl mx-auto p-6 md:p-8 border-2 border-indigo-200 dark:border-indigo-900 bg-card rounded-3xl shadow-sm">
+              <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h2 className="text-4xl font-black">{dictResult.word}</h2>
-                  <div className="flex items-center gap-2">
-                    <span>{dictResult.phonetic}</span>
+                  <h2 className="text-4xl md:text-5xl font-black text-foreground mb-2">{dictResult.word}</h2>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl font-mono text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100">{dictResult.phonetic}</span>
                     {dictResult.audio_url && (
                       <Button
                         size="icon"
                         variant="ghost"
+                        className="rounded-full hover:bg-indigo-100 text-indigo-600"
                         onClick={() => new Audio(dictResult.audio_url).play()}
                       >
-                        <Volume2 />
+                        <Volume2 className="w-6 h-6" />
                       </Button>
                     )}
                   </div>
@@ -186,6 +212,66 @@ export default function VocabularyPage() {
                 <Button onClick={handleSave}>
                   <Plus className="w-4 h-4" /> Lưu
                 </Button>
+                {/* SAVE BUTTON WITH DIALOG */}
+                <Dialog
+                  open={isSaveDialogOpen}
+                  onOpenChange={setIsSaveDialogOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button onClick={handleSave} className="gap-2 font-bold bg-emerald-500 hover:bg-emerald-600 border-emerald-700 active:border-b-0 active:translate-y-1">
+                      <Plus className="w-4 h-4" /> Lưu từ
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md border-2 border-border rounded-2xl">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl font-bold">
+                        Lưu vào đâu?
+                      </DialogTitle>
+                      <DialogDescription>
+                        Chọn folder hoặc tạo mới để lưu từ vựng này.
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 pt-2">
+                      <div className="grid grid-cols-2 gap-3 max-h-[200px] overflow-y-auto p-1">
+                        {folders.map((folder) => (
+                          <div
+                            key={folder}
+                            onClick={() => setSelectedCategory(folder)}
+                            className={`p-3 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.02] flex items-center gap-2`}
+                          >
+                            <Folder className="w-5 h-5 fill-current opacity-50" />
+                            <span className="font-bold truncate">
+                              {folder}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex gap-2 pt-2 border-t border-border">
+                        <Input
+                          placeholder="Tên folder mới..."
+                          value={newFolderName}
+                          onChange={(e) => setNewFolderName(e.target.value)}
+                          className="h-10"
+                        />
+                        <Button
+                          onClick={() => {
+                            if (newFolderName.trim()) {
+                              setSelectedCategory(newFolderName.trim());
+                              setNewFolderName("");
+                            }
+                          }}
+                          size="icon"
+                          variant="outline"
+                          className="h-10 w-10 shrink-0 border-2"
+                        >
+                          <Plus className="w-5 h-5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
 
               {/* DEFINITIONS */}
@@ -213,57 +299,190 @@ export default function VocabularyPage() {
       {/* TAB 2: LIBRARY (Đã Lưu) */}
       {activeTab === "library" && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          {savedWords.map((item) => (
-            <Card key={item.id} className="p-4 space-y-3">
-              <div>
-                <h3 className="text-xl font-bold">
-                  {item.word}
-                </h3>
 
-                {item.phonetic && (
-                  <p className="text-sm text-muted-foreground">
-                    {item.phonetic}
-                  </p>
-                )}
-              </div>
+          {/* FOLDER FILTER */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest ml-1">
+              Danh mục
+            </h3>
 
-              {/* definition */}
-              {item.definition &&
-                Object.entries(item.definition).map(
-                  ([pos, defs]:[string, string[]]) => (
-                    <p key={pos} className="text-sm">
-                      <b>{pos}</b>: {(defs as string[])[0]}
-                    </p>
-                  )
-                )}
+            <div className="flex flex-wrap gap-3">
+              {/* Nút "Tất cả" */}
+              <Button
+                variant={selectedCategory=== "all" ? "folderActive" : "folder"}
+                className={
+                  selectedCategory === "all"
+                    ? "bg-slate-800 text-white border-slate-950"
+                    : ""
+                }
+                onClick={() => setSelectedCategory("all")}
+              >
+                <Library className="w-5 h-5" /> Tất cả
+              </Button>
 
-              <div className="flex justify-between items-center pt-2 border-t">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleDeleteWord(item.word)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+              {/* Folder items */}
+              {folders.map((folder) => {
+                const isActive = selectedCategory === folder;
 
-                {item.review_status !== "MASTERED" && (
+                return (
                   <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handlePromote(item.vocab_id)}
+                    key={folder}
+                    variant={isActive ? "folderActive" : "folder"}
+                    className={isActive ? `border-current` : ""}
+                    onClick={() => setSelectedCategory(folder)}
                   >
-                    <Check className="w-4 h-4 mr-1" />
-                    Nâng cấp
+                    <Folder className="w-5 h-5" /> {folder}
                   </Button>
-                )}
-              </div>
-            </Card>
-          ))}
+                );
+              })}
+            </div>
+          </div>
 
-          {savedWords.length === 0 && (
-            <p className="text-center text-muted-foreground">
-              Chưa có từ vựng nào
-            </p>
+          {/* STATUS FILTER (Level 2 Filter) */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b-2 border-border/50 pt-2">
+            <Filter className="w-4 h-4 text-muted-foreground mr-2 shrink-0" />
+
+            <Button
+              variant={
+                filterStatus === "all" ? "filterStatusLearning" : "filter"
+              }
+              size="sm"
+              className="capitalize"
+              onClick={() => setFilterStatus("all")}
+            >
+              Tất cả trạng thái
+            </Button>
+
+            <Button
+              variant={
+                filterStatus === "NEW" ? "filterStatusLearning" : "filter"
+              }
+              size="sm"
+              className="flex items-center gap-1"
+              onClick={() => setFilterStatus("NEW")}
+            >
+              <Sparkles className="w-3 h-3" /> Từ mới
+            </Button>
+
+            <Button
+              variant={
+                filterStatus === "LEARNING"
+                  ? "filterStatusLearning"
+                  : "filter"
+              }
+              size="sm"
+              className="flex items-center gap-1"
+              onClick={() => setFilterStatus("LEARNING")}
+            >
+              <Bookmark className="w-3 h-3" /> Đang học
+            </Button>
+
+            <Button
+              variant={
+                filterStatus === "MASTERED"
+                  ? "filterStatusMastered"
+                  : "filter"
+              }
+              size="sm"
+              className="flex items-center gap-1"
+              onClick={() => setFilterStatus("MASTERED")}
+            >
+              <CheckCircle2 className="w-3 h-3" /> Đã thuộc
+            </Button>
+          </div>
+
+          {/* WORD GRID */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredWords.map((item) => (
+                <div
+                  key={item.id}
+                  className="group relative bg-card border-2 border-border rounded-2xl p-6 hover:-translate-y-1 transition-all hover:shadow-md flex flex-col"
+                >
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    {/* Folder Badge */}
+                    <span
+                      className={`text-[10px] font-bold px-2 py-1 rounded-lg border bg-background text-muted-foreground uppercase`}
+                    >
+                      {folders.find((f) => f === item.category) ||
+                        "Deleted"}
+                    </span>
+                    {/* Status Badge */}
+                    {item.category === "NEW" && (
+                      <span className="bg-blue-100 text-blue-600 text-[10px] font-bold px-2 py-1 rounded-lg uppercase">
+                        Mới
+                      </span>
+                    )}
+                    {item.category === "LEARNING" && (
+                      <span className="bg-yellow-100 text-yellow-600 text-[10px] font-bold px-2 py-1 rounded-lg uppercase">
+                        Đang học
+                      </span>
+                    )}
+                    {item.category === "MASTERED" && (
+                      <span className="bg-green-100 text-green-600 text-[10px] font-bold px-2 py-1 rounded-lg uppercase">
+                        Thuộc
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mb-4">
+                    <h3 className="text-2xl font-black text-foreground">
+                      {item.word}
+                    </h3>
+
+                    {item.phonetic && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-sm font-mono text-muted-foreground">
+                          {item.phonetic}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* definition */}
+                    {item.definition &&
+                      Object.entries(item.definition).map(
+                        ([pos, defs]:[string, string[]]) => (
+                          <p key={pos} className="text-sm">
+                            <b>{pos}</b>: {(defs as string[])[0]}
+                          </p>
+                        )
+                      )
+                    }
+                  </div>
+
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDeleteWord(item.word)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+
+                    <div className="flex gap-1">
+                      {item.review_status !== "MASTERED" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs font-bold border-green-200 hover:bg-green-50 hover:text-green-600"
+                          onClick={() => handlePromote(item.vocab_id)}
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Nâng cấp
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+          {filteredWords.length === 0 && (
+            <div className="text-center py-20 opacity-50">
+              <Library className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+              <p className="font-bold text-lg">
+                Chưa có từ vựng nào trong mục này
+              </p>
+            </div>
           )}
         </div>
       )}
