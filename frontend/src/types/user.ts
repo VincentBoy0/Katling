@@ -1,4 +1,3 @@
-// Enums matching backend
 export enum Sex {
   MALE = "MALE",
   FEMALE = "FEMALE",
@@ -53,6 +52,8 @@ export interface UserPoints {
   user_id: number;
   xp: number;
   streak: number;
+  energy: number;
+  last_energy_update: string;
 }
 
 export interface UserPointsUpdate {
