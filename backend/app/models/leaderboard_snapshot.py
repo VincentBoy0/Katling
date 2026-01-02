@@ -30,11 +30,14 @@ class LeaderboardSnapshot(SQLModel, table=True):
         sa_column=Column(
             SAEnum(LeaderboardType, name="leaderboard_type_enum"),
             nullable=False,
+            index=True,
         ),
-        index=True,
     )
     rank: int = Field(nullable=False)
     snapshot_date: date = Field(
-        sa_column=Column(Date, nullable=False),
-        index=True,
+        sa_column=Column(
+            Date, 
+            nullable=False,
+            index=True,
+        ),
     )
