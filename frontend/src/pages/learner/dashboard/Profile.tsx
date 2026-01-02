@@ -102,7 +102,6 @@ export default function ProfilePage() {
 
       {/* Profile Header with Avatar */}
       <ProfileHeader
-        user={user}
         previewImage={avatarManager.previewImage}
         onAvatarClick={avatarManager.openDialog}
         onEditName={profileEdit.openDialog}
@@ -110,7 +109,7 @@ export default function ProfilePage() {
       />
 
       {/* Detailed Stats */}
-      <DetailedStats user={user} />
+      <DetailedStats />
 
       {/* Badges Collection */}
       <BadgeCollection badges={badges} />
@@ -134,9 +133,6 @@ export default function ProfilePage() {
         onOpenChange={(open) =>
           open ? profileEdit.openDialog() : profileEdit.closeDialog()
         }
-        name={profileEdit.editName}
-        onNameChange={profileEdit.setEditName}
-        onSave={profileEdit.handleSaveName}
       />
 
       <ChangePasswordDialog
