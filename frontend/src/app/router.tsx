@@ -25,16 +25,17 @@ import Community from "@/pages/learner/dashboard/Community";
 import Leaderboard from "@/pages/learner/dashboard/Leaderboard";
 import Profile from "@/pages/learner/dashboard/Profile";
 import Settings from "@/pages/learner/dashboard/Settings";
+import ActionHandler from "@/pages/learner/forgot-password/ActionHandler";
+import ForgotPasswordPage from "@/pages/learner/forgot-password/ForgotPassword";
+import ResetPasswordPage from "@/pages/learner/forgot-password/Reset";
 
 /* Admin */
+import AdminLogIn from "@/pages/admin/AdminLogIn";
 import AdminDashboard from "@/pages/admin/Dashboard";
 
 /* Moderator */
 import ModeratorDashboard from "@/pages/moderator/Dashboard";
-import ForgotPasswordPage from "@/pages/learner/forgot-password/ForgotPassword";
-import ResetPasswordPage from "@/pages/learner/forgot-password/Reset";
-import ActionHandler from "@/pages/learner/forgot-password/ActionHandler";
-import AdminLogin from "@/pages/admin/AdminLogIn";
+import ModeratorLogIn from "@/pages/moderator/ModeratorLogIn";
 
 export const router = createBrowserRouter([
   {
@@ -48,7 +49,8 @@ export const router = createBrowserRouter([
       { path: "/forgot-password", element: <ForgotPasswordPage /> },
       { path: "/forgot-password/reset", element: <ResetPasswordPage /> },
       { path: "/auth/action", element: <ActionHandler /> },
-      { path: "/admin/login", element: <AdminLogin /> },
+      { path: "/admin/login", element: <AdminLogIn /> },
+      { path: "/moderator/login", element: <ModeratorLogIn /> },
 
       /* ========== LEARNER ========== */
       {

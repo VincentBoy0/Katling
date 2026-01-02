@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
 
-export default function AdminLogin() {
+export default function AdminLogIn() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,9 +52,6 @@ export default function AdminLogin() {
               <label className="text-sm font-medium text-foreground">
                 Mật khẩu
               </label>
-              <a href="#" className="text-xs text-primary hover:underline">
-                Quên mật khẩu?
-              </a>
             </div>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
