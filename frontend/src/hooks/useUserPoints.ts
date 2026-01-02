@@ -14,6 +14,19 @@ export function useUserPoints() {
             .finally(() => setLoading(false));
     }, []);
 
+    const fetchUserPoints = async () => {
+        setLoading(true);
+        try {
+            const res = await userService.getUserPoints();
+            setPoints(res.data);
+            setError(null);
+        } catch (err) {
+            setError("Unable to fetch data");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const updateUserPoints = async (updatePoints: UserPointsUpdate) => {
         setLoading(true);
 
@@ -27,5 +40,9 @@ export function useUserPoints() {
         }
     }
 
-    return {userPoints, loading, error, updateUserPoints};
+    const refetchUserPoints = () => {
+        fetchUserPoints();
+    };
+
+    return {userPoints, loading, error, updateUserPoints, refetchUserPoints};
 }
