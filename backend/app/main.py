@@ -14,6 +14,7 @@ from database.session import create_db_and_tables
 from database.session import async_session_maker
 
 from api import test, home, daily_missions, leaderboard
+from api.community import friends, posts
 from api.general import auth, user, report as user_report
 from api.management import admin, admin_moderator, moderator, report as manager_report
 from api.learning import learning, vocab, flashcard
@@ -109,6 +110,8 @@ app.include_router(learning.router)
 app.include_router(flashcard.router)
 app.include_router(user_report.router)
 app.include_router(manager_report.router)
+app.include_router(friends.router)
+app.include_router(posts.router)
 #--------------------------------------------------------------------------------------------------
 
 # ------------------- Main -------------------
