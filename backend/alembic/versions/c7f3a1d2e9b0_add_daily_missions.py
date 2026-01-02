@@ -27,6 +27,8 @@ def upgrade() -> None:
 
     mission_type_enum = sa.Enum(
         "COMPLETE_SECTION",
+        "COMPLETE_SECTION_SCORE_80",
+        "COMPLETE_SECTION_SCORE_90",
         "SAVE_WORD",
         "REVIEW_FLASHCARD",
         "COMPLETE_LISTENING",

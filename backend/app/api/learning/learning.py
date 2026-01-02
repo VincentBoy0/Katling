@@ -236,7 +236,7 @@ async def complete_section(
 		)
 
 	mission_service = MissionService(session)
-	await mission_service.on_lesson_completed(user_id=current_user.id, lesson_type=lesson.type)
+	await mission_service.on_lesson_completed(user_id=current_user.id, lesson_type=lesson.type, score=payload.score)
 
 	_, is_streak_increased_today = await user_repo.update_streak_on_activity(current_user.id)
 
