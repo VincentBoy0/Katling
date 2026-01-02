@@ -10,6 +10,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import ENUM
 
 
 # revision identifiers, used by Alembic.
@@ -25,30 +26,54 @@ def upgrade() -> None:
     # Ensure user XP log enum has DAILY_MISSION
     op.execute("ALTER TYPE activity_type_enum ADD VALUE IF NOT EXISTS 'DAILY_MISSION'")
 
-    mission_type_enum = sa.Enum(
-        "COMPLETE_SECTION",
-        "COMPLETE_SECTION_SCORE_80",
-        "COMPLETE_SECTION_SCORE_90",
-        "SAVE_WORD",
-        "REVIEW_FLASHCARD",
-        "COMPLETE_LISTENING",
-        "COMPLETE_WRITING",
-        "COMPLETE_SPEAKING",
-        "COMPLETE_READING",
-        "COMPLETE_VOCABULARY",
-        "COMPLETE_GRAMMAR",
-        name="mission_type_enum",
-        create_type=True,
-    )
-    mission_status_enum = sa.Enum(
-        "IN_PROGRESS",
-        "COMPLETED",
-        name="mission_status_enum",
-        create_type=True,
+    # Create enums using raw SQL (PostgreSQL)
+    # Use DO blocks to avoid errors if the type already exists.
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            CREATE TYPE mission_type_enum AS ENUM (
+                'COMPLETE_SECTION',
+                'COMPLETE_SECTION_SCORE_80',
+                'COMPLETE_SECTION_SCORE_90',
+                'SAVE_WORD',
+                'REVIEW_FLASHCARD',
+                'COMPLETE_LISTENING',
+                'COMPLETE_WRITING',
+                'COMPLETE_SPEAKING',
+                'COMPLETE_READING',
+                'COMPLETE_VOCABULARY',
+                'COMPLETE_GRAMMAR'
+            );
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END $$;
+        """
     )
 
-    mission_type_enum.create(op.get_bind(), checkfirst=True)
-    mission_status_enum.create(op.get_bind(), checkfirst=True)
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            CREATE TYPE mission_status_enum AS ENUM (
+                'IN_PROGRESS',
+                'COMPLETED'
+            );
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END $$;
+        """
+    )
+
+    mission_type_enum = ENUM(
+        name="mission_type_enum",
+        create_type=False,
+    )
+    mission_status_enum = ENUM(
+        name="mission_status_enum",
+        create_type=False,
+    )
+
 
     op.create_table(
         "daily_missions",
@@ -57,7 +82,7 @@ def upgrade() -> None:
         sa.Column("description", sa.String(length=255), nullable=False),
         sa.Column("target_value", sa.Integer(), nullable=False, server_default=sa.text("1")),
         sa.Column("xp_reward", sa.Integer(), nullable=False, server_default=sa.text("0")),
-        sa.Column("lesson_type", sa.Enum(name="lesson_type_enum"), nullable=True),
+        sa.Column("lesson_type", sa.Enum(name="lesson_type_enum", create_type=False), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
 
@@ -69,7 +94,7 @@ def upgrade() -> None:
         sa.Column("date", sa.Date(), nullable=False),
         sa.Column("progress", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column("target_value", sa.Integer(), nullable=False, server_default=sa.text("1")),
-        sa.Column("status", mission_status_enum, nullable=False, server_default="IN_PROGRESS"),
+        sa.Column("status", mission_status_enum, nullable=False, server_default=sa.text("'IN_PROGRESS'")),
         sa.Column("is_claimed", sa.Boolean(), nullable=False, server_default=sa.text("false")),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("claimed_at", sa.DateTime(timezone=True), nullable=True),
@@ -95,8 +120,8 @@ def downgrade() -> None:
     op.drop_table("daily_missions")
 
     # Dropping enum types is safe only after all dependent columns are removed.
-    sa.Enum(name="mission_status_enum").drop(op.get_bind(), checkfirst=True)
-    sa.Enum(name="mission_type_enum").drop(op.get_bind(), checkfirst=True)
+    op.execute("DROP TYPE IF EXISTS mission_status_enum")
+    op.execute("DROP TYPE IF EXISTS mission_type_enum")
 
     # Note: removing a value from Postgres enum (activity_type_enum) is non-trivial.
     # We intentionally leave DAILY_MISSION in place on downgrade.

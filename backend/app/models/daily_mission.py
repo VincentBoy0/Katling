@@ -8,7 +8,7 @@ from typing import Optional
 from sqlalchemy import Column, Date as SADate, DateTime, Enum as SAEnum, UniqueConstraint, text
 from sqlmodel import Field, SQLModel
 
-from models.lesson import LessonType
+from .lesson import LessonType
 
 
 def utc_now() -> datetime:
