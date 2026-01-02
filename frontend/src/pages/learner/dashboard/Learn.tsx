@@ -1,40 +1,76 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import learningService from "@/services/learningService";
+import { TopicProgressOut } from "@/types/learning";
 
 import { Button } from "@/components/ui/button";
-import { BookOpen, Check, Lock, Play, Star } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { BookOpen, Check, Lock, Play, Star, Loader2, AlertCircle } from "lucide-react";
 
-// Mock Data
-const units = [
-  {
-    id: 1,
-    title: "Unit 1: Bước đầu tiên",
-    description: "Làm quen với những kiến thức cơ bản nhất về tiếng Anh.",
-    status: "active", // active | locked | completed
-    progress: 50,
-    lessons: [
-      { id: 1, title: "Giới thiệu bản thân", type: "completed" },
-      { id: 2, title: "Các câu chào hỏi thông dụng", type: "completed" },
-      { id: 3, title: "Một ngày của tôi", type: "current" }, // Bài đang học
-      { id: 4, title: "Gia đình và bạn bè", type: "locked" },
-      { id: 5, title: "Ôn tập Unit 1", type: "locked", isQuiz: true },
-    ],
-  },
-  {
-    id: 2,
-    title: "Unit 2: Giao tiếp hàng ngày",
-    description: "Tự tin giao tiếp trong các tình huống thực tế.",
-    status: "locked",
-    progress: 0,
-    lessons: [
-      { id: 6, title: "Đi mua sắm", type: "locked" },
-      { id: 7, title: "Tại nhà hàng", type: "locked" },
-      { id: 8, title: "Đặt phòng khách sạn", type: "locked" },
-    ],
-  },
-];
 
 export default function LearnPage() {
   const navigate = useNavigate();
+  const [topics, setTopics] = useState<TopicProgressOut[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadTopics = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await learningService.getTopics();
+        setTopics(data.topics);
+      } catch (err: any) {
+        console.error("Error fetching topics:", err);
+        setError(err.response?.data?.message || "Đã có lỗi xảy ra khi tải chủ đề.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTopics();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground font-medium">Đang tải khóa học...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <Card className="p-8 text-center max-w-md border-2 border-destructive/20">
+          <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Có lỗi xảy ra</h2>
+          <p className="text-muted-foreground mb-6">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Thử lại
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (topics.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <Card className="p-8 text-center max-w-md">
+          <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Chưa có bài học</h2>
+          <p className="text-muted-foreground">
+            Hiện tại chưa có khóa học nào. Vui lòng quay lại sau!
+          </p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-4xl mx-auto min-h-screen">
@@ -49,190 +85,128 @@ export default function LearnPage() {
       </div>
 
       <div className="space-y-8">
-        {units.map((unit, index) => (
-          <div key={unit.id} className="relative">
-            {/* Unit Header Card */}
-            <div
-              className={`relative z-10 bg-card border-2 rounded-2xl overflow-hidden transition-all ${
-                unit.status === "locked"
-                  ? "border-border opacity-70 grayscale"
-                  : "border-primary/20 shadow-sm"
-              }`}
-            >
-              {/* Progress Bar Top */}
-              {!unit.status.includes("locked") && (
-                <div className="h-1.5 w-full bg-secondary/30">
-                  <div
-                    className="h-full bg-primary transition-all duration-500"
-                    style={{ width: `${unit.progress}%` }}
-                  />
-                </div>
-              )}
-
-              <div className="p-6 flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
-                <div className="flex gap-4 items-center">
-                  {/* Badge Number */}
-                  <div
-                    className={`w-12 h-12 shrink-0 rounded-xl flex items-center justify-center font-extrabold text-xl border-2 ${
-                      unit.status === "locked"
-                        ? "bg-muted text-muted-foreground border-muted-foreground/20"
-                        : "bg-primary text-primary-foreground border-primary-foreground/20"
-                    }`}
-                  >
-                    {index + 1}
-                  </div>
-
-                  <div>
-                    <h2 className="text-xl font-bold text-foreground">
-                      {unit.title.split(":")[1] || unit.title}
-                    </h2>
-                    <p className="text-sm text-muted-foreground font-medium mt-1">
-                      {unit.description}
-                    </p>
-                  </div>
-                </div>
-
-                {unit.status === "locked" ? (
-                  <div className="p-2 bg-muted rounded-lg">
-                    <Lock className="w-5 h-5 text-muted-foreground" />
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-sm font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg">
-                    <Star className="w-4 h-4 fill-primary" />
-                    <span>{unit.progress}%</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Lesson List (Timeline Style) */}
-            {unit.status !== "locked" && (
-              <div className="mt-6 ml-6 md:ml-8 pl-8 md:pl-10 border-l-2 border-border space-y-6 pb-4">
-                {unit.lessons.map((lesson) => {
-                  const isCompleted = lesson.type === "completed";
-                  const isCurrent = lesson.type === "current";
-                  const isLocked = lesson.type === "locked";
-                  const isQuiz = lesson.isQuiz;
-
-                  return (
-                    <div key={lesson.id} className="relative group">
-                      {/* Connector Line (Horizontal) */}
-                      <div
-                        className={`absolute -left-[42px] md:-left-[50px] top-1/2 -translate-y-1/2 w-6 h-0.5 ${
-                          isLocked ? "bg-border" : "bg-primary/30"
-                        }`}
-                      />
-
-                      {/* Timeline Dot Icons */}
-                      <div
-                        className={`absolute -left-[54px] md:-left-[62px] top-1/2 -translate-y-1/2 w-8 h-8 rounded-full border-2 flex items-center justify-center z-10 transition-transform ${
-                          isCompleted
-                            ? "bg-green-500 border-green-600 text-white"
-                            : isCurrent
-                            ? "bg-primary border-primary text-white scale-110 shadow-[0_0_0_4px_rgba(var(--primary),0.2)]"
-                            : "bg-muted border-border text-muted-foreground"
-                        }`}
-                      >
-                        {isCompleted && (
-                          <Check className="w-4 h-4" strokeWidth={3} />
-                        )}
-                        {isCurrent && (
-                          <Play className="w-4 h-4 fill-current ml-0.5" />
-                        )}
-                        {isLocked && <Lock className="w-3.5 h-3.5" />}
-                      </div>
-
-                      {/* Lesson Card */}
-                      <div
-                        className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all hover:-translate-y-0.5 ${
-                          isCurrent
-                            ? "bg-card border-primary/30 shadow-md ring-1 ring-primary/20"
-                            : isCompleted
-                            ? "bg-card border-green-200 dark:border-green-900/50 opacity-80 hover:opacity-100"
-                            : "bg-muted/30 border-transparent hover:border-border"
-                        }`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div
-                            className={`p-2.5 rounded-lg ${
-                              isQuiz
-                                ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30"
-                                : isCurrent
-                                ? "bg-primary/10 text-primary"
-                                : "bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            {isQuiz ? (
-                              <Star className="w-5 h-5" />
-                            ) : (
-                              <BookOpen className="w-5 h-5" />
-                            )}
-                          </div>
-                          <div>
-                            <h3
-                              className={`font-bold text-base ${
-                                isLocked
-                                  ? "text-muted-foreground"
-                                  : "text-foreground"
-                              }`}
-                            >
-                              {lesson.title}
-                            </h3>
-                            {isCurrent && (
-                              <span className="text-xs font-bold text-primary animate-pulse">
-                                Đang học dở...
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Action Buttons - ĐÃ SỬA ĐƯỜNG DẪN */}
-                        <div className="shrink-0">
-                          {isCurrent ? (
-                            <Button
-                              onClick={() =>
-                                navigate(`/dashboard/lesson/${lesson.id}`)
-                              }
-                              className="font-bold shadow-sm"
-                            >
-                              Bắt đầu
-                            </Button>
-                          ) : isCompleted ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-muted-foreground hover:text-green-600 font-bold"
-                              onClick={() =>
-                                navigate(`/dashboard/lesson/${lesson.id}`)
-                              }
-                            >
-                              Ôn tập
-                            </Button>
-                          ) : (
-                            <Button variant="ghost" size="icon" disabled>
-                              <Lock className="w-4 h-4 text-muted-foreground/50" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+        {topics.map((topic, index) => (
+          <TopicCard
+            key={topic.id}
+            topic={topic}
+            index={index}
+            onStartLesson={(lessonId) => navigate(`/dashboard/lesson/${lessonId}`)}
+          />
         ))}
 
-        {/* Coming Soon Section */}
-        <div className="text-center py-10 opacity-50">
-          <div className="inline-block p-4 bg-muted rounded-full mb-3">
-            <Lock className="w-6 h-6" />
+        {/* Coming Soon Section - Chỉ hiển thị nếu topic cuối đã completed */}
+        {topics.length > 0 && topics[topics.length - 1].status === 'completed' && (
+          <div className="text-center py-10 opacity-50">
+            <div className="inline-block p-4 bg-muted rounded-full mb-3">
+              <Lock className="w-6 h-6" />
+            </div>
+            <p className="font-bold text-muted-foreground">
+              Nội dung mới đang được cập nhật!
+            </p>
           </div>
-          <p className="font-bold text-muted-foreground">
-            Đạt level 3 để mở khóa bài học tiếp theo!
-          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Component cho mỗi Topic
+interface TopicCardProps {
+  topic: TopicProgressOut;
+  index: number;
+  onStartLesson: (lessonId: number) => void;
+}
+
+function TopicCard({ topic, index, onStartLesson }: TopicCardProps) {
+  const isLocked = topic.status === 'locked';
+  const isCurrent = topic.status === 'current';
+  const isCompleted = topic.status === 'completed';
+
+  return (
+    <div className="relative">
+      {/* Topic Header Card */}
+      <div
+        className={`relative z-10 bg-card border-2 rounded-2xl overflow-hidden transition-all ${
+          isLocked
+            ? "border-border opacity-70 grayscale"
+            : "border-primary/20 shadow-sm"
+        }`}
+      >
+        {/* Progress Bar Top */}
+        {!isLocked && (
+          <div className="h-1.5 w-full bg-secondary/30">
+            <div
+              className="h-full bg-primary transition-all duration-500"
+              style={{ width: `${topic.progress}%` }}
+            />
+          </div>
+        )}
+
+        <div className="p-6 flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
+          <div className="flex gap-4 items-center">
+            {/* Badge Number */}
+            <div
+              className={`w-12 h-12 shrink-0 rounded-xl flex items-center justify-center font-extrabold text-xl border-2 ${
+                isLocked
+                  ? "bg-muted text-muted-foreground border-muted-foreground/20"
+                  : isCompleted
+                  ? "bg-green-500 text-white border-green-600"
+                  : "bg-primary text-primary-foreground border-primary-foreground/20"
+              }`}
+            >
+              {isCompleted ? (
+                <Check className="w-6 h-6" strokeWidth={3} />
+              ) : (
+                index + 1
+              )}
+            </div>
+
+            <div>
+              <h2 className="text-xl font-bold text-foreground">
+                {topic.name}
+              </h2>
+              <p className="text-sm text-muted-foreground font-medium mt-1">
+                {topic.description}
+              </p>
+            </div>
+          </div>
+
+          {isLocked ? (
+            <div className="p-2 bg-muted rounded-lg">
+              <Lock className="w-5 h-5 text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-sm font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg">
+              <Star className="w-4 h-4 fill-primary" />
+              <span>{Math.round(topic.progress)}%</span>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Action Button for Current Topic */}
+      {isCurrent && (
+        <div className="mt-6 flex justify-center">
+          <Button
+            size="lg"
+            onClick={() => onStartLesson(topic.id)}
+            className="font-bold shadow-md px-8"
+          >
+            <Play className="w-5 h-5 mr-2" />
+            Tiếp tục học
+          </Button>
+        </div>
+      )}
+
+      {/* Completed Badge */}
+      {isCompleted && (
+        <div className="mt-4 text-center">
+          <span className="inline-flex items-center gap-2 text-sm font-bold text-green-600 bg-green-50 dark:bg-green-900/20 px-4 py-2 rounded-full">
+            <Check className="w-4 h-4" />
+            Đã hoàn thành
+          </span>
+        </div>
+      )}
     </div>
   );
 }
