@@ -16,6 +16,7 @@ from schemas.flashcard import (
 	FlashcardsCompleteRequest,
 	FlashcardsResponse,
 )
+from services.mission_service import MissionService
 
 
 router = APIRouter(prefix="/learning", tags=["Flashcards"])
@@ -97,4 +98,6 @@ async def complete_flashcards(
 ):
 	repo = VocabRepository(session)
 	await repo.touch_last_reviewed_at(user_id=current_user.id, user_word_ids=payload.user_word_ids)
+	mission_service = MissionService(session)
+	await mission_service.on_flashcard_reviewed(user_id=current_user.id)
 	return Response(status_code=204)
