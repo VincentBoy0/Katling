@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from schemas.lessson_section import LessonSectionCreate, LessonSectionResponse, LessonSectionUpdate
 from schemas.topic import TopicCreate, TopicUpdate
 from schemas.lesson import LessonCreate, LessonUpdate, LessonResponse
 from repositories.topicRepository import TopicRepository
 from repositories.lessonRepository import LessonRepository
+from repositories.lessonSectionRepository import LessonSectionRepository
 from database.session import get_session
 from core.security import get_current_user, required_roles
 
@@ -42,7 +44,7 @@ async def add_topic(
     topic = await topic_repo.create_topic(user.id, form)
     return topic
 
-@router.patch("/topics/{topic_id}", response_model=dict)
+@router.patch("/topics/{topic_id:int}", response_model=dict)
 async def update_topic(
     topic_id: int,
     form: TopicUpdate,
@@ -69,10 +71,11 @@ async def update_topic(
     topic = await topic_repo.update_topic(topic_id, form)
     return topic
     
-@router.delete("/topics/{topic_id}")
+@router.delete("/topics/{topic_id:int}")
 async def delete_topic(
     topic_id: int,
     session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
 ):
     """
     Delete a topic (soft delete).
@@ -123,11 +126,12 @@ async def create_lesson(
     lesson = await lesson_repo.create_lesson(user.id, form)
     return lesson
 
-@router.patch("/lessons/{lesson_id}", response_model=LessonResponse)
+@router.patch("/lessons/{lesson_id:int}", response_model=LessonResponse)
 async def update_lesson(
     lesson_id: int,
     form: LessonUpdate,
     session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
 ):
     """
     Update an existing lesson.
@@ -150,10 +154,11 @@ async def update_lesson(
     lesson = await lesson_repo.update_lesson(lesson_id, form)
     return lesson
 
-@router.delete("/lessons/{lesson_id}")
+@router.delete("/lessons/{lesson_id:int}")
 async def delete_lesson(
     lesson_id: int,
     session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
 ):
     """
     Delete a lesson (soft delete).
@@ -174,4 +179,85 @@ async def delete_lesson(
     lesson_repo = LessonRepository(session)
     await lesson_repo.delete_lesson(lesson_id)
     return {"message": f"Lesson {lesson_id} deleted successfully"}
+
+
+# ============ Lesson Section Management ============
+
+@router.post("/lesson-sections", response_model=LessonSectionResponse, status_code=status.HTTP_201_CREATED)
+async def create_section(
+    form: LessonSectionCreate,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """
+    Create a new lesson section.
+    
+    **Role:** MODERATOR
+    
+    Args:
+        form: LessonSectionCreate schema with section details
+        session: Database session
+        user: Currently authenticated user (section creator)
+        
+    Returns:
+        Created LessonSection object
+        
+    Raises:
+        HTTPException: 404 if lesson not found
+    """
+    lesson_section_repo = LessonSectionRepository(session)
+    section = await lesson_section_repo.create_section(user.id, form)
+    return section
+
+@router.patch("/lesson-sections/{section_id:int}", response_model=LessonSectionResponse)
+async def update_section(
+    section_id: int,
+    form: LessonSectionUpdate,
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Update an existing lesson section.
+    
+    **Role:** MODERATOR
+    
+    Args:
+        section_id: Lesson section ID to update
+        form: LessonSectionUpdate schema with updated fields
+        session: Database session
+        user: Currently authenticated user
+        
+    Returns:
+        Updated LessonSection object
+        
+    Raises:
+        HTTPException: 404 if section not found
+    """
+    lesson_section_repo = LessonSectionRepository(session)
+    section = await lesson_section_repo.update_section(section_id, form)
+    return section
+
+@router.delete("/lesson-sections/{section_id:int}")
+async def delete_section(
+    section_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Delete a lesson section (soft delete).
+    
+    **Role:** MODERATOR
+    
+    Args:
+        section_id: Lesson section ID to delete
+        session: Database session
+        user: Currently authenticated user
+        
+    Returns:
+        Success message
+        
+    Raises:
+        HTTPException: 404 if section not found or 410 if already deleted
+    """
+    lesson_section_repo = LessonSectionRepository(session)
+    await lesson_section_repo.delete_section(section_id)
+    return {"message": f"Lesson section {section_id} deleted successfully"}
 
