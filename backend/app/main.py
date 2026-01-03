@@ -17,7 +17,7 @@ from api import test, home, daily_missions, leaderboard
 from api.community import friends, posts
 from api.general import auth, user, report as user_report
 from api.management import admin, admin_moderator, moderator, report as manager_report
-from api.learning import learning, vocab, flashcard
+from api.learning import learning, vocab, flashcard, chatbot
 
 from services.email_service import SMTPEmailConfig, SMTPEmailService
 from services.daily_study_reminder_job import DailyStudyReminderJob
@@ -108,6 +108,7 @@ app.include_router(leaderboard.router)
 app.include_router(vocab.router)
 app.include_router(learning.router)
 app.include_router(flashcard.router)
+app.include_router(chatbot.router)
 app.include_router(user_report.router)
 app.include_router(manager_report.router)
 app.include_router(friends.router)

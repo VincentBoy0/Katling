@@ -10,4 +10,11 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"),
     },
   },
+  server: {
+    host: '0.0.0.0',  // Important for Docker
+    port: 5173,
+    watch: {
+      usePolling: true,  // Important for Docker volume mounting
+    },
+  },
 })
