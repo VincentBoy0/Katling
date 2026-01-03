@@ -5,6 +5,7 @@ import { Input } from "@/components/learner/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Bot, ChevronLeft, Mic, Send, Sparkles, User } from "lucide-react";
+import { chatWithBot } from "@/services/chatService";
 
 interface Message {
   id: number;
@@ -35,31 +36,45 @@ export default function ChatPage() {
     }
   }, [messages, isTyping]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
+    if (isTyping) return;
     if (!input.trim()) return;
 
-    // 1. Thêm tin nhắn User
     const userMsg: Message = {
       id: Date.now(),
       text: input,
       sender: "user",
       timestamp: new Date(),
     };
+
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsTyping(true);
 
-    // 2. Giả lập Bot trả lời sau 1.5s
-    setTimeout(() => {
+    try {
+      const res = await chatWithBot(input);
+
       const botMsg: Message = {
         id: Date.now() + 1,
-        text: "Câu trả lời của bạn rất tự nhiên! Bạn có muốn thử nói về sở thích cá nhân không?",
+        text: res.response,
         sender: "bot",
         timestamp: new Date(),
       };
+
       setMessages((prev) => [...prev, botMsg]);
+    } catch (e) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 2,
+          text: "Xin lỗi, mình gặp lỗi khi phản hồi 😿",
+          sender: "bot",
+          timestamp: new Date(),
+        },
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleQuickReply = (text: string) => {
@@ -200,7 +215,12 @@ export default function ChatPage() {
                 placeholder="Nhập tin nhắn..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
                 className="pr-10 min-h-[3rem] py-3 rounded-xl border-2 border-border focus-visible:ring-0 focus-visible:border-primary font-medium bg-muted/20"
               />
               <Button
@@ -214,7 +234,7 @@ export default function ChatPage() {
 
             <Button
               onClick={handleSend}
-              disabled={!input.trim()}
+              disabled={!input.trim() || isTyping}
               className="h-12 w-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:translate-y-[-2px] active:translate-y-0 transition-all border-primary-foreground/20"
             >
               <Send className="w-5 h-5 ml-0.5" />
