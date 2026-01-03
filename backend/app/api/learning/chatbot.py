@@ -5,10 +5,14 @@ from schemas.chatbot import (
     AssessmentResponse,
     ChatbotRequest,
     ChatbotResponse,
+    GenerateWordRequest,
+    GenerateWordResponse,
     SentenceGenerationRequest,
     SentenceGenerationResponse,
     BatchSentenceRequest,
     BatchSentenceResponse,
+    GenerateWordBatchResponse,
+    GenerateWordBatchRequest,
 )
 from services.chatbot_service import ChatbotService
 import logging
@@ -253,4 +257,28 @@ async def get_chat_history():
 
     except Exception as e:
         logger.error(f"Error getting history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/generate-word", response_model=GenerateWordResponse)
+async def generate_word(request: GenerateWordRequest):
+    try:
+        result = get_chatbot_service().generate_word(
+            level=request.level,
+            topic=request.topic,
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error generating word: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/generate-word-batch", response_model=GenerateWordBatchResponse)
+async def generate_word_batch(request: GenerateWordBatchRequest):
+    try:
+        result = get_chatbot_service().generate_word_batch(
+            count=request.count,
+            level=request.level,
+            topic=request.topic,
+        )
+        return result
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
