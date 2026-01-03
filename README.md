@@ -62,7 +62,7 @@ SMTP_HOST=
 SMTP_PORT=587
 SMTP_USERNAME= <email name>
 SMTP_PASSWORD= <Google Account -> 2FA Auth -> App Password -> Create -> 16-char password>
-SMTP_FROM_EMAIL= 
+SMTP_FROM_EMAIL=
 SMTP_USE_TLS=true
 ```
 
@@ -144,3 +144,51 @@ git branch -d feature/your-feature
 
 
 ---
+## Cách setup Docker
+
+### Yêu cầu
+Cài đặt [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
+### Môi trường
+Tạo các file `frontend/.env` và `backend/.env` như hướng dẫn phía trên
+
+### Build containers
+
+Lần đầu tiên, thực hiện build bằng lệnh:
+```bash
+# Build all containers and start
+docker-compose up --build
+```
+
+Lệnh này sẽ thực hiện:
+- Cài đặt images (Python, Node, PostgreSQL)
+- Cài đặt phụ thuộc
+- Khởi tạo các dịch vụ
+
+Sau đó đợi tất cả các dịch vụ sẵn sàng:
+- ✅ `katling_db` - Database
+- ✅ `katling_backend` - Backend API
+- ✅ `katling_frontend` - Frontend dev server
+
+### Truy cập application
+- **Frontend:** http://localhost:5173
+- **Backend API:** http://localhost:8000
+- **API Documentation:** http://localhost:8000/docs
+- **Database:** `localhost:5432`
+
+Sau khi build xong, những lần sau thực hiện start các dịch vụ bằng lệnh:
+```bash
+# Start all services (backend, frontend, database)
+docker-compose up
+```
+
+hoặc:
+```bash
+docker-compose up -d
+```
+
+Kết thúc các dịch vụ bằng lệnh:
+```bash
+# Stop all services (keeps data)
+docker-compose down
+```
