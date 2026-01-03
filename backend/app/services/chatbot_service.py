@@ -172,6 +172,31 @@ class ChatbotService:
         """Get conversation history"""
         return self.chatbot.get_history()
 
+    def generate_word(self, level: str, topic: str) -> Dict:
+        """
+        Generate a single word for pronunciation practice
+        """
+
+        word_info = self.text_gen.generate_word(level, topic)
+
+        return {
+            "word": word_info["word"],
+            "phonetic": word_info.get("phonetic"),
+            "meaning": word_info.get("meaning"),
+        }
+
+    def generate_word_batch(self, count: int, level: str, topic: str):
+        words = []
+        for i in range(count):
+            w = self.text_gen.generate_word(level, topic)
+            words.append({ **w, "index": i + 1 })
+
+        return {
+            "words": words,
+            "total_count": len(words)
+        }
+
+
 
 def load_audio_from_bytes(audio_bytes: bytes, sr: int = 16000) -> np.ndarray:
     """
