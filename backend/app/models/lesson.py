@@ -1,7 +1,7 @@
 from sqlmodel import SQLModel, Field
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, JSON as SAJSON, Enum as SAEnum, DateTime, text
+from sqlalchemy import Column, Enum as SAEnum, DateTime, text
 from sqlalchemy.dialects.postgresql import JSONB  
 from enum import Enum
 from typing import Optional, Dict, Any
@@ -26,6 +26,7 @@ class Topic(SQLModel, table=True):
     __tablename__ = "topics"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    created_by: int = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
     name: str = Field(max_length=255)
     description: Optional[str] = None
     order_index: int = Field(default=0, index=True)
@@ -33,6 +34,7 @@ class Topic(SQLModel, table=True):
         default_factory=utc_now, 
         sa_column=Column(DateTime(timezone=True), server_default=text("now()"))
     )
+    is_deleted: bool = Field(default=False)
 
 
 class LessonType(str, Enum):
@@ -50,6 +52,7 @@ class Lesson(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     topic_id: int = Field(foreign_key="topics.id", ondelete="CASCADE", index=True)
+    created_by: int = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
     type: LessonType = Field(
         sa_column=Column(SAEnum(LessonType, name="lesson_type_enum")), 
     )
@@ -70,12 +73,14 @@ class Lesson(SQLModel, table=True):
         default_factory=utc_now, 
         sa_column=Column(DateTime(timezone=True), server_default=text("now()"))
     )
+    is_deleted: bool = Field(default=False)
 
 
 class LessonSection(SQLModel, table=True):
     __tablename__ = "lesson_sections"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    created_by: int = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
     lesson_id: int = Field(foreign_key="lessons.id", ondelete="CASCADE", index=True)
     title: str = Field(max_length=150)
     order_index: int = Field(default=0, index=True)
@@ -87,6 +92,7 @@ class LessonSection(SQLModel, table=True):
         default_factory=utc_now, 
         sa_column=Column(DateTime(timezone=True), server_default=text("now()"))
     )
+    is_deleted: bool = Field(default=False)
 
 
 class QuestionType(str, Enum):
@@ -106,6 +112,7 @@ class Question(SQLModel, table=True):
     __tablename__ = "questions"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    created_by: int = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
     lesson_id: int = Field(foreign_key="lessons.id", ondelete="CASCADE", index=True)
     section_id: int = Field(foreign_key="lesson_sections.id", ondelete="CASCADE", index=True)
     type: QuestionType = Field(
@@ -126,3 +133,4 @@ class Question(SQLModel, table=True):
         default_factory=utc_now, 
         sa_column=Column(DateTime(timezone=True), server_default=text("now()"))
     )
+    is_deleted: bool = Field(default=False)

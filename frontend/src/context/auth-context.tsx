@@ -19,25 +19,18 @@ import {
 } from "firebase/auth";
 import { auth } from "@/config/firebase";
 import { loginWithBackend } from "@/services/authService";
+import { userService } from "@/services/userService";
+import { User, RoleType } from "@/types/user";
 
-export type Role = "user" | "admin" | "moderator";
-
-export interface User {
-  id: string;
-  email: string;
-  displayName: string;
-  avatar?: string;
-  level: number;
-  exp: number;
-  streak: number;
-  energy: number;
-  maxEnergy: number;
+// Extended User for UI state with optional Firebase fields
+export interface AuthUser extends User {
+  displayName?: string;
   authProvider?: "email" | "google" | "facebook";
 }
 
 interface AuthContextType {
-  user: User | null;
-  role: Role;
+  user: AuthUser | null;
+  roles: RoleType[];
   isAuthenticated: boolean;
   isLoading: boolean;
   isEmailVerified: boolean;
@@ -49,17 +42,62 @@ interface AuthContextType {
   ) => Promise<void>;
   loginWithOAuth: (provider: "google" | "facebook") => Promise<void>;
   logout: () => void;
-  updateUser: (updates: Partial<User>) => void;
+  updateUser: (updates: Partial<AuthUser>) => void;
   resendVerificationEmail: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [roles, setRoles] = useState<RoleType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
-  const role: Role = "user"; // TODO: Get from backend
+
+  /**
+   * Fetch user roles from backend
+   */
+  const fetchUserRoles = async (): Promise<RoleType[]> => {
+    try {
+      const response = await userService.getRoles();
+      const roleObjects = response.data;
+
+      if (!Array.isArray(roleObjects) || roleObjects.length === 0) {
+        console.warn("No roles returned from backend, defaulting to LEARNER");
+        setRoles([RoleType.LEARNER]);
+        localStorage.setItem(
+          "katling_roles",
+          JSON.stringify([RoleType.LEARNER])
+        );
+        return [RoleType.LEARNER];
+      }
+
+      const userRoles = roleObjects.map((role) => role.type as RoleType);
+
+      setRoles(userRoles);
+      localStorage.setItem("katling_roles", JSON.stringify(userRoles));
+      return userRoles;
+    } catch (error: any) {
+      console.error("Failed to fetch user roles:", error);
+
+      setRoles([RoleType.LEARNER]); // Default to learner
+      localStorage.setItem("katling_roles", JSON.stringify([RoleType.LEARNER]));
+      return [RoleType.LEARNER];
+    }
+  };
+
+  /**
+   * Navigate user to appropriate page based on their primary role
+   */
+  const navigateByRole = (userRoles: RoleType[]) => {
+    if (userRoles.includes(RoleType.ADMIN)) {
+      window.location.href = "/admin";
+    } else if (userRoles.includes(RoleType.MODERATOR)) {
+      window.location.href = "/moderator";
+    } else {
+      window.location.href = "/dashboard";
+    }
+  };
 
   // Listen to Firebase auth state changes
   useEffect(() => {
@@ -70,24 +108,82 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Check if we have user info in localStorage
         const savedUser = localStorage.getItem("katling_user");
-        if (savedUser) {
+        const savedToken = localStorage.getItem("firebase_token");
+        const savedRoles = localStorage.getItem("katling_roles");
+
+        if (savedUser && savedToken) {
+          // We have saved data, restore it
           try {
             setUser(JSON.parse(savedUser));
+
+            // Restore roles from localStorage or fetch from backend
+            if (savedRoles) {
+              const parsedRoles = JSON.parse(savedRoles) as RoleType[];
+              setRoles(parsedRoles);
+            } else {
+              // No saved roles, fetch from backend
+              await fetchUserRoles();
+            }
           } catch (error) {
             console.error("Failed to parse saved user:", error);
+            // If parse fails, re-fetch from backend
+            await restoreUserSession(firebaseUser);
           }
+        } else {
+          // Firebase session exists but no local data - restore from backend
+          await restoreUserSession(firebaseUser);
         }
       } else {
         setUser(null);
+        setRoles([]);
         setIsEmailVerified(false);
         localStorage.removeItem("katling_user");
         localStorage.removeItem("firebase_token");
+        localStorage.removeItem("katling_roles");
       }
       setIsLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
+
+  /**
+   * Restore user session from backend when Firebase is authenticated but local data is missing
+   */
+  const restoreUserSession = async (firebaseUser: FirebaseUser) => {
+    try {
+      const firebaseToken = await firebaseUser.getIdToken();
+      const backendData = await loginWithBackend(firebaseToken);
+
+      const enrichedUser: AuthUser = {
+        ...backendData.user,
+        displayName:
+          firebaseUser.displayName ||
+          backendData.user.email?.split("@")[0] ||
+          "User",
+        authProvider: firebaseUser.providerData[0]?.providerId.includes(
+          "google"
+        )
+          ? "google"
+          : firebaseUser.providerData[0]?.providerId.includes("facebook")
+          ? "facebook"
+          : "email",
+      };
+
+      localStorage.setItem("firebase_token", firebaseToken);
+      localStorage.setItem("katling_user", JSON.stringify(enrichedUser));
+      setUser(enrichedUser);
+
+      // Fetch user roles
+      await fetchUserRoles();
+    } catch (error) {
+      console.error("Failed to restore user session:", error);
+      await firebaseSignOut(auth);
+      setUser(null);
+      localStorage.removeItem("katling_user");
+      localStorage.removeItem("firebase_token");
+    }
+  };
 
   /**
    * Login with Email & Password
@@ -108,10 +204,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Step 3: Verify with backend
     const backendData = await loginWithBackend(firebaseToken);
 
-    // Step 4: Save to localStorage & state
+    // Step 4: Enrich user data with Firebase info
+    const enrichedUser: AuthUser = {
+      ...backendData.user,
+      displayName:
+        firebaseUser.displayName ||
+        backendData.user.email?.split("@")[0] ||
+        "User",
+      authProvider: "email",
+    };
+
+    // Step 5: Save to localStorage & state
     localStorage.setItem("firebase_token", firebaseToken);
-    localStorage.setItem("katling_user", JSON.stringify(backendData.user));
-    setUser(backendData.user);
+    localStorage.setItem("katling_user", JSON.stringify(enrichedUser));
+    setUser(enrichedUser);
+
+    // Step 6: Fetch roles and navigate
+    const userRoles = await fetchUserRoles();
+    navigateByRole(userRoles);
   };
 
   /**
@@ -143,11 +253,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Step 5: Register with backend
     const backendData = await loginWithBackend(firebaseToken);
 
-    // Step 6: Save to localStorage & state
+    // Step 6: Enrich user data with Firebase info
+    const enrichedUser: AuthUser = {
+      ...backendData.user,
+      displayName:
+        displayName || backendData.user.email?.split("@")[0] || "User",
+      authProvider: "email",
+    };
+
+    // Step 7: Save to localStorage & state
     localStorage.setItem("firebase_token", firebaseToken);
-    localStorage.setItem("katling_user", JSON.stringify(backendData.user));
-    setUser(backendData.user);
+    localStorage.setItem("katling_user", JSON.stringify(enrichedUser));
+    setUser(enrichedUser);
     setIsEmailVerified(false);
+
+    // Step 8: Fetch roles and navigate (new users default to learner)
+    const userRoles = await fetchUserRoles();
+    navigateByRole(userRoles);
   };
 
   /**
@@ -185,10 +307,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Step 4: Verify with backend
     const backendData = await loginWithBackend(firebaseToken);
 
-    // Step 5: Save to localStorage & state
+    // Step 5: Enrich user data with Firebase info
+    const enrichedUser: AuthUser = {
+      ...backendData.user,
+      displayName:
+        firebaseUser.displayName ||
+        backendData.user.email?.split("@")[0] ||
+        "User",
+      authProvider: provider,
+    };
+
+    // Step 6: Save to localStorage & state
     localStorage.setItem("firebase_token", firebaseToken);
-    localStorage.setItem("katling_user", JSON.stringify(backendData.user));
-    setUser(backendData.user);
+    localStorage.setItem("katling_user", JSON.stringify(enrichedUser));
+    setUser(enrichedUser);
+
+    // Step 7: Fetch roles and navigate (OAuth only for learners)
+    const userRoles = await fetchUserRoles();
+    navigateByRole(userRoles);
   };
 
   /**
@@ -198,14 +334,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     await firebaseSignOut(auth);
     setUser(null);
+    setRoles([]);
     localStorage.removeItem("katling_user");
     localStorage.removeItem("firebase_token");
+    localStorage.removeItem("katling_roles");
   };
 
   /**
    * Update user data locally
    */
-  const updateUser = (updates: Partial<User>) => {
+  const updateUser = (updates: Partial<AuthUser>) => {
     if (user) {
       const updatedUser = { ...user, ...updates };
       setUser(updatedUser);
@@ -217,7 +355,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        role,
+        roles,
         isAuthenticated: !!user,
         isLoading,
         isEmailVerified,

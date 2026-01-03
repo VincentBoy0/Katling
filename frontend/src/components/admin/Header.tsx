@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState, useRef } from "react";
+import { useAuth } from "@/context/auth-context";
+import { useNavigate } from "react-router-dom";
 
 type Notification = {
   id: number;
@@ -29,6 +31,8 @@ interface AdminHeaderProps {
 
 export default function AdminHeader({ onNavigate }: AdminHeaderProps) {
   const { theme, setTheme } = useTheme();
+  const { logout, user } = useAuth();
+  const navigate = useNavigate();
   const [mounted, setMounted] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
@@ -204,9 +208,15 @@ export default function AdminHeader({ onNavigate }: AdminHeaderProps) {
           </div>
           <div className="hidden sm:block">
             <p className="text-sm font-medium text-foreground">Admin</p>
-            <p className="text-xs text-muted-foreground">admin@english.com</p>
+            <p className="text-xs text-muted-foreground">{user?.email}</p>
           </div>
-          <button className="p-1 hover:bg-muted rounded transition-colors">
+          <button
+            onClick={async () => {
+              await logout();
+              navigate("/admin/login");
+            }}
+            className="p-1 hover:bg-muted rounded transition-colors"
+          >
             <LogOut className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>

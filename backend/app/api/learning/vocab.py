@@ -7,6 +7,7 @@ from core.security import get_current_user
 from database.session import get_session
 from repositories.vocabRepository import VocabRepository
 from schemas.vocab import SaveVocabRequest, UserWordOut, UserWordWithVocabOut, VocabSearchResponse
+from services.mission_service import MissionService
 from services.dictionary_service import (
     DictionaryUpstreamError,
     DictionaryWordNotFoundError,
@@ -69,6 +70,10 @@ async def save_user_word(
         vocab_id=vocab.id,
         category=payload.category,
     )
+
+    if created:
+        mission_service = MissionService(session)
+        await mission_service.on_word_saved(user_id=current_user.id)
 
     response.status_code = 201 if created else 200
     return user_word
