@@ -5,6 +5,7 @@ import {
   TabsTrigger,
 } from "@/components/learner/tabs";
 import { PostCard } from "./PostCard";
+import { Post } from "@/types/post";
 
 interface Comment {
   id: number;
@@ -14,19 +15,19 @@ interface Comment {
   timestamp: string;
 }
 
-interface Post {
-  id: number;
-  author: string;
-  username: string;
-  avatarColor: string;
-  title: string;
-  content: string;
-  likes: number;
-  commentsCount: number;
-  timestamp: string;
-  isLiked: boolean;
-  comments: Comment[];
-}
+// interface Post {
+//   id: number;
+//   author: string;
+//   username: string;
+//   avatarColor: string;
+//   title: string;
+//   content: string;
+//   likes: number;
+//   commentsCount: number;
+//   timestamp: string;
+//   isLiked: boolean;
+//   comments: Comment[];
+// }
 
 interface PostTabsProps {
   posts: Post[];

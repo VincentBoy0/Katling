@@ -3,13 +3,13 @@ import { Plus, UserPlus } from "lucide-react";
 
 interface CommunityHeaderProps {
   onCreatePost: () => void;
-  onFindFriends: () => void;
+  //   onFindFriends: () => void;
 }
 
 export function CommunityHeader({
   onCreatePost,
-  onFindFriends,
-}: CommunityHeaderProps) {
+}: //   onFindFriends,
+CommunityHeaderProps) {
   return (
     <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
       <div className="space-y-2">
@@ -22,13 +22,13 @@ export function CommunityHeader({
       </div>
 
       <div className="flex flex-wrap gap-2 w-full md:w-auto">
-        <Button
+        {/* <Button
           variant="outline"
           onClick={onFindFriends}
           className="border-2 font-bold h-10"
         >
           <UserPlus className="w-4 h-4 mr-2" /> Tìm bạn
-        </Button>
+        </Button> */}
         <Button
           onClick={onCreatePost}
           className="font-bold shadow-md h-10 bg-primary hover:bg-primary/90 text-white border-primary-foreground/20 active:border-b-0 active:translate-y-1 transition-all"

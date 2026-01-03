@@ -1,39 +1,26 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Heart,
-  MessageCircle,
-  Share2,
-  Flag,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import { Heart, MessageCircle } from "lucide-react";
 import { CommentSection } from "./CommentSection";
-import { Post } from "@/types/post";
-import { UserInfo } from "@/types/user";
+import { FeedPost } from "@/types/post";
 import { getAvatarColor } from "@/lib/avatar";
-import { userInfo } from "os";
 
 interface PostCardProps {
-  post: Post;
-  user: UserInfo;
+  post: FeedPost;
   onToggleLike: (postId: number, isLiked: boolean) => void;
-  onDelete?: (id: number) => void;
-  onEdit?: (postId: number) => void;
+  //   onReport?: (id: number) => void;
   onAddComment: (postId: number, content: string) => void;
 }
 
-export function PostCard({
+export function FeedPostCard({
   post,
-  user,
   onToggleLike,
-  onDelete,
-  onEdit,
+  //   onReport,
   onAddComment,
 }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
-  const avatarColor = getAvatarColor(user.full_name);
+  const avatarColor = getAvatarColor(post.author_username);
 
   return (
     <Card className="p-6 border-2 border-border rounded-2xl bg-card">
@@ -42,29 +29,28 @@ export function PostCard({
         <div
           className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border-2 border-white shadow-sm ${avatarColor}`}
         >
-          {user.full_name.charAt(0)}
+          {post.author_username.charAt(0)}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between">
             <div>
               <h3 className="font-bold text-base text-foreground hover:underline cursor-pointer">
-                {user.full_name}{" "}
-                <span className="text-muted-foreground font-normal">(Bạn)</span>
+                {post.author_username}
               </h3>
               <p className="text-xs text-muted-foreground font-medium">
-                {user.full_name} • {post.created_at.slice(0, 9)}
+                {post.author_username} • {post.created_at.slice(0, 9)}
               </p>
             </div>
-            <div className="flex gap-1">
+            {/* <div className="flex gap-1">
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => onDelete?.(post.post_id)}
-                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                onClick={() => onReport?.(post.id)}
+                className="h-8 w-8 text-muted-foreground hover:text-orange-500 hover:bg-orange-50"
               >
-                <Trash2 className="w-4 h-4" />
+                <Flag className="w-4 h-4" />
               </Button>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
@@ -94,7 +80,7 @@ export function PostCard({
           <Heart
             className={`w-5 h-5 ${post.is_liked_by_me ? "fill-current" : ""}`}
           />
-          {post.like_count}
+          {post.is_liked_by_me}
         </Button>
         <Button
           variant="ghost"
@@ -108,10 +94,9 @@ export function PostCard({
         </Button>
       </div>
 
-      {/* Comments
-      {showComments && (
+      {/* {showComments && (
         <CommentSection
-          onAddComment={(content) => onAddComment(post.id, content)}
+          onAddComment={(content) => onAddComment(post.post_id, content)}
         />
       )} */}
     </Card>
