@@ -1,16 +1,21 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from models.user import RoleType, User
+
 from schemas.lessson_section import LessonSectionCreate, LessonSectionResponse, LessonSectionUpdate
 from schemas.topic import TopicCreate, TopicUpdate
 from schemas.lesson import LessonCreate, LessonUpdate, LessonResponse
+from schemas.question import QuestionCreate, QuestionResponse, QuestionUpdate
+
+from repositories.questionRepository import QuestionRepository
 from repositories.topicRepository import TopicRepository
 from repositories.lessonRepository import LessonRepository
 from repositories.lessonSectionRepository import LessonSectionRepository
+
 from database.session import get_session
 from core.security import get_current_user, required_roles
 
-from models.user import RoleType, User
 
 router = APIRouter(
     tags=["Moderator"],
@@ -260,4 +265,59 @@ async def delete_section(
     lesson_section_repo = LessonSectionRepository(session)
     await lesson_section_repo.delete_section(section_id)
     return {"message": f"Lesson section {section_id} deleted successfully"}
+
+
+# ============ Question Section Management ============
+
+@router.post("/questions", response_model=QuestionResponse, status_code=status.HTTP_201_CREATED)
+async def create_question(
+    form: QuestionCreate,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """
+    Create a new question within a lesson section.
+
+    **Role:** MODERATOR
+
+    Instructions for callers:
+    - Provide a valid `section_id` that references an existing lesson section.
+    - `options` and `answer` fields (for multiple-choice) must follow the `QuestionCreate` schema.
+    - The endpoint returns HTTP 201 with the created `QuestionResponse` on success.
+
+    Raises:
+    - HTTP 404 if the referenced lesson section does not exist.
+    - HTTP 400 for schema validation errors.
+    """
+    question_repo = QuestionRepository(session)
+    question = await question_repo.create_question(user.id, form)
+    return question
+
+
+@router.patch("/questions/{question_id:int}", response_model=QuestionResponse, status_code=status.HTTP_200_OK)
+async def update_question(
+    question_id: int,
+    form: QuestionUpdate,
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Update an existing question.
+
+    **Role:** MODERATOR
+
+    Args:
+        question_id: Question ID to update
+        form: QuestionUpdate schema with updated fields
+        session: Database session
+        user: Currently authenticated user
+
+    Returns:
+        Updated Question object
+
+    Raises:
+        HTTPException: 404 if question or referenced section not found
+    """
+    question_repo = QuestionRepository(session)
+    question = await question_repo.update_question(question_id, form)
+    return question
 
