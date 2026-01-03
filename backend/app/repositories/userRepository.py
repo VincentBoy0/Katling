@@ -626,3 +626,175 @@ class UserRepository:
         await self.session.delete(user)
         await self.session.commit()
         return True
+
+    # --- Role Management ---
+    async def assign_role_to_user(self, user_id: int, role_type: RoleType) -> UserRole:
+        """Assign a role to a user.
+        
+        Args:
+            user_id: User ID to assign role to
+            role_type: RoleType to assign (ADMIN, MODERATOR, LEARNER)
+            
+        Returns:
+            Created UserRole object
+            
+        Raises:
+            HTTPException: If user or role not found, or role already assigned
+        """
+        # Verify user exists
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get or create role
+        role = await self._get_or_create_role(role_type)
+        
+        # Check if role already assigned
+        stmt = select(UserRole).where(
+            (UserRole.user_id == user_id) & (UserRole.role_id == role.id)
+        )
+        result = await self.session.exec(stmt)
+        existing = result.first()
+        
+        if existing:
+            raise HTTPException(
+                status_code=409, 
+                detail=f"User {user_id} already has role {role_type.value}"
+            )
+        
+        # Create new user role
+        user_role = UserRole(user_id=user_id, role_id=role.id)
+        self.session.add(user_role)
+        await self.session.commit()
+        await self.session.refresh(user_role)
+        return user_role
+
+    async def remove_role_from_user(self, user_id: int, role_type: RoleType) -> None:
+        """Remove a role from a user.
+        
+        Args:
+            user_id: User ID to remove role from
+            role_type: RoleType to remove (ADMIN, MODERATOR, LEARNER)
+            
+        Raises:
+            HTTPException: If user or role not found, or role not assigned
+        """
+        # Verify user exists
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get role
+        role = await self._get_role_by_type(role_type)
+        if not role:
+            raise HTTPException(status_code=404, detail=f"Role {role_type.value} not found")
+        
+        # Find user role
+        stmt = select(UserRole).where(
+            (UserRole.user_id == user_id) & (UserRole.role_id == role.id)
+        )
+        result = await self.session.exec(stmt)
+        user_role = result.first()
+        
+        if not user_role:
+            raise HTTPException(
+                status_code=404,
+                detail=f"User {user_id} does not have role {role_type.value}"
+            )
+        
+        # Delete user role
+        await self.session.delete(user_role)
+        await self.session.commit()
+
+    async def get_user_roles(self, user_id: int) -> list[dict]:
+        """Get all roles assigned to a user.
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            List of role info dicts with id, role_id, role_type, description
+            
+        Raises:
+            HTTPException: If user not found
+        """
+        # Verify user exists
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get user roles
+        stmt = select(UserRole, Role).join(
+            Role, UserRole.role_id == Role.id
+        ).where(UserRole.user_id == user_id)
+        result = await self.session.exec(stmt)
+        rows = result.all()
+        
+        roles = []
+        for user_role, role in rows:
+            roles.append({
+                "id": user_role.id,
+                "user_id": user_role.user_id,
+                "role_id": user_role.role_id,
+                "role_type": role.type,
+                "role_description": role.description,
+            })
+        
+        return roles
+
+    async def has_role(self, user_id: int, role_type: RoleType) -> bool:
+        """Check if user has a specific role.
+        
+        Args:
+            user_id: User ID
+            role_type: RoleType to check
+            
+        Returns:
+            True if user has role, False otherwise
+        """
+        role = await self._get_role_by_type(role_type)
+        if not role:
+            return False
+        
+        stmt = select(UserRole).where(
+            (UserRole.user_id == user_id) & (UserRole.role_id == role.id)
+        )
+        result = await self.session.exec(stmt)
+        return result.first() is not None
+
+    # --- Helper methods ---
+    async def _get_or_create_role(self, role_type: RoleType) -> Role:
+        """Get or create a role by type.
+        
+        Args:
+            role_type: RoleType to get or create
+            
+        Returns:
+            Role object
+        """
+        stmt = select(Role).where(Role.type == role_type)
+        result = await self.session.exec(stmt)
+        role = result.first()
+        
+        if role:
+            return role
+        
+        # Create role if not exists
+        role = Role(type=role_type, description=f"{role_type.value} role")
+        self.session.add(role)
+        await self.session.commit()
+        await self.session.refresh(role)
+        return role
+
+    async def _get_role_by_type(self, role_type: RoleType) -> Optional[Role]:
+        """Get role by type.
+        
+        Args:
+            role_type: RoleType to retrieve
+            
+        Returns:
+            Role object or None if not found
+        """
+        stmt = select(Role).where(Role.type == role_type)
+        result = await self.session.exec(stmt)
+        return result.first()

@@ -86,7 +86,7 @@ export function useDailyMissions(
       // Show success toast
       toast.success("Nhận thưởng thành công!", {
         description: `Bạn đã nhận được +${result.xp} XP`,
-        icon: <Gift className="w-5 h-5 text-green-600" />,
+        // icon: <Gift className="w-5 h-5 text-green-600" />,
         duration: 3000,
       });
     } catch (error) {
