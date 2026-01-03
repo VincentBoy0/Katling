@@ -79,6 +79,37 @@ class TextGenerator:
 
         return sentence
 
+    def generate_word(self, level: str, topic: str) -> Dict:
+        prompt = f"""
+        Generate ONE English word for pronunciation practice.
+
+        Level: {level}
+        Topic: {topic}
+
+        Respond in JSON:
+        {{
+          "word": "...",
+          "phonetic": "...",
+          "meaning": "..."
+        }}
+        """
+
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+
+        with torch.no_grad():
+            outputs = self.model.generate(
+                **inputs,
+                max_new_tokens=60,
+                temperature=0.7,
+                do_sample=True,
+            )
+
+        text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+        json_text = extract_json(text)  # helper parse JSON
+
+        return json_text
+
 
 class PronunciationChatbot:
     """
@@ -362,3 +393,33 @@ class PronunciationChatbot:
     def get_history(self) -> List[Dict[str, str]]:
         """Get conversation history"""
         return self.conversation_history.copy()
+
+
+
+def extract_json(text: str) -> Dict:
+    """
+    Extract JSON object from text
+
+    Args:
+        text: Text containing JSON
+
+    Returns:
+        Dict: Parsed JSON object
+    """
+    import json
+    import re
+
+    # Find JSON substring
+    json_pattern = r"\{(?:[^{}]|(?R))*\}"
+    match = re.search(json_pattern, text, re.DOTALL)
+
+    if match:
+        json_str = match.group(0)
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {e}")
+            return {}
+    else:
+        logger.error("No JSON found in text")
+        return {}
