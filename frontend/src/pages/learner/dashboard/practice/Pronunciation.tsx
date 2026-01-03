@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -13,70 +13,97 @@ import {
   Volume2,
   X,
 } from "lucide-react";
+import { useRecorder } from "@/hooks/useRecorder";
+import { assessPronunciation, generateWordBatch } from "@/services/pronunciationService";
 
-// Mock Data
-const pronunciationWords = [
-  { id: 1, word: "Apple", pronunciation: "/ˈæpəl/", meaning: "Quả táo" },
-  { id: 2, word: "Book", pronunciation: "/bʊk/", meaning: "Cuốn sách" },
-  { id: 3, word: "Beautiful", pronunciation: "/ˈbjuːtɪfl/", meaning: "Đẹp" },
-  {
-    id: 4,
-    word: "Computer",
-    pronunciation: "/kəmˈpjuːtər/",
-    meaning: "Máy tính",
-  },
-  {
-    id: 5,
-    word: "Education",
-    pronunciation: "/ˌedʒuˈkeɪʃən/",
-    meaning: "Giáo dục",
-  },
-];
 
 export default function PronunciationPracticePage() {
   const navigate = useNavigate();
+  const TOTAL = 5;
+
+  const [words, setWords] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [results, setResults] = useState<Record<number, number>>({});
+  const [completedWords, setCompletedWords] = useState<number[]>([]);
   const [isRecording, setIsRecording] = useState(false);
 
-  const [results, setResults] = useState<{ [key: number]: number }>({});
-  const [completedWords, setCompletedWords] = useState<number[]>([]);
+  const currentWord = words[currentIndex];
 
-  const currentWord = pronunciationWords[currentIndex];
-  const progressPercent =
-    ((currentIndex + 1) / pronunciationWords.length) * 100;
+  useEffect(() => {
+    generateWordBatch(TOTAL).then((res) => {
+      setWords(res.words.slice(0, TOTAL));
+      setCurrentIndex(0);
+    });
+  }, []);
+
+  useEffect(() => {
+    setIsRecording(false);
+  }, [currentIndex]);
+
+  
+
+  const progressPercent = ((currentIndex + 1) / TOTAL) * 100;
 
   // --- HANDLERS ---
   const handlePlayAudio = () => {
     console.log(`Playing: ${currentWord.word}`);
   };
 
+  const { start, stop } = useRecorder();
+
   const handleRecord = async () => {
+    if (isRecording) return;
     setIsRecording(true);
-    // Giả lập delay
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await start();
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    const audioBlob = await stop();
     setIsRecording(false);
 
-    // Giả lập điểm số
-    const score = Math.floor(Math.random() * 50) + 50;
-    setResults({ ...results, [currentWord.id]: score });
+    try {
+      const result = await assessPronunciation(
+        audioBlob,
+        currentWord.word
+      );
 
-    if (!completedWords.includes(currentWord.id)) {
-      setCompletedWords([...completedWords, currentWord.id]);
+      const percent = Math.min(
+        100,
+        Math.max(
+          0,
+          Math.round(100 + result.assessment.overall_score * 10)
+        )
+      );
+
+      setResults((prev) => ({
+        ...prev,
+        [currentIndex]: percent,
+      }));
+
+      setCompletedWords((prev) =>
+        prev.includes(currentIndex) ? prev : [...prev, currentIndex]
+      );
+
+    } catch (error) {
+      console.error("Error assessing pronunciation:", error);
+      alert("Đã có lỗi xảy ra khi đánh giá phát âm. Vui lòng thử lại.");
+    } finally {
+      setIsRecording(false);
     }
   };
 
   const handleNext = () => {
-    if (currentIndex < pronunciationWords.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+    if (currentIndex < TOTAL - 1) {
+      setCurrentIndex((i) => i + 1);
     } else {
-      navigate("/dashboard/practice");
+      navigate("/dashboard/practice"); // hoặc result page
     }
   };
 
   const handleRetry = () => {
-    const newResults = { ...results };
-    delete newResults[currentWord.id];
-    setResults(newResults);
+    setResults((prev) => {
+      const copy = { ...prev };
+      delete copy[currentIndex];
+      return copy;
+    });
   };
 
   // Helper: Màu sắc Feedback (Không dùng đỏ)
@@ -104,6 +131,14 @@ export default function PronunciationPracticePage() {
     };
   };
 
+  if (!currentWord) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Đang tải bài luyện...
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center p-4 md:p-8">
       {/* 1. HEADER & PROGRESS */}
@@ -127,7 +162,7 @@ export default function PronunciationPracticePage() {
           </div>
 
           <div className="font-bold text-primary text-sm">
-            {currentIndex + 1}/{pronunciationWords.length}
+            {currentIndex + 1}/{TOTAL}
           </div>
         </div>
       </div>
@@ -168,10 +203,10 @@ export default function PronunciationPracticePage() {
         {/* 3. RECORDING AREA */}
         <div className="w-full flex flex-col items-center gap-6">
           {/* Chưa có kết quả -> Hiển thị nút Mic */}
-          {!results[currentWord.id] ? (
+          {!results[currentIndex] ? (
             <div
               className="relative group cursor-pointer"
-              onClick={handleRecord}
+              onClick={!results[currentIndex] ? handleRecord : undefined}
             >
               {/* Hiệu ứng sóng âm khi ghi âm (Dùng màu Primary/Accent) */}
               {isRecording && (
@@ -206,7 +241,7 @@ export default function PronunciationPracticePage() {
             // Đã có kết quả -> Hiển thị Score Board
             <div className="w-full animate-in zoom-in-95 duration-300">
               {(() => {
-                const visual = getScoreVisuals(results[currentWord.id]);
+                const visual = getScoreVisuals(results[currentIndex]);
                 const Icon = visual.icon;
                 return (
                   <div
@@ -215,7 +250,7 @@ export default function PronunciationPracticePage() {
                     <div className="flex items-center justify-center gap-3 mb-2">
                       <Icon className="w-8 h-8" />
                       <span className="text-4xl font-black">
-                        {results[currentWord.id]}%
+                        {results[currentIndex]}%
                       </span>
                     </div>
                     <p className="font-bold text-lg">{visual.msg}</p>
@@ -227,6 +262,7 @@ export default function PronunciationPracticePage() {
                 <Button
                   variant="outline"
                   onClick={handleRetry}
+                  disabled={isRecording}
                   className="font-bold border-2 h-12 px-6 hover:bg-muted"
                 >
                   <RotateCcw className="w-4 h-4 mr-2" />
@@ -235,6 +271,7 @@ export default function PronunciationPracticePage() {
 
                 <Button
                   onClick={handleNext}
+                  disabled={!results[currentIndex]}
                   className="font-bold h-12 px-8 shadow-md hover:translate-y-0.5 active:translate-y-1 transition-all"
                 >
                   Tiếp theo
