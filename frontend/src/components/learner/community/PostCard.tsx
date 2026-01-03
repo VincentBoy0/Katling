@@ -20,7 +20,6 @@ interface PostCardProps {
   user: UserInfo;
   onToggleLike: (postId: number, isLiked: boolean) => void;
   onDelete?: (id: number) => void;
-  onEdit?: (postId: number) => void;
   onAddComment: (postId: number, content: string) => void;
 }
 
@@ -29,7 +28,6 @@ export function PostCard({
   user,
   onToggleLike,
   onDelete,
-  onEdit,
   onAddComment,
 }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
