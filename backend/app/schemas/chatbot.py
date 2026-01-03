@@ -90,4 +90,26 @@ class AssessmentResponse(BaseModel):
     assessment: AssessmentDetail
     feedback: str
 
+class GenerateWordRequest(BaseModel):
+    level: str = Field(default="beginner")
+    topic: str = Field(default="general")
 
+class GenerateWordResponse(BaseModel):
+    word: str
+    phonetic: Optional[str] = None
+    meaning: Optional[str] = None
+
+class GenerateWordBatchRequest(BaseModel):
+    count: int = Field(default=5, ge=1, le=20)
+    level: str = Field(default="beginner")
+    topic: str = Field(default="daily")
+
+class WordInfo(BaseModel):
+    word: str
+    phonetic: str | None = None
+    meaning: str | None = None
+    index: int
+
+class GenerateWordBatchResponse(BaseModel):
+    words: list[WordInfo]
+    total_count: int
