@@ -1,16 +1,16 @@
 import { api } from "@/lib/api";
-import { Post, PostStatus, PostComment, PostLike } from "@/types/post";
+import { Post, FeedPost, PostCreate, PostCommentCreate } from "@/types/post";
 
 export const postService = {
     getPostFeed(limit = 20, offset = 0) {
-        return api.get<Post[]>("/posts/feed", { params: { limit, offset } });
+        return api.get<FeedPost[]>("/posts/feed", { params: { limit, offset } });
     },
 
     getUserPost(limit = 20, offset = 0) {
         return api.get<Post[]>("/users/me/posts", { params: { limit, offset } });
     },
 
-    createPost(title: string, body: string) {
+    createPost({title, body} : PostCreate) {
         return api.post("/posts", {title, body});
     },
 

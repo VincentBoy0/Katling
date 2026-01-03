@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Post } from "@/types/post";
+import { FeedPost, Post } from "@/types/post";
 import { postService } from "@/services/postService";
 
 export function usePost() {
-    const [feed, setFeed] = useState<Post[]>([]);
+    const [feed, setFeed] = useState<FeedPost[]>([]);
+    const [userPost, setUserPost] = useState<Post[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -22,13 +23,28 @@ export function usePost() {
         }
     };
 
+    // Get user post
+    const getUserPost = async (limit = 20, offset = 0) => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const res = await postService.getUserPost(limit, offset);
+            setUserPost(res.data);
+        } catch (err: any) {
+            setError(err?.res?.data?.detail || err.message || "Cannot fetch user's posts"); 
+        } finally {
+            setLoading(false);
+        }
+    }
+
     // Create new post
     const createPost = async (title: string, body: string) => {
         setLoading(true);
         setError(null);
 
         try  {
-            const res = await postService.createPost(title, body);
+            const res = await postService.createPost({title, body});
             return res.data;
         } catch (err: any) {
             setError(err?.data?.detail || err.message || "Cannot create new post");
@@ -45,7 +61,7 @@ export function usePost() {
 
         try  {
             const res = await postService.deletePost(postId);
-            setFeed(prev => prev.filter(p => p.id !== postId));
+            setFeed(prev => prev.filter((p : Post) => p.post_id !== postId));
         } catch (err: any) {
             setError(err?.data?.detail || err.message || "Cannot delete post");
             throw err;
@@ -73,7 +89,7 @@ export function usePost() {
         }
     };
 
-    // Comment/Delete commen
+    // Comment/Delete comment
     const createComment = async (postId: number, content: string) => {
         try {
             const response = await postService.createComment(postId, content);
@@ -95,9 +111,11 @@ export function usePost() {
 
     return {
         feed,
+        userPost,
         loading,
         error,
         getFeed,
+        getUserPost,
         createPost,
         deletePost,
         likePost,
