@@ -1,3 +1,12 @@
+import { useEffect, useState } from "react";
+import { leaderboardService } from "@/services/leaderboardService";
+import type {
+  LeaderboardResponse,
+  MyLeaderboardRank,
+} from "@/services/leaderboardService";
+
+
+
 import {
   Tabs,
   TabsContent,
@@ -14,47 +23,6 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
-import { useState } from "react";
-
-// Mock Data
-const leaderboardData = {
-  level: [
-    { rank: 1, name: "Nguyễn Minh", value: 25, change: "up" },
-    { rank: 2, name: "Trần Hà", value: 23, change: "down" },
-    { rank: 3, name: "Lê Quân", value: 22, change: "same" },
-    { rank: 4, name: "Phạm Linh", value: 20, change: "up" },
-    { rank: 5, name: "Hoàng Nam", value: 19, change: "down" },
-    { rank: 6, name: "Võ Trang", value: 18, change: "same" },
-    { rank: 7, name: "Bùi Huy", value: 17, change: "up" },
-    { rank: 8, name: "Đặng Mai", value: 16, change: "same" },
-    { rank: 9, name: "Cao Long", value: 15, change: "down" },
-    { rank: 10, name: "Thái Hòa", value: 14, change: "up" },
-  ],
-  streak: [
-    { rank: 1, name: "Nguyễn Minh", value: 45, change: "up" },
-    { rank: 2, name: "Trần Hà", value: 42, change: "same" },
-    { rank: 3, name: "Lê Quân", value: 38, change: "up" },
-    { rank: 4, name: "Phạm Linh", value: 35, change: "down" },
-    { rank: 5, name: "Hoàng Nam", value: 32, change: "same" },
-    { rank: 6, name: "Võ Trang", value: 30, change: "up" },
-    { rank: 7, name: "Bùi Huy", value: 28, change: "same" },
-    { rank: 8, name: "Đặng Mai", value: 25, change: "down" },
-    { rank: 9, name: "Cao Long", value: 22, change: "up" },
-    { rank: 10, name: "Thái Hòa", value: 20, change: "same" },
-  ],
-  xp: [
-    { rank: 1, name: "Nguyễn Minh", value: 12500, change: "up" },
-    { rank: 2, name: "Trần Hà", value: 11200, change: "same" },
-    { rank: 3, name: "Lê Quân", value: 10800, change: "up" },
-    { rank: 4, name: "Phạm Linh", value: 9500, change: "down" },
-    { rank: 5, name: "Hoàng Nam", value: 8900, change: "same" },
-    { rank: 6, name: "Võ Trang", value: 8200, change: "up" },
-    { rank: 7, name: "Bùi Huy", value: 7600, change: "same" },
-    { rank: 8, name: "Đặng Mai", value: 7100, change: "down" },
-    { rank: 9, name: "Cao Long", value: 6500, change: "up" },
-    { rank: 10, name: "Thái Hòa", value: 6000, change: "same" },
-  ],
-};
 
 // Helper để lấy icon và style cho Rank
 const getRankVisuals = (rank: number) => {
@@ -99,9 +67,33 @@ const getRankVisuals = (rank: number) => {
 };
 
 export default function LeaderboardPage() {
-  const [activeTab, setActiveTab] = useState("level");
+  const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
+  const [myRank, setMyRank] = useState<MyLeaderboardRank | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Component hiển thị 1 hàng trong bảng xếp hạng
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        setIsLoading(true);
+        const [lb, me] = await Promise.all([
+          leaderboardService.getLeaderboard(),
+          leaderboardService.getMyRank(),
+        ]);
+
+        setLeaderboard(lb);
+        setMyRank(me);
+      } catch (e) {
+        setError("Không tải được bảng xếp hạng");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+  }, []);
+
+
   const LeaderboardItem = ({
     user,
     unit,
@@ -211,32 +203,43 @@ export default function LeaderboardPage() {
             <p className="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-1">
               Cấp độ
             </p>
-            <p className="text-2xl font-black text-foreground">#12</p>
-            <p className="text-xs text-muted-foreground font-medium">LVL 15</p>
+            <p className="text-2xl font-black text-foreground">#{myRank?.level.rank ?? "--"}</p>
+            <p className="text-xs text-muted-foreground font-medium">LVL {myRank?.level.value ?? "--"}</p>
           </div>
           <div className="bg-background rounded-2xl p-4 border-2 border-orange-100 dark:border-orange-900 text-center">
             <p className="text-xs font-bold text-orange-500 uppercase tracking-wider mb-1">
               Streak
             </p>
-            <p className="text-2xl font-black text-foreground">#18</p>
-            <p className="text-xs text-muted-foreground font-medium">15 ngày</p>
+            <p className="text-2xl font-black text-foreground">#{myRank?.streak.rank ?? "--"}</p>
+            <p className="text-xs text-muted-foreground font-medium">#{myRank?.streak.value ?? "--"} ngày</p>
           </div>
           <div className="bg-background rounded-2xl p-4 border-2 border-emerald-100 dark:border-emerald-900 text-center">
             <p className="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-1">
               Kinh nghiệm
             </p>
-            <p className="text-2xl font-black text-foreground">#14</p>
-            <p className="text-xs text-muted-foreground font-medium">5.2K XP</p>
+            <p className="text-2xl font-black text-foreground">#{myRank?.xp.rank ?? "--"}</p>
+            <p className="text-xs text-muted-foreground font-medium">{myRank?.xp.value ?? "--"} XP</p>
           </div>
         </div>
       </Card>
 
       {/* 3. LEADERBOARD LIST */}
       <div className="space-y-6">
+        {isLoading && (
+          <p className="text-center text-muted-foreground">
+            Đang tải bảng xếp hạng...
+          </p>
+        )}
+
+        {error && (
+          <p className="text-center text-red-500 font-bold">
+            {error}
+          </p>
+        )}
+
         <Tabs
           defaultValue="level"
           className="w-full"
-          onValueChange={setActiveTab}
         >
           <TabsList className="grid w-full grid-cols-3 h-12 p-1 bg-muted/50 rounded-xl mb-6">
             <TabsTrigger
@@ -266,10 +269,13 @@ export default function LeaderboardPage() {
             value="level"
             className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
           >
-            {leaderboardData.level.map((user) => (
+            {leaderboard?.level.map((user) => (
               <LeaderboardItem
                 key={user.rank}
-                user={user}
+                user={{
+                  ...user,
+                  change: user.rank_change,
+                }}
                 unit="Level"
                 icon={<Crown className="w-4 h-4 text-indigo-500" />}
               />
@@ -280,11 +286,14 @@ export default function LeaderboardPage() {
             value="streak"
             className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
           >
-            {leaderboardData.streak.map((user) => (
+            {leaderboard?.streak.map((user) => (
               <LeaderboardItem
                 key={user.rank}
-                user={user}
-                unit="Ngày"
+                user={{
+                  ...user,
+                  change: user.rank_change,
+                }}
+                unit="Streak"
                 icon={<Flame className="w-4 h-4 text-orange-500" />}
               />
             ))}
@@ -294,10 +303,13 @@ export default function LeaderboardPage() {
             value="xp"
             className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
           >
-            {leaderboardData.xp.map((user) => (
+            {leaderboard?.xp.map((user) => (
               <LeaderboardItem
                 key={user.rank}
-                user={user}
+                user={{
+                  ...user,
+                  change: user.rank_change,
+                }}
                 unit="XP"
                 icon={<Zap className="w-4 h-4 text-emerald-500" />}
               />
