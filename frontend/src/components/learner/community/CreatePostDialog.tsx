@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 interface CreatePostDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (title: string, content: string) => void;
+  onSubmit: (title: string, content: string) => Promise<void>;
 }
 
 export function CreatePostDialog({
@@ -22,12 +22,27 @@ export function CreatePostDialog({
 }: CreatePostDialogProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(title, content);
-    setTitle("");
-    setContent("");
+
+    if (!title.trim() || !content.trim()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onSubmit(title, content);
+      // Clear form only on success
+      setTitle("");
+      setContent("");
+    } catch (err) {
+      // Error is handled in parent component
+      console.error("Dialog submit error:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -60,11 +75,16 @@ export function CreatePostDialog({
               variant="ghost"
               onClick={() => onOpenChange(false)}
               className="flex-1 font-bold"
+              disabled={isSubmitting}
             >
               Hủy
             </Button>
-            <Button type="submit" className="flex-1 font-bold shadow-sm">
-              Đăng bài
+            <Button
+              type="submit"
+              className="flex-1 font-bold shadow-sm"
+              disabled={isSubmitting || !title.trim() || !content.trim()}
+            >
+              {isSubmitting ? "Đang đăng..." : "Đăng bài"}
             </Button>
           </div>
         </form>

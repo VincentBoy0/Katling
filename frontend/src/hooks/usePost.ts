@@ -45,9 +45,12 @@ export function usePost() {
 
         try  {
             const res = await postService.createPost({title, body});
+            console.log("Post created:", res.data);
             return res.data;
         } catch (err: any) {
-            setError(err?.data?.detail || err.message || "Cannot create new post");
+            const errorMsg = err?.response?.data?.detail || err?.message || "Cannot create new post";
+            setError(errorMsg);
+            console.error("Create post error:", err.response || err);
             throw err;
         } finally {
             setLoading(false);
@@ -56,34 +59,79 @@ export function usePost() {
 
     // Delete post
     const deletePost = async (postId: number) => {
-        setLoading(true);
-        setError(null);
+        // Optimistic update
+        setFeed(prev => prev.filter(p => p.post_id !== postId));
+        setUserPost(prev => prev.filter(p => p.post_id !== postId));
 
         try  {
-            const res = await postService.deletePost(postId);
-            setFeed(prev => prev.filter((p : Post) => p.post_id !== postId));
+            await postService.deletePost(postId);
         } catch (err: any) {
+            // Note: We don't rollback delete - user will need to refresh
             setError(err?.data?.detail || err.message || "Cannot delete post");
             throw err;
-        } finally {
-            setLoading(false);
         }
     };
 
     // Like/Unlike
     const likePost = async (postId: number) => {
+        // Optimistic update
+        setFeed(prev => prev.map(p => 
+            p.post_id === postId 
+                ? { ...p, is_liked_by_me: true, like_count: p.like_count + 1 }
+                : p
+        ));
+        setUserPost(prev => prev.map(p => 
+            p.post_id === postId 
+                ? { ...p, is_liked_by_me: true, like_count: p.like_count + 1 }
+                : p
+        ));
+
         try  {
             await postService.likePost(postId);
         } catch (err: any) {
+            // Rollback on error
+            setFeed(prev => prev.map(p => 
+                p.post_id === postId 
+                    ? { ...p, is_liked_by_me: false, like_count: p.like_count - 1 }
+                    : p
+            ));
+            setUserPost(prev => prev.map(p => 
+                p.post_id === postId 
+                    ? { ...p, is_liked_by_me: false, like_count: p.like_count - 1 }
+                    : p
+            ));
             setError(err?.data?.detail || err.message);
             throw err;
         } 
     };
 
     const unlikePost = async (postId: number) => {
+        // Optimistic update
+        setFeed(prev => prev.map(p => 
+            p.post_id === postId 
+                ? { ...p, is_liked_by_me: false, like_count: p.like_count - 1 }
+                : p
+        ));
+        setUserPost(prev => prev.map(p => 
+            p.post_id === postId 
+                ? { ...p, is_liked_by_me: false, like_count: p.like_count - 1 }
+                : p
+        ));
+
         try {
             await postService.unlikePost(postId);
         } catch (err: any) {
+            // Rollback on error
+            setFeed(prev => prev.map(p => 
+                p.post_id === postId 
+                    ? { ...p, is_liked_by_me: true, like_count: p.like_count + 1 }
+                    : p
+            ));
+            setUserPost(prev => prev.map(p => 
+                p.post_id === postId 
+                    ? { ...p, is_liked_by_me: true, like_count: p.like_count + 1 }
+                    : p
+            ));
             setError(err?.response?.data?.detail || err.message);
             throw err;
         }
@@ -91,10 +139,33 @@ export function usePost() {
 
     // Comment/Delete comment
     const createComment = async (postId: number, content: string) => {
+        // Optimistic update comment count
+        setFeed(prev => prev.map(p => 
+            p.post_id === postId 
+                ? { ...p, comment_count: p.comment_count + 1 }
+                : p
+        ));
+        setUserPost(prev => prev.map(p => 
+            p.post_id === postId 
+                ? { ...p, comment_count: p.comment_count + 1 }
+                : p
+        ));
+
         try {
             const response = await postService.createComment(postId, content);
             return response.data;
         } catch (err: any) {
+            // Rollback on error
+            setFeed(prev => prev.map(p => 
+                p.post_id === postId 
+                    ? { ...p, comment_count: p.comment_count - 1 }
+                    : p
+            ));
+            setUserPost(prev => prev.map(p => 
+                p.post_id === postId 
+                    ? { ...p, comment_count: p.comment_count - 1 }
+                    : p
+            ));
             setError(err?.response?.data?.detail || err.message);
             throw err;
         }

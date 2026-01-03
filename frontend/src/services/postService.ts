@@ -11,7 +11,8 @@ export const postService = {
     },
 
     createPost({title, body} : PostCreate) {
-        return api.post("/posts", {title, body});
+        console.log("Creating post with:", { title, body });
+        return api.post<{ id: number }>("/posts", { title, body });
     },
 
     deletePost(postId: number) {
@@ -27,7 +28,7 @@ export const postService = {
     },
 
     createComment(postId: number, content: string) {
-        return api.post(`/posts/${postId}/comments`, content);
+        return api.post<{ id: number }>(`/posts/${postId}/comments`, { content });
     },
 
     deleteComment(postId: number, commentId: number) {

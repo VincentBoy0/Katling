@@ -17,7 +17,7 @@ import { userInfo } from "os";
 
 interface PostCardProps {
   post: Post;
-  user: UserInfo;
+  user: UserInfo | null;
   onToggleLike: (postId: number, isLiked: boolean) => void;
   onDelete?: (id: number) => void;
   onAddComment: (postId: number, content: string) => void;
@@ -31,7 +31,7 @@ export function PostCard({
   onAddComment,
 }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
-  const avatarColor = getAvatarColor(user.full_name);
+  const avatarColor = getAvatarColor(user?.full_name || "Kalinger");
 
   return (
     <Card className="p-6 border-2 border-border rounded-2xl bg-card">
@@ -40,17 +40,17 @@ export function PostCard({
         <div
           className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border-2 border-white shadow-sm ${avatarColor}`}
         >
-          {user.full_name.charAt(0)}
+          {user?.full_name.charAt(0)}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between">
             <div>
               <h3 className="font-bold text-base text-foreground hover:underline cursor-pointer">
-                {user.full_name}{" "}
+                {user?.full_name || "Katling User"}{" "}
                 <span className="text-muted-foreground font-normal">(Bạn)</span>
               </h3>
-              <p className="text-xs text-muted-foreground font-medium">
-                {user.full_name} • {post.created_at.slice(0, 9)}
+              <p className="text-xs text-muted-foreground font-medium pt-0.5">
+                Được đăng vào {post.created_at.slice(0, 10)}
               </p>
             </div>
             <div className="flex gap-1">
@@ -66,7 +66,6 @@ export function PostCard({
           </div>
         </div>
       </div>
-
       {/* Content */}
       <div className="mb-4">
         <h2 className="text-xl font-bold mb-2 text-foreground">
@@ -76,7 +75,6 @@ export function PostCard({
           {post.content.body}
         </p>
       </div>
-
       {/* Actions */}
       <div className="flex items-center gap-2 pt-4 border-t border-dashed border-border">
         <Button
@@ -106,12 +104,11 @@ export function PostCard({
         </Button>
       </div>
 
-      {/* Comments
       {showComments && (
         <CommentSection
-          onAddComment={(content) => onAddComment(post.id, content)}
+          onAddComment={(content) => onAddComment(post.post_id, content)}
         />
-      )} */}
+      )}
     </Card>
   );
 }

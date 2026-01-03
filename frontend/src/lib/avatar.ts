@@ -1,4 +1,4 @@
-export const getAvatarColor = (name: string) => {
+export const getAvatarColor = (name?: string | null) => {
   const colors = [
     "bg-purple-100 text-purple-600",
     "bg-blue-100 text-blue-600",
@@ -8,6 +8,8 @@ export const getAvatarColor = (name: string) => {
     "bg-indigo-100 text-indigo-600",
     "bg-red-100 text-red-600",
   ];
+
+  if (!name || name.length === 0) return "bg-gray-400";
 
   let hash = 0;
   for (let i = 0; i < name.length; i++) {

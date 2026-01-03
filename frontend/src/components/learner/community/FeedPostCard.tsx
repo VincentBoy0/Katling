@@ -29,7 +29,7 @@ export function FeedPostCard({
         <div
           className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border-2 border-white shadow-sm ${avatarColor}`}
         >
-          {post.author_username.charAt(0)}
+          {post.author_username?.charAt(0)}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between">
@@ -37,8 +37,8 @@ export function FeedPostCard({
               <h3 className="font-bold text-base text-foreground hover:underline cursor-pointer">
                 {post.author_username}
               </h3>
-              <p className="text-xs text-muted-foreground font-medium">
-                {post.author_username} • {post.created_at.slice(0, 9)}
+              <p className="text-xs text-muted-foreground font-medium pt-0.5">
+                Được đăng vào {post.created_at.slice(0, 10)}
               </p>
             </div>
             {/* <div className="flex gap-1">
@@ -80,7 +80,7 @@ export function FeedPostCard({
           <Heart
             className={`w-5 h-5 ${post.is_liked_by_me ? "fill-current" : ""}`}
           />
-          {post.is_liked_by_me}
+          {post.like_count}
         </Button>
         <Button
           variant="ghost"
@@ -94,11 +94,11 @@ export function FeedPostCard({
         </Button>
       </div>
 
-      {/* {showComments && (
+      {showComments && (
         <CommentSection
           onAddComment={(content) => onAddComment(post.post_id, content)}
         />
-      )} */}
+      )}
     </Card>
   );
 }

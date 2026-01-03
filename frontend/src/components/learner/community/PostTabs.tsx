@@ -12,7 +12,7 @@ import { UserInfo } from "@/types/user";
 interface PostTabsProps {
   feedPosts: FeedPost[];
   userPosts: Post[];
-  user: UserInfo;
+  user: UserInfo | null;
   onToggleLike: (postId: number, isLiked: boolean) => void;
   onAddComment: (postId: number, content: string) => void;
   onDelete: (postId: number) => void;
@@ -51,6 +51,7 @@ PostTabsProps) {
       >
         {feedPosts.map((post) => (
           <FeedPostCard
+            key={post.post_id}
             post={post}
             onToggleLike={onToggleLike}
             onAddComment={onAddComment}
@@ -63,15 +64,27 @@ PostTabsProps) {
         value="my-posts"
         className="space-y-6 animate-in fade-in slide-in-from-bottom-2"
       >
-        {userPosts.map((post) => (
-          <PostCard
-            post={post}
-            user={user}
-            onToggleLike={onToggleLike}
-            onAddComment={onAddComment}
-            onDelete={onDelete}
-          />
-        ))}
+        {userPosts.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-lg">
+              Bạn chưa có bài viết nào.
+            </p>
+            <p className="text-muted-foreground text-sm mt-2">
+              Hãy tạo bài viết đầu tiên của bạn!
+            </p>
+          </div>
+        ) : (
+          userPosts.map((post) => (
+            <PostCard
+              key={post.post_id}
+              post={post}
+              user={user}
+              onToggleLike={onToggleLike}
+              onAddComment={onAddComment}
+              onDelete={onDelete}
+            />
+          ))
+        )}
       </TabsContent>
     </Tabs>
   );
