@@ -113,7 +113,7 @@ class Question(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     created_by: int = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
-    lesson_id: int = Field(foreign_key="lessons.id", ondelete="CASCADE", index=True)
+    # lesson_id: int = Field(foreign_key="lessons.id", ondelete="CASCADE", index=True)
     section_id: int = Field(foreign_key="lesson_sections.id", ondelete="CASCADE", index=True)
     type: QuestionType = Field(
         sa_column=Column(SAEnum(QuestionType, name="question_type_enum")), 
