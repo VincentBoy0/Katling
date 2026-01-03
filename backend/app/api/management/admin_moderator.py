@@ -1,18 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models.lesson import Lesson, LessonSection
-from schemas.topic import TopicCreate, TopicUpdate
-from schemas.lesson import LessonListResponse
+from models.lesson import Lesson, LessonSection, Question
+from models.user import RoleType, User
+
+from schemas.question import QuestionResponse, QuestionUpdate
 from schemas.lessson_section import LessonSectionListResponse
+
+from repositories.questionRepository import QuestionRepository
 from repositories.topicRepository import TopicRepository
 from repositories.lessonRepository import LessonRepository
 from repositories.lessonSectionRepository import LessonSectionRepository
 from database.session import get_session
 from core.security import get_current_user, required_roles
 
-from models.user import RoleType, User
 
 router = APIRouter(
     tags=["Admin & Moderator"],
@@ -306,3 +308,136 @@ async def get_section_by_id(
     """
     section_repo = LessonSectionRepository(session)
     return await section_repo.get_section_by_id(section_id, include_deleted)
+
+
+# ============ Endpoints related with questions ============
+@router.get("/questions/{question_id:int}", response_model=QuestionResponse)
+async def get_question(
+    question_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Retrieve a single question by ID.
+
+    **Role:** MODERATOR
+
+    Args:
+        question_id: Question ID to retrieve
+        session: Database session
+
+    Returns:
+        Question object
+
+    Raises:
+        HTTPException: 404 if question not found
+    """
+    question_repo = QuestionRepository(session)
+    question = await question_repo.get_question_by_id(question_id)
+    if not question:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Question {question_id} not found",
+        )
+    return question
+
+
+@router.get("/lesson-sections/{section_id:int}/questions")
+async def get_questions_by_section(
+    section_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Retrieve all questions in a lesson section.
+
+    **Roles:** ADMIN, MODERATOR
+
+    Args:
+        section_id: Lesson section ID
+        session: Database session
+
+    Returns:
+        List of Question objects, ordered by order_index and id
+    """
+    question_repo = QuestionRepository(session)
+    questions = await question_repo.get_questions_by_section(section_id)
+    return questions
+
+
+@router.delete("/questions/{question_id:int}")
+async def delete_question(
+    question_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Delete a question (soft delete).
+
+    **Roles:** ADMIN, MODERATOR
+
+    Args:
+        question_id: Question ID to delete
+        session: Database session
+        user: Currently authenticated user
+
+    Returns:
+        Success message
+
+    Raises:
+        HTTPException: 404 if question not found
+    """
+    question_repo = QuestionRepository(session)
+    await question_repo.delete_question(question_id)
+    return {"message": f"Question {question_id} deleted successfully"}
+
+@router.post("/questions/{question_id:int}/restore", response_model=QuestionResponse)
+async def restore_question(
+    question_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Restore a soft-deleted question.
+
+    **Roles:** ADMIN, MODERATOR
+
+    Args:
+        question_id: Question ID to restore
+        session: Database session
+        user: Currently authenticated user
+
+    Returns:
+        Restored Question object
+
+    Raises:
+        HTTPException: 404 if question not found
+    """
+    question_repo = QuestionRepository(session)
+    question = await question_repo.restore_question(question_id)
+    return question
+
+@router.get("/questions")
+async def get_all_questions(
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum records to return"),
+    include_deleted: bool = Query(False, description="Include soft-deleted questions"),
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Get all questions with pagination.
+
+    **Roles:** ADMIN, MODERATOR
+
+    Args:
+        skip: Pagination offset (default: 0)
+        limit: Pagination limit (default: 100, max: 1000)
+        include_deleted: Whether to include soft-deleted questions (default: False)
+        session: Database session
+
+    Returns:
+        List of Question objects
+    """
+    stmt = select(Question).order_by(Question.order_index, Question.id).offset(skip).limit(limit)
+    if not include_deleted:
+        stmt = stmt.where(Question.is_deleted == False)
+    
+    result = await session.exec(stmt)
+    return result.all()
+
