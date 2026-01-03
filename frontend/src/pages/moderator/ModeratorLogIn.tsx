@@ -1,23 +1,48 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-
+import { useAuth } from "@/context/auth-context";
 import { Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
 
-export default function LogIn() {
+export default function ModeratorLogIn() {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const getErrorMessage = (error: any): string => {
+    if (error.code === "auth/invalid-credential") {
+      return "Email hoặc mật khẩu không chính xác.";
+    }
+    if (error.code === "auth/user-not-found") {
+      return "Tài khoản không tồn tại.";
+    }
+    if (error.code === "auth/wrong-password") {
+      return "Mật khẩu không chính xác.";
+    }
+    if (error.code === "auth/too-many-requests") {
+      return "Quá nhiều lần thử. Vui lòng thử lại sau.";
+    }
+    if (error.code === "auth/network-request-failed") {
+      return "Lỗi kết nối. Vui lòng kiểm tra internet.";
+    }
+    return error.message || "Đăng nhập thất bại. Vui lòng thử lại.";
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Giả lập API call
-    setTimeout(() => {
+    try {
+      await login(email, password);
+      // Navigation will be handled by auth-context based on role
+    } catch (error: any) {
+      console.error("Moderator login error:", error);
+      toast.error(getErrorMessage(error));
       setIsLoading(false);
-      // Chuyển hướng ví dụ (thực tế bạn sẽ check role)
-      navigate("/admin");
-    }, 1500);
+    }
   };
 
   return (
@@ -43,6 +68,8 @@ export default function LogIn() {
               <input
                 type="email"
                 placeholder="admin@english.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all placeholder:text-muted-foreground/50 text-foreground"
                 required
               />
@@ -54,15 +81,14 @@ export default function LogIn() {
               <label className="text-sm font-medium text-foreground">
                 Mật khẩu
               </label>
-              <a href="#" className="text-xs text-primary hover:underline">
-                Quên mật khẩu?
-              </a>
             </div>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-10 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all placeholder:text-muted-foreground/50 text-foreground"
                 required
               />

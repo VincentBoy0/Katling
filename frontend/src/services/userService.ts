@@ -1,9 +1,16 @@
 import { api } from "@/lib/api";
-import { User } from "@/types/user"
+import { User, RoleType } from "@/types/user"
 import { UserInfo } from "@/types/user"
 import { UserInfoUpdate } from "@/types/user";
 import { UserPoints } from "@/types/user";
 import { UserPointsUpdate } from "@/types/user";
+
+// Backend returns array of Role objects
+interface RoleObject {
+  id: number;
+  type: RoleType;
+  description: string | null;
+}
 
 export const userService = {
   /**
@@ -45,4 +52,13 @@ export const userService = {
   updateUserPoints(data: UserPointsUpdate) {
     return api.patch<UserPoints>("/user/point", data);
   },
+
+  /**
+   * Get user's roles
+   * GET /user/roles
+   * Returns: [{ id: 1, type: "ADMIN", description: null }]
+   */
+  getRoles() {
+    return api.get<RoleObject[]>("/user/roles");
+  }
 };
