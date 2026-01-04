@@ -21,6 +21,15 @@ export interface User {
   created_at: string;
 }
 
+export interface UserUpdate {
+  id?: number;
+  email?: string;
+  username?: string;
+  is_banned?: boolean;
+  last_active_date?: string;
+  created_at?: string;
+}
+
 export interface UserInfo {
   id: number;
   user_id: number;

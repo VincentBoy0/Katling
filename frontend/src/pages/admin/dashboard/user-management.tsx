@@ -1,5 +1,4 @@
-"use client";
-
+import { useAdminUsers } from "@/hooks/useAdminUsers";
 import {
   Search,
   Edit2,
@@ -12,77 +11,41 @@ import {
   BookOpen,
 } from "lucide-react";
 import { useState } from "react";
+import { RoleType } from "@/types/user";
+import { AdminUserVM } from "@/types/AdminUserVM";
 
-const users = [
-  {
-    id: 1,
-    name: "Sarah Johnson",
-    email: "sarah@example.com",
-    roles: ["Learner"],
-    status: "Active",
-    joined: "2024-01-15",
-    enrolledCourses: 5,
-  },
-  {
-    id: 2,
-    name: "Michael Chen",
-    email: "michael@example.com",
-    roles: ["Moderator", "Learner"],
-    status: "Active",
-    joined: "2024-01-10",
-    enrolledCourses: 8,
-  },
-  {
-    id: 3,
-    name: "Emma Williams",
-    email: "emma@example.com",
-    roles: ["Learner"],
-    status: "Inactive",
-    joined: "2024-02-01",
-    enrolledCourses: 3,
-  },
-  {
-    id: 4,
-    name: "James Rodriguez",
-    email: "james@example.com",
-    roles: ["Admin", "Moderator"],
-    status: "Active",
-    joined: "2024-01-20",
-    enrolledCourses: 0,
-  },
-  {
-    id: 5,
-    name: "Lisa Anderson",
-    email: "lisa@example.com",
-    roles: ["Moderator"],
-    status: "Active",
-    joined: "2024-01-05",
-    enrolledCourses: 2,
-  },
-];
-
-const availableRoles = ["Learner", "Moderator", "Admin"];
-
-const roleColors = {
-  Learner: "bg-blue-500/20 text-blue-600 border border-blue-500/30",
-  Moderator: "bg-purple-500/20 text-purple-600 border border-purple-500/30",
-  Admin: "bg-red-500/20 text-red-600 border border-red-500/30",
+const roleColors: Record<RoleType, string> = {
+  [RoleType.LEARNER]: "bg-blue-500/20 text-blue-600 border border-blue-500/30",
+  [RoleType.MODERATOR]:
+    "bg-purple-500/20 text-purple-600 border border-purple-500/30",
+  [RoleType.ADMIN]: "bg-red-500/20 text-red-600 border border-red-500/30",
 };
 
-const roleIcons = {
-  Learner: BookOpen,
-  Moderator: Shield,
-  Admin: Shield,
+const roleIcons: Record<RoleType, typeof BookOpen> = {
+  [RoleType.LEARNER]: BookOpen,
+  [RoleType.MODERATOR]: Shield,
+  [RoleType.ADMIN]: Shield,
 };
 
-function RoleTag({ role, onRemove }) {
+const availableRoles = Object.values(RoleType);
+
+const roleLabel = (role: RoleType) =>
+  role.charAt(0) + role.slice(1).toLowerCase();
+
+function RoleTag({
+  role,
+  onRemove,
+}: {
+  role: RoleType;
+  onRemove?: () => void;
+}) {
   const Icon = roleIcons[role];
   return (
     <div
       className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full ${roleColors[role]}`}
     >
       <Icon className="w-3 h-3" />
-      {role}
+      {roleLabel(role)}
       {onRemove && (
         <button
           onClick={onRemove}
@@ -96,13 +59,23 @@ function RoleTag({ role, onRemove }) {
 }
 
 export default function UserManagement() {
+  const {
+    users,
+    loading,
+    reload: loadUsers,
+    updateUser,
+    updateProfile,
+    ban,
+    unban,
+    remove,
+  } = useAdminUsers();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRoleFilter, setSelectedRoleFilter] = useState("all");
-  const [editingUserId, setEditingUserId] = useState(null);
-  const [editingRoles, setEditingRoles] = useState({});
-  const [userStatuses, setUserStatuses] = useState(
-    Object.fromEntries(users.map((u) => [u.id, u.status]))
-  );
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  const [editingRoles, setEditingRoles] = useState<{
+    [key: number]: RoleType[];
+  }>({});
   const [confirmingRoles, setConfirmingRoles] = useState<{
     [key: number]: boolean;
   }>({});
@@ -114,19 +87,17 @@ export default function UserManagement() {
 
     const matchesRole =
       selectedRoleFilter === "all" ||
-      user.roles.some(
-        (role) => role.toLowerCase() === selectedRoleFilter.toLowerCase()
-      );
+      user.roles.includes(selectedRoleFilter as RoleType);
 
     return matchesSearch && matchesRole;
   });
 
-  const startEditingRoles = (user) => {
+  const startEditingRoles = (user: AdminUserVM) => {
     setEditingUserId(user.id);
     setEditingRoles({ [user.id]: [...user.roles] });
   };
 
-  const toggleRole = (userId, role) => {
+  const toggleRole = (userId: number, role: RoleType) => {
     setEditingRoles((prev) => {
       const currentRoles = prev[userId] || [];
       const isSelected = currentRoles.includes(role);
@@ -134,25 +105,18 @@ export default function UserManagement() {
       return {
         ...prev,
         [userId]: isSelected
-          ? currentRoles.filter((r) => r !== role)
+          ? currentRoles.filter((r: RoleType) => r !== role)
           : [...currentRoles, role],
       };
     });
   };
 
-  const saveRoles = (userId) => {
+  const saveRoles = (userId: number) => {
     setConfirmingRoles((prev) => ({ ...prev, [userId]: true }));
     setTimeout(() => {
       setEditingUserId(null);
       setConfirmingRoles((prev) => ({ ...prev, [userId]: false }));
     }, 1500);
-  };
-
-  const toggleUserStatus = (userId) => {
-    setUserStatuses((prev) => ({
-      ...prev,
-      [userId]: prev[userId] === "Active" ? "Inactive" : "Active",
-    }));
   };
 
   return (
@@ -194,7 +158,7 @@ export default function UserManagement() {
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >
-                {role}
+                {roleLabel(role)}
               </button>
             ))}
           </div>
@@ -263,7 +227,7 @@ export default function UserManagement() {
                                   className="flex items-center gap-1 px-3 py-1.5 text-xs bg-primary/10 hover:bg-primary/20 text-primary rounded transition-colors font-semibold border border-primary/30"
                                 >
                                   <Plus className="w-3 h-3" />
-                                  {role}
+                                  {roleLabel(role)}
                                 </button>
                               )
                           )}
@@ -280,12 +244,12 @@ export default function UserManagement() {
                   <td className="px-6 py-4">
                     <span
                       className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                        userStatuses[user.id] === "Active"
-                          ? "bg-green-500/20 text-green-600"
-                          : "bg-muted text-muted-foreground"
+                        user.is_banned
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-green-500/20 text-green-600"
                       }`}
                     >
-                      {userStatuses[user.id]}
+                      {user.is_banned ? "Inactive" : "Active"}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-muted-foreground">
@@ -319,14 +283,15 @@ export default function UserManagement() {
                         </button>
                       )}
                       <button
-                        onClick={() => toggleUserStatus(user.id)}
+                        onClick={() =>
+                          user.is_banned ? unban(user.id) : ban(user.id)
+                        }
                         className="p-2 hover:bg-muted rounded-lg transition-colors"
-                        title={`Deactivate user`}
                       >
-                        {userStatuses[user.id] === "Active" ? (
-                          <ToggleRight className="w-4 h-4 text-green-600" />
-                        ) : (
+                        {user.is_banned ? (
                           <ToggleLeft className="w-4 h-4 text-muted-foreground" />
+                        ) : (
+                          <ToggleRight className="w-4 h-4 text-green-600" />
                         )}
                       </button>
                     </div>
@@ -346,19 +311,19 @@ export default function UserManagement() {
         <div className="bg-card border border-border rounded-lg p-4">
           <p className="text-sm text-muted-foreground mb-1">Active Users</p>
           <p className="text-2xl font-bold text-green-600">
-            {users.filter((u) => userStatuses[u.id] === "Active").length}
+            {users.filter((u) => !u.is_banned).length}
           </p>
         </div>
         <div className="bg-card border border-border rounded-lg p-4">
           <p className="text-sm text-muted-foreground mb-1">Moderators</p>
           <p className="text-2xl font-bold text-purple-600">
-            {users.filter((u) => u.roles.includes("Moderator")).length}
+            {users.filter((u) => u.roles.includes(RoleType.MODERATOR)).length}
           </p>
         </div>
         <div className="bg-card border border-border rounded-lg p-4">
           <p className="text-sm text-muted-foreground mb-1">Admins</p>
           <p className="text-2xl font-bold text-red-600">
-            {users.filter((u) => u.roles.includes("Admin")).length}
+            {users.filter((u) => u.roles.includes(RoleType.ADMIN)).length}
           </p>
         </div>
       </div>
