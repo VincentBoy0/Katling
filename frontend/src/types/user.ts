@@ -75,3 +75,25 @@ export interface UserPointsUpdate {
   xp?: number;
   streak?: number;
 }
+
+export interface UserRole {
+  id: number;
+  role_id: number;
+  user_id: number;
+}
+
+export interface RoleAssign {
+  user_id: number;
+  role_type: RoleType;
+}
+
+export interface UserRoleList {
+  user_id: number;
+  roles: RoleType[];
+}
+
+export interface UserRoleCheck {
+  user_id: number;
+  role_type: RoleType;
+  has_role: boolean;
+}

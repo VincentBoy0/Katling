@@ -1,8 +1,13 @@
 import { api } from "@/lib/api"
 import {
+    RoleAssign,
+    RoleType,
     User,
     UserInfo,
     UserInfoUpdate,
+    UserRole,
+    UserRoleCheck,
+    UserRoleList,
     UserUpdate
 } from "@/types/user"
 
@@ -12,38 +17,54 @@ export const adminService = {
         return api.get<User[]>("/admin/users", { params })
     },
 
-    // GET /admin/users/{user_id}
-    getUserById(user_id: number) {
-        return api.get<User>(`/admin/users/${user_id}`)
+    // GET /admin/users/{userId}
+    getUserById(userId: number) {
+        return api.get<User>(`/admin/users/${userId}`)
     },
 
-    // GET /admin/users/{user_id}/profile
-    getUserProfileById(user_id: number) {
-        return api.get<UserInfo>(`/admin/users/${user_id}/profile`)
+    // GET /admin/users/{userId}/profile
+    getUserProfileById(userId: number) {
+        return api.get<UserInfo>(`/admin/users/${userId}/profile`)
     },
 
-    // PATCH /admin/users/{user_id}
-    updateUserById(user_id: number, data: UserUpdate) {
-        return api.patch<User>(`/admin/users/${user_id}`, data)
+    // PATCH /admin/users/{userId}
+    updateUserById(userId: number, data: UserUpdate) {
+        return api.patch<User>(`/admin/users/${userId}`, data)
     },
 
-    // PATCH /admin/users/{user_id}/profile
-    updateUserProfileById(user_id: number, data: UserInfoUpdate) {
-        return api.patch<UserInfo>(`/admin/users/${user_id}/profile`, data)
+    // PATCH /admin/users/{userId}/profile
+    updateUserProfileById(userId: number, data: UserInfoUpdate) {
+        return api.patch<UserInfo>(`/admin/users/${userId}/profile`, data)
     },
 
-    // POST /admin/users/{user_id}/ban
-    banUserById(user_id: number) {
-        return api.post<void>(`/admin/users/${user_id}/ban`)
+    // POST /admin/users/{userId}/ban
+    banUserById(userId: number) {
+        return api.post<void>(`/admin/users/${userId}/ban`)
     },
 
-    // POST /admin/users/{user_id}/unban
-    unbanUserById(user_id: number) {
-        return api.post<void>(`/admin/users/${user_id}/unban`)
+    // POST /admin/users/{userId}/unban
+    unbanUserById(userId: number) {
+        return api.post<void>(`/admin/users/${userId}/unban`)
     },
 
-    // DELETE /admin/users/{user_id}
-    deleteUserById(user_id: number) {
-        return api.delete<void>(`/admin/users/${user_id}`)
-    }
+    // DELETE /admin/users/{userId}
+    deleteUserById(userId: number) {
+        return api.delete<void>(`/admin/users/${userId}`)
+    },
+
+    assignRole(userId: number, {user_id, role_type} : RoleAssign) {
+        return api.post<UserRole>(`/admin/users/${userId}/roles`, {user_id, role_type})
+    },
+
+    removeRole(userId: number, roleType: RoleType) {
+        return api.delete<void>(`/admin/users/${userId}/roles/${roleType}`)
+    },
+
+    getUserRoles(userId: number) {
+        return api.get<UserRoleList>(`/admin/users/${userId}/roles`)
+    },
+
+    checkUserRole(userId: number, roleType: RoleType) {
+        return api.get<UserRoleCheck>(`/admin/users/${userId}/roles/${roleType}`)
+    },
 }
