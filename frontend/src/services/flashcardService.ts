@@ -2,7 +2,7 @@
 import { api } from "@/lib/api";
 
 export type FlashcardMode = "all" | "review_status" | "category";
-export type ReviewStatus = "NEW" | "LEARNING" | "MASTERED";
+export type ReviewStatus = "NEWBIE" | "LEARNING" | "MASTERED";
 
 export interface FlashcardCard {
   user_word_id: number;

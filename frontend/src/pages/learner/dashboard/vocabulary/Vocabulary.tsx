@@ -25,7 +25,7 @@ type SavedWord = {
   audio_url?: string | null;
   definition: Record<string, string[]>;
   category?: string | null;
-  review_status: "NEW" | "LEARNING" | "MASTERED";
+  review_status: "NEWBIE" | "LEARNING" | "MASTERED";
   created_at: string;
 };
 
