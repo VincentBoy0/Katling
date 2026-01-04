@@ -26,7 +26,7 @@ type SavedWord = {
   audio_url?: string | null;
   definition: Record<string, string[]>;
   category?: string | null;
-  review_status: "NEW" | "LEARNING" | "MASTERED";
+  review_status: "NEWBIE" | "LEARNING" | "MASTERED";
   created_at: string;
 };
 
@@ -60,7 +60,7 @@ export default function FlashcardPracticePage() {
   const startSession = async (
     mode: "all" | "review_status" | "category",
     options?: {
-      reviewStatus?: "NEW" | "LEARNING" | "MASTERED";
+      reviewStatus?: "NEWBIE" | "LEARNING" | "MASTERED";
       category?: string;
       name?: string;
       color?: string;
@@ -111,7 +111,7 @@ export default function FlashcardPracticePage() {
   }, [folders, savedWords]);
 
   const statusCounts = useMemo(() => ({
-    NEW: savedWords.filter((w) => w.review_status === "NEW").length,
+    NEW: savedWords.filter((w) => w.review_status === "NEWBIE").length,
     LEARNING: savedWords.filter((w) => w.review_status === "LEARNING").length,
     MASTERED: savedWords.filter((w) => w.review_status === "MASTERED").length,
   }), [savedWords]);
@@ -165,7 +165,7 @@ export default function FlashcardPracticePage() {
             <div
               onClick={() =>
                 startSession("review_status", {
-                  reviewStatus: "NEW",
+                  reviewStatus: "NEWBIE",
                   name: "Từ mới",
                   color: "blue",
                 })
