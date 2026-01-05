@@ -125,13 +125,12 @@ class MissionService:
             return
 
         now = utc_now()
-        async with self.session.begin():
-            for user_mission, _mission in rows:
-                new_progress = int(user_mission.progress or 0) + 1
-                await self.user_daily_mission_repo.set_progress(user_mission, progress=new_progress, commit=False)
-                target = int(user_mission.target_value or 0) or 1
-                if new_progress >= target:
-                    await self.user_daily_mission_repo.mark_completed(user_mission, completed_at=now, commit=False)
+        for user_mission, _mission in rows:
+            new_progress = int(user_mission.progress or 0) + 1
+            await self.user_daily_mission_repo.set_progress(user_mission, progress=new_progress, commit=False)
+            target = int(user_mission.target_value or 0) or 1
+            if new_progress >= target:
+                await self.user_daily_mission_repo.mark_completed(user_mission, completed_at=now, commit=False)
 
     async def on_flashcard_reviewed(self, *, user_id: int) -> None:
         date_value = self.today_local()
