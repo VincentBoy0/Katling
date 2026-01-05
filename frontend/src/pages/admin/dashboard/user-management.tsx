@@ -83,17 +83,18 @@ export default function UserManagement() {
     [key: number]: boolean;
   }>({});
 
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+  const searchLower = searchQuery.toLowerCase();
+    const filteredUsers = users.filter((user) => {
+      const matchesSearch =
+        (user.name?.toLowerCase() || "").includes(searchLower) ||
+        (user.email?.toLowerCase() || "").includes(searchLower);
 
-    const matchesRole =
-      selectedRoleFilter === "all" ||
-      user.roles.includes(selectedRoleFilter as RoleType);
+      const matchesRole =
+        selectedRoleFilter === "all" ||
+        user.roles.includes(selectedRoleFilter as RoleType);
 
-    return matchesSearch && matchesRole;
-  });
+      return matchesSearch && matchesRole;
+    });
 
   const startEditingRoles = (user: AdminUserVM) => {
     setEditingUserId(user.id);
