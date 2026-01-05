@@ -42,7 +42,7 @@ export default function ProfileHeader({
             />
           ) : (
             <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white dark:border-slate-900 bg-primary flex items-center justify-center text-white text-6xl font-black shadow-lg">
-              {userInfo.full_name.charAt(0).toUpperCase()}
+              {userInfo.full_name?.charAt(0).toUpperCase() || "U"}
             </div>
           )}
 
@@ -54,7 +54,7 @@ export default function ProfileHeader({
         <div className="flex-1 text-center md:text-left space-y-4">
           <div>
             <h2 className="text-3xl md:text-4xl font-black text-foreground">
-              {userInfo.full_name}
+              {userInfo.full_name || "User"}
             </h2>
             <p className="text-muted-foreground font-medium flex items-center justify-center md:justify-start gap-2 mt-1">
               <Calendar className="w-4 h-4" />
