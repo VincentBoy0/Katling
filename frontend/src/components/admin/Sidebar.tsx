@@ -1,11 +1,8 @@
-"use client";
-
+import { useUser } from "@/hooks/useUser";
 import {
   LayoutDashboard,
   Users,
-  FileCheck,
   BarChart3,
-  Settings,
   BookOpen,
   AlertCircle,
 } from "lucide-react";
@@ -22,11 +19,13 @@ export default function AdminSidebar({
   const menuItems = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "users", label: "Users", icon: Users },
-    { id: "approval", label: "Post Approval", icon: FileCheck },
+    // { id: "approval", label: "Post Approval", icon: FileCheck },
     { id: "library", label: "Content Library", icon: BookOpen },
     { id: "errors", label: "Error Checking", icon: AlertCircle },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
   ];
+
+  const { user } = useUser();
 
   return (
     <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
@@ -38,7 +37,9 @@ export default function AdminSidebar({
             </span>
           </div>
           <div>
-            <h1 className="font-bold text-sidebar-foreground">English Learn</h1>
+            <h1 className="font-bold text-sidebar-foreground">
+              {user?.username}
+            </h1>
             <p className="text-xs text-sidebar-foreground/60">Admin Portal</p>
           </div>
         </div>

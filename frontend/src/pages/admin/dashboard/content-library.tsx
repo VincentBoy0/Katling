@@ -1,264 +1,424 @@
-import { BookOpen, Edit2, Trash2, Filter } from "lucide-react"
-import { useState } from "react"
+import { useState } from "react";
+import {
+  Library,
+  Folder,
+  BookOpen,
+  FileText,
+  HelpCircle,
+  Trash2,
+  RotateCcw,
+} from "lucide-react";
+import {
+  Topic,
+  Lesson,
+  LessonSection,
+  LessonType,
+  LessonStatus,
+  Question,
+  QuestionType,
+} from "@/types/content";
+import { ContentTreeItem } from "@/components/admin/content/ContentTreeItem";
+import {
+  StatusBadge,
+  TypeBadge,
+  BadgeGroup,
+} from "@/components/admin/content/Badges";
+import { toast } from "sonner";
+import { useContentAdministraion } from "@/hooks/useContentAdministration";
 
-const approvedContent = [
-  {
-    id: 1,
-    type: "Lessons",
-    title: "Advanced Grammar Rules",
-    actor: "John Doe",
-    date: "2024-01-18",
-    content:
-      "Detailed content about advanced grammar rules including complex sentence structures, tense usage, and subordinate clauses.",
-  },
-  {
-    id: 2,
-    type: "Vocabulary",
-    title: "Slang words collection",
-    actor: "Jane Smith",
-    date: "2024-01-17",
-    content: "Modern slang words commonly used in everyday conversations: cool, awesome, lit, vibe, etc.",
-  },
-  {
-    id: 3,
-    type: "Pronunciation",
-    title: "Advanced phonetics guide",
-    actor: "Mike Johnson",
-    date: "2024-01-18",
-    content: "Step-by-step guide for improving pronunciation with IPA symbols and mouth positioning techniques.",
-  },
-  {
-    id: 4,
-    type: "Grammar",
-    title: "Tense explanations",
-    actor: "Tom Wilson",
-    date: "2024-01-16",
-    content: "Complete guide to English tenses: present simple, past perfect, future continuous, and more.",
-  },
-  {
-    id: 5,
-    type: "Listening",
-    title: "Business conversation skills",
-    actor: "Sarah Lee",
-    date: "2024-01-15",
-    content: "Audio transcripts and exercises for improving listening comprehension in business contexts.",
-  },
-  {
-    id: 6,
-    type: "Speaking",
-    title: "Public speaking techniques",
-    actor: "Emma Davis",
-    date: "2024-01-14",
-    content: "Strategies and practice exercises for confident public speaking and presentation skills.",
-  },
-]
-
-const contentTypes = ["All", "Lessons", "Vocabulary", "Pronunciation", "Grammar", "Listening", "Speaking"]
-
-const typeColors = {
-  Lessons: "bg-blue-500/20 text-blue-600",
-  Vocabulary: "bg-green-500/20 text-green-600",
-  Pronunciation: "bg-orange-500/20 text-orange-600",
-  Grammar: "bg-purple-500/20 text-purple-600",
-  Listening: "bg-pink-500/20 text-pink-600",
-  Speaking: "bg-indigo-500/20 text-indigo-600",
+interface ExpandedState {
+  topics: Set<number>;
+  lessons: Set<number>;
+  sections: Set<number>;
+  questions: Set<number>;
 }
 
+type TabType = "library" | "recycling-bin";
+
+// Color mappings
+const LESSON_TYPE_COLORS: Record<LessonType, string> = {
+  READING: "bg-blue-500/20 text-blue-600",
+  LISTENING: "bg-pink-500/20 text-pink-600",
+  SPEAKING: "bg-indigo-500/20 text-indigo-600",
+  WRITING: "bg-purple-500/20 text-purple-600",
+  VOCABULARY: "bg-green-500/20 text-green-600",
+  GRAMMAR: "bg-orange-500/20 text-orange-600",
+  TEST: "bg-red-500/20 text-red-600",
+};
+
+const QUESTION_TYPE_COLORS: Record<QuestionType, string> = {
+  MCQ: "bg-blue-500/20 text-blue-600",
+  MULTIPLE_SELECT: "bg-green-500/20 text-green-600",
+  FILL_IN_THE_BLANK: "bg-purple-500/20 text-purple-600",
+  MATCHING: "bg-orange-500/20 text-orange-600",
+  TRANSCRIPT: "bg-pink-500/20 text-pink-600",
+  TRUE_FALSE: "bg-teal-500/20 text-teal-600",
+  ORDERING: "bg-indigo-500/20 text-indigo-600",
+  PRONUNCIATION: "bg-violet-500/20 text-violet-600",
+};
+
 export default function ContentLibrary() {
-  const [selectedType, setSelectedType] = useState("All")
-  const [selectedContent, setSelectedContent] = useState<(typeof approvedContent)[0] | null>(null)
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [editContent, setEditContent] = useState("")
+  const [activeTab, setActiveTab] = useState<TabType>("library");
+  const {
+    loading,
+    error,
+    topics,
+    lessons,
+    sections,
+    questions,
+    getLessonsByTopic,
+    getSectionsByLesson,
+    getQuestionsBySection,
+    deleteQuestion,
+    restoreQuestion,
+  } = useContentAdministraion();
 
-  const handleViewContent = (content: (typeof approvedContent)[0]) => {
-    setSelectedContent(content)
-    setEditContent(content.content)
-  }
+  const [expanded, setExpanded] = useState<ExpandedState>({
+    topics: new Set(),
+    lessons: new Set(),
+    sections: new Set(),
+    questions: new Set(),
+  });
 
-  const handleSaveEdit = () => {
-    if (selectedContent) {
-      const index = approvedContent.findIndex((c) => c.id === selectedContent.id)
-      if (index !== -1) {
-        approvedContent[index].content = editContent
-        setSelectedContent({ ...approvedContent[index] })
-        setEditingId(null)
+  // Toggle handlers
+  const createToggleHandler = (
+    key: keyof ExpandedState,
+    onExpand?: (id: number) => void
+  ) => {
+    return (id: number) => {
+      setExpanded((prev) => {
+        const newSet = new Set(prev[key] as Set<number>);
+        const isExpanding = !newSet.has(id);
+
+        isExpanding ? newSet.add(id) : newSet.delete(id);
+
+        if (isExpanding && onExpand) {
+          onExpand(id);
+        }
+
+        return { ...prev, [key]: newSet };
+      });
+    };
+  };
+
+  const toggleTopic = createToggleHandler("topics", getLessonsByTopic);
+  const toggleLesson = createToggleHandler("lessons", getSectionsByLesson);
+  const toggleSection = createToggleHandler("sections", getQuestionsBySection);
+  const toggleQuestion = createToggleHandler("questions");
+
+  // Action handlers
+  const handleDeleteQuestion = async (questionId: number) => {
+    try {
+      await deleteQuestion(questionId);
+      toast.success("Question deleted successfully");
+    } catch (err) {
+      toast.error("Failed to delete question");
+    }
+  };
+
+  const handleRestoreQuestion = async (questionId: number) => {
+    try {
+      await restoreQuestion(questionId);
+      toast.success("Question restored successfully");
+    } catch (err) {
+      toast.error("Failed to restore question");
+    }
+  };
+
+  // Filter helpers
+  const filterQuestions = (
+    questionList: (Question & { is_deleted?: boolean })[]
+  ) => {
+    return questionList.filter((q) =>
+      activeTab === "library" ? !q.is_deleted : q.is_deleted
+    );
+  };
+
+  // Render helpers
+  const renderQuestionAction = (
+    question: Question & { is_deleted?: boolean }
+  ) => {
+    const isRecycleBin = activeTab === "recycling-bin";
+    const handleClick = isRecycleBin
+      ? handleRestoreQuestion
+      : handleDeleteQuestion;
+    const Icon = isRecycleBin ? RotateCcw : Trash2;
+    const colorClass = isRecycleBin ? "green" : "red";
+
+    return (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          handleClick(question.id!);
+        }}
+        className={`p-1.5 hover:bg-${colorClass}-500/10 rounded-md transition-colors`}
+        title={isRecycleBin ? "Restore" : "Delete"}
+      >
+        <Icon className={`w-3.5 h-3.5 text-${colorClass}-600`} />
+      </button>
+    );
+  };
+
+  const renderQuestionDetails = (question: Question) => {
+    if (!question.id || !expanded.questions.has(question.id)) return null;
+
+    const detailFields = [
+      {
+        label: "Type",
+        content: (
+          <TypeBadge
+            type={question.type}
+            color={
+              QUESTION_TYPE_COLORS[question.type] ||
+              "bg-gray-500/20 text-gray-600"
+            }
+          />
+        ),
+      },
+      {
+        label: "Content",
+        content: (
+          <pre className="text-xs text-foreground whitespace-pre-wrap font-mono">
+            {JSON.stringify(question.content, null, 2)}
+          </pre>
+        ),
+      },
+      question.correct_answer && {
+        label: "Correct Answer",
+        content: (
+          <pre className="text-xs text-green-700 dark:text-green-400 whitespace-pre-wrap font-mono">
+            {JSON.stringify(question.correct_answer, null, 2)}
+          </pre>
+        ),
+        containerClass: "bg-green-500/5 border-green-500/20",
+      },
+      question.audio_url && {
+        label: "Audio URL",
+        content: (
+          <a
+            href={question.audio_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-blue-600 hover:text-blue-700 break-all underline"
+          >
+            {question.audio_url}
+          </a>
+        ),
+      },
+      question.explanation && {
+        label: "Explanation",
+        content: (
+          <p className="text-xs text-foreground">{question.explanation}</p>
+        ),
+      },
+    ].filter(Boolean);
+
+    return (
+      <div className="ml-6 mt-2 p-4 bg-card border-l-2 border-muted rounded-lg space-y-3">
+        {detailFields.map((field: any, idx) => (
+          <div key={idx}>
+            <p className="text-xs font-semibold text-muted-foreground mb-1.5">
+              {field.label}
+            </p>
+            <div
+              className={`p-3 ${
+                field.containerClass || "bg-muted/50 border-border"
+              } rounded-md border`}
+            >
+              {field.content}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderQuestion = (question: Question & { is_deleted?: boolean }) => (
+    <div key={question.id}>
+      <ContentTreeItem
+        title={`Question #${question.id || "N/A"}`}
+        createdAt={question.created_at}
+        icon={HelpCircle}
+        iconColor="bg-amber-500/10 text-amber-600"
+        badges={
+          <BadgeGroup>
+            <TypeBadge
+              type={question.type}
+              color={
+                QUESTION_TYPE_COLORS[question.type] ||
+                "bg-gray-500/20 text-gray-600"
+              }
+            />
+            {question.is_deleted && (
+              <StatusBadge status="DELETED" variant="deleted" />
+            )}
+          </BadgeGroup>
+        }
+        isExpanded={expanded.questions.has(question.id!)}
+        onClick={() => toggleQuestion(question.id!)}
+        level={3}
+        actions={renderQuestionAction(question)}
+      />
+      {renderQuestionDetails(question)}
+    </div>
+  );
+
+  const renderSection = (section: LessonSection) => {
+    if (!section.id) return null;
+
+    const sectionQuestions = questions[section.id] || [];
+    const filteredQuestions = filterQuestions(sectionQuestions);
+
+    return (
+      <ContentTreeItem
+        key={section.id}
+        title={section.title}
+        createdAt={section.created_at}
+        icon={FileText}
+        iconColor="bg-purple-500/10 text-purple-600"
+        isExpanded={expanded.sections.has(section.id)}
+        onClick={() => toggleSection(section.id!)}
+        level={2}
+      >
+        {filteredQuestions.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-2 pl-6">
+            No questions in this section
+          </p>
+        ) : (
+          filteredQuestions.map(renderQuestion)
+        )}
+      </ContentTreeItem>
+    );
+  };
+
+  const renderLesson = (lesson: Lesson) => (
+    <ContentTreeItem
+      key={lesson.id}
+      title={lesson.title}
+      createdAt={lesson.created_at}
+      icon={BookOpen}
+      iconColor="bg-green-500/10 text-green-600"
+      description={lesson.description}
+      badges={
+        <BadgeGroup>
+          <TypeBadge
+            type={lesson.type}
+            color={LESSON_TYPE_COLORS[lesson.type]}
+          />
+          <StatusBadge
+            status={lesson.status}
+            variant={lesson.status.toLowerCase() as any}
+          />
+        </BadgeGroup>
       }
-    }
-  }
+      isExpanded={expanded.lessons.has(lesson.id)}
+      onClick={() => toggleLesson(lesson.id)}
+      level={1}
+    >
+      {sections[lesson.id]?.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-2 pl-6">
+          No sections in this lesson
+        </p>
+      ) : (
+        sections[lesson.id]?.map(renderSection)
+      )}
+    </ContentTreeItem>
+  );
 
-  const handleDelete = (id: number) => {
-    const index = approvedContent.findIndex((c) => c.id === id)
-    if (index !== -1) {
-      approvedContent.splice(index, 1)
-      setSelectedContent(null)
-    }
-  }
-
-  const filteredContent = approvedContent.filter((item) => selectedType === "All" || item.type === selectedType)
+  const renderTopic = (topic: Topic) => (
+    <ContentTreeItem
+      key={topic.id}
+      title={topic.name}
+      createdAt={topic.created_at}
+      icon={Folder}
+      iconColor="bg-blue-500/10 text-blue-600"
+      description={topic.description}
+      isExpanded={expanded.topics.has(topic.id)}
+      onClick={() => toggleTopic(topic.id)}
+      level={0}
+    >
+      {lessons[topic.id]?.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-2 pl-6">
+          No lessons in this topic
+        </p>
+      ) : (
+        lessons[topic.id]?.map(renderLesson)
+      )}
+    </ContentTreeItem>
+  );
 
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-foreground mb-2">Content Library</h2>
-        <p className="text-muted-foreground mb-6">View all approved learning content</p>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Library className="w-6 h-6 text-primary" />
+          </div>
+          <h2 className="text-3xl font-bold text-foreground">
+            Content Library
+          </h2>
+        </div>
+        <p className="text-muted-foreground">
+          Browse and manage all learning content
+        </p>
+      </div>
 
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Filter className="w-4 h-4 text-muted-foreground" />
-            <p className="text-sm font-semibold text-muted-foreground">Filter by Type</p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            {contentTypes.map((type) => (
-              <button
-                key={type}
-                onClick={() => setSelectedType(type)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
-                  selectedType === type
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
+      {/* Tabs */}
+      <div className="mb-6 border-b border-border">
+        <div className="flex gap-1">
+          <button
+            onClick={() => setActiveTab("library")}
+            className={`px-6 py-3 text-sm font-medium transition-colors relative ${
+              activeTab === "library"
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Library
+            {activeTab === "library" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("recycling-bin")}
+            className={`px-6 py-3 text-sm font-medium transition-colors relative flex items-center gap-2 ${
+              activeTab === "recycling-bin"
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Trash2 className="w-4 h-4" />
+            Recycling Bin
+            {activeTab === "recycling-bin" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            )}
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Content List */}
-        <div className="lg:col-span-1">
-          <h3 className="text-lg font-semibold text-foreground mb-4">
-            {filteredContent.length} Record{filteredContent.length !== 1 ? "s" : ""}
-          </h3>
-          <div className="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto">
-            {filteredContent.length > 0 ? (
-              filteredContent.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => handleViewContent(item)}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
-                    selectedContent?.id === item.id
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <span className={`text-xs px-2 py-1 rounded font-semibold ${typeColors[item.type]}`}>
-                      {item.type}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{item.id}</span>
-                  </div>
-                  <p className="font-medium text-foreground text-sm line-clamp-2">{item.title}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{item.date}</p>
-                </button>
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">No content found</p>
-              </div>
-            )}
+      {loading && topics.length === 0 ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading topics...</p>
           </div>
         </div>
-
-        {/* Content Detail */}
-        <div className="lg:col-span-2">
-          {selectedContent ? (
-            <div className="bg-card rounded-xl border border-border p-6 h-fit">
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      <BookOpen className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <span
-                        className={`inline-block text-xs px-2 py-1 rounded font-semibold ${typeColors[selectedContent.type]}`}
-                      >
-                        {selectedContent.type}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-sm text-muted-foreground">ID: {selectedContent.id}</span>
-                </div>
-
-                <h3 className="text-2xl font-bold text-foreground mb-4">{selectedContent.title}</h3>
-
-                <div className="space-y-2 mb-6">
-                  <p className="text-sm text-muted-foreground">
-                    <span className="font-semibold text-foreground">Created by:</span> {selectedContent.actor}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    <span className="font-semibold text-foreground">Date:</span> {selectedContent.date}
-                  </p>
-                </div>
-
-                <div className="border-t border-border pt-6">
-                  <p className="text-sm font-semibold text-foreground mb-3">Content</p>
-                  {editingId === selectedContent.id ? (
-                    <textarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      className="w-full p-3 bg-background border border-border rounded-lg text-foreground text-sm min-h-48 focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  ) : (
-                    <div className="p-4 bg-muted/50 rounded-lg border border-border">
-                      <p className="text-sm text-foreground whitespace-pre-wrap">{selectedContent.content}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-6 border-t border-border">
-                {editingId === selectedContent.id ? (
-                  <>
-                    <button
-                      onClick={handleSaveEdit}
-                      className="flex-1 px-4 py-2 bg-green-500/10 text-green-600 hover:bg-green-500/20 rounded-lg font-medium transition-colors"
-                    >
-                      Save Changes
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditingId(null)
-                        setEditContent(selectedContent.content)
-                      }}
-                      className="flex-1 px-4 py-2 bg-muted text-muted-foreground hover:bg-muted/80 rounded-lg font-medium transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => setEditingId(selectedContent.id)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 rounded-lg font-medium transition-colors"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(selectedContent.id)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-500/10 text-red-600 hover:bg-red-500/20 rounded-lg font-medium transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Delete
-                    </button>
-                  </>
-                )}
-              </div>
+      ) : error ? (
+        <div className="text-center py-12 bg-card rounded-xl border border-red-500/20">
+          <p className="text-red-600">{error}</p>
+        </div>
+      ) : (
+        <div className="space-y-3 max-w-6xl">
+          {topics.length === 0 ? (
+            <div className="text-center py-12 bg-card rounded-xl border border-border">
+              <Library className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+              <p className="text-muted-foreground">No topics found</p>
             </div>
           ) : (
-            <div className="bg-card rounded-xl border border-border p-12 flex items-center justify-center min-h-96">
-              <div className="text-center">
-                <BookOpen className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-muted-foreground">Select a content record to view details</p>
-              </div>
-            </div>
+            topics.map(renderTopic)
           )}
         </div>
-      </div>
+      )}
     </div>
-  )
+  );
 }
