@@ -42,7 +42,7 @@ class MissionService:
             user_id=user_id,
             date_value=date_value,
             missions=missions,
-            commit=True,
+            commit=False,
         )
 
     async def get_daily_missions(self, *, user_id: int, date_value: date) -> list[dict]:
@@ -102,14 +102,13 @@ class MissionService:
 
         now = utc_now()
 
-        async with self.session.begin():
-            for user_mission, _mission in rows:
-                new_progress = int(user_mission.progress or 0) + 1
-                await self.user_daily_mission_repo.set_progress(user_mission, progress=new_progress, commit=False)
+        for user_mission, _mission in rows:
+            new_progress = int(user_mission.progress or 0) + 1
+            await self.user_daily_mission_repo.set_progress(user_mission, progress=new_progress, commit=False)
 
-                target = int(user_mission.target_value or 0) or 1
-                if new_progress >= target:
-                    await self.user_daily_mission_repo.mark_completed(user_mission, completed_at=now, commit=False)
+            target = int(user_mission.target_value or 0) or 1
+            if new_progress >= target:
+                await self.user_daily_mission_repo.mark_completed(user_mission, completed_at=now, commit=False)
 
     async def on_word_saved(self, *, user_id: int) -> None:
         date_value = self.today_local()
@@ -146,13 +145,12 @@ class MissionService:
             return
 
         now = utc_now()
-        async with self.session.begin():
-            for user_mission, _mission in rows:
-                new_progress = int(user_mission.progress or 0) + 1
-                await self.user_daily_mission_repo.set_progress(user_mission, progress=new_progress, commit=False)
-                target = int(user_mission.target_value or 0) or 1
-                if new_progress >= target:
-                    await self.user_daily_mission_repo.mark_completed(user_mission, completed_at=now, commit=False)
+        for user_mission, _mission in rows:
+            new_progress = int(user_mission.progress or 0) + 1
+            await self.user_daily_mission_repo.set_progress(user_mission, progress=new_progress, commit=False)
+            target = int(user_mission.target_value or 0) or 1
+            if new_progress >= target:
+                await self.user_daily_mission_repo.mark_completed(user_mission, completed_at=now, commit=False)
 
     async def claim_mission(self, *, user_id: int, user_daily_mission_id: int) -> tuple[int, int]:
         date_value = self.today_local()
@@ -179,15 +177,14 @@ class MissionService:
 
         now = utc_now()
 
-        async with self.session.begin():
-            await self.user_daily_mission_repo.mark_claimed(user_mission, claimed_at=now, commit=False)
-            await self.user_repo.add_xp(user_id, amount=xp_reward, commit=False)
-            await self.user_repo.log_xp_activity(
-                user_id,
-                activity_type=ActivityType.DAILY_MISSION,
-                xp_amount=xp_reward,
-                commit=False,
-            )
+        await self.user_daily_mission_repo.mark_claimed(user_mission, claimed_at=now, commit=False)
+        await self.user_repo.add_xp(user_id, amount=xp_reward, commit=False)
+        await self.user_repo.log_xp_activity(
+            user_id,
+            activity_type=ActivityType.DAILY_MISSION,
+            xp_amount=xp_reward,
+            commit=False,
+        )
 
         user_point = await self.user_repo.get_user_point(user_id)
         total_xp = int(getattr(user_point, "xp", 0) or 0) if user_point else 0
