@@ -7,7 +7,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models.friend import Friend, FriendRequest, StatusRequestType
-from models.user import User, UserPoints
+from models.user import User, UserPoints, UserInfo
 
 
 class FriendRepository:
@@ -96,15 +96,16 @@ class FriendRepository:
         stmt = (
             select(
                 User.id.label("user_id"),
-                User.username.label("username"),
+                UserInfo.username.label("username"),
                 xp_value.label("xp"),
                 streak_value.label("streak"),
             )
             .select_from(Friend)
             .join(User, User.id == Friend.friend_id)
             .outerjoin(UserPoints, UserPoints.user_id == User.id)
+            .outerjoin(UserInfo, UserInfo.user_id == User.id)
             .where(Friend.user_id == user_id)
-            .order_by(User.username.asc(), xp_value.desc())
+            .order_by(UserInfo.username.asc(), xp_value.desc())
         )
 
         result = await self.session.exec(stmt)
@@ -160,12 +161,14 @@ class FriendRepository:
         stmt = (
             select(
                 User.id.label("user_id"),
-                User.username.label("username"),
+                UserInfo.username.label("username"),
                 relationship_status,
             )
+            .select_from(User)
+            .outerjoin(UserInfo, UserInfo.user_id == User.id)
             .where(User.id != current_user_id)
-            .where(func.lower(User.username).like(f"%{q.lower()}%"))
-            .order_by(User.username.asc())
+            .where(func.lower(UserInfo.username).like(f"%{q.lower()}%"))
+            .order_by(UserInfo.username.asc())
             .limit(limit)
         )
 
@@ -185,11 +188,12 @@ class FriendRepository:
             select(
                 FriendRequest.id.label("request_id"),
                 FriendRequest.sender_id.label("sender_id"),
-                User.username.label("sender_username"),
+                UserInfo.username.label("sender_username"),
                 FriendRequest.created_at.label("created_at"),
             )
             .select_from(FriendRequest)
             .join(User, User.id == FriendRequest.sender_id)
+            .outerjoin(UserInfo, UserInfo.user_id == User.id)
             .where(FriendRequest.receiver_id == receiver_id)
             .where(FriendRequest.status == StatusRequestType.PENDING)
             .order_by(FriendRequest.created_at.desc())
