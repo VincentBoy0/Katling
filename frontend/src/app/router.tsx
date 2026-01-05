@@ -20,7 +20,7 @@ import Practice from "@/pages/learner/dashboard/practice/Practice";
 import Chat from "@/pages/learner/dashboard/practice/Chat";
 import Flashcard from "@/pages/learner/dashboard/practice/Flashcard";
 import Pronunciation from "@/pages/learner/dashboard/practice/Pronunciation";
-import Vocabulary from "@/pages/learner/dashboard/vocabulary/Vocabulary";
+import Vocabulary from "@/pages/learner/dashboard/vocabulary/Vocab";
 import Community from "@/pages/learner/dashboard/Community";
 import Leaderboard from "@/pages/learner/dashboard/Leaderboard";
 import Profile from "@/pages/learner/dashboard/Profile";
