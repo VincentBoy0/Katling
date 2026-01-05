@@ -1,8 +1,9 @@
 import { api } from "@/lib/api";
-import { ReportCreate } from "@/types/report";
+import { ReportCreate, Report } from "@/types/report";
 
 export const reportService = {
-    createReport(reportCreate: ReportCreate) {
-        return api.post<Report>("/reports", reportCreate);
+    async createReport(reportCreate: ReportCreate) {
+        const res = await api.post<Report>("/reports", reportCreate);
+        return res.data;
     },
 }

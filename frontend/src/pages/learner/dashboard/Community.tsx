@@ -10,9 +10,12 @@ import {
   ShareDialog,
   FriendProfileDialog,
 } from "@/components/learner/community";
+import { ReportDialog } from "@/components/learner/management/ReportDialog";
 
 import { usePost } from "@/hooks/usePost";
 import { useUserInfo } from "@/hooks/useUserInfo";
+import { useReport } from "@/hooks/useReport";
+import { ReportCreate } from "@/types/report";
 
 export default function CommunityPage() {
   // const [posts, setPosts] = useState<Post[]>(mockPosts);
@@ -31,15 +34,14 @@ export default function CommunityPage() {
     deleteComment,
   } = usePost();
 
-  const { userInfo } = useUserInfo();
+  const { createReport } = useReport();
 
-  useEffect(() => {
-    getFeed();
-    getUserPost();
-  }, []);
+  const { userInfo } = useUserInfo();
 
   // Dialog States
   const [showCreatePostDialog, setShowCreatePostDialog] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportPostId, setReportPostId] = useState<number | null>(null);
 
   // const [showFindFriendsDialog, setShowFindFriendsDialog] = useState(false);
   // const [selectedFriend, setSelectedFriend] = useState<FriendDetail | null>(
@@ -72,6 +74,11 @@ export default function CommunityPage() {
     }
   };
 
+  const openReportDialog = (postId: number) => {
+    setReportPostId(postId);
+    setShowReportDialog(true);
+  };
+
   const handleDeletePost = async (postId: number) => {
     try {
       await deletePost(postId);
@@ -92,6 +99,21 @@ export default function CommunityPage() {
     } catch (err: any) {
       toast.error(err?.message || "Đăng bài thất bại");
       console.error("Create post error:", err);
+    }
+  };
+
+  const handleReport = async (data: ReportCreate) => {
+    try {
+      await createReport({
+        ...data,
+        affected_post_id: reportPostId ?? undefined,
+      });
+      toast.success("Đã gửi báo cáo");
+    } catch (err: any) {
+      toast.error(err?.message || "Báo cáo thất bại");
+    } finally {
+      setShowReportDialog(false);
+      setReportPostId(null);
     }
   };
 
@@ -132,7 +154,7 @@ export default function CommunityPage() {
             onToggleLike={handleToggleLike}
             onAddComment={handleAddComment}
             onDelete={handleDeletePost}
-            // onReport={(id) => toast.info("Đã báo cáo bài viết")}
+            onReportClick={openReportDialog}
           />
         </div>
       </div>
@@ -162,6 +184,13 @@ export default function CommunityPage() {
         open={showCreatePostDialog}
         onOpenChange={setShowCreatePostDialog}
         onSubmit={handleCreatePost}
+      />
+
+      <ReportDialog
+        open={showReportDialog}
+        onOpenChange={setShowReportDialog}
+        onSubmit={handleReport}
+        postId={reportPostId}
       />
     </div>
   );

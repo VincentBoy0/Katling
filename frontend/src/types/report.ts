@@ -11,6 +11,7 @@ export enum ReportCategory {
     CONTENT_ERROR = "CONTENT_ERROR",
     PERFORMANCE = "PERFORMANCE",
     ACCESSIBILITY = "ACCESSIBILITY",
+    POST = "POST",
     OTHER = "OTHER"
 }
 
@@ -29,6 +30,7 @@ export interface ReportCreate {
     category: ReportCategory;
     affected_url?: string;
     affected_lesson_id?: number;
+    affected_post_id?: number;
 }
 
 export interface Report {
@@ -42,6 +44,7 @@ export interface Report {
     resolution_notes?: string;
     affected_url?: string;
     affected_lesson_id?: number;
+    affected_post_id?: number;
     created_at: string;
     resolved_at: string;
 }
