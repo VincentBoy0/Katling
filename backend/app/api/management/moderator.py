@@ -50,7 +50,7 @@ async def add_topic(
     topic = await topic_repo.create_topic(user.id, form)
     return topic
 
-@router.patch("/topics/{topic_id:int}", response_model=dict)
+@router.patch("/topics/{topic_id:int}", response_model=TopicResponse)
 async def update_topic(
     topic_id: int,
     form: TopicUpdate,
