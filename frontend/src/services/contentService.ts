@@ -1,6 +1,5 @@
 import { api } from "@/lib/api";
-import { Lesson, LessonSection, Topic } from "@/types/content";
-import { Question } from "@/types/learning";
+import { Lesson, LessonSection, Topic, Question } from "@/types/content";
 
 export const contentService = {
     getTopicsByCreator(userId: number, params? : {skip? : number; limit? : number;}) {
