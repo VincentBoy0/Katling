@@ -8,7 +8,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models.post import Post, PostComment, PostLike, PostStatus
-from models.user import User
+from models.user import User, UserInfo
 
 
 class PostRepository:
@@ -49,7 +49,7 @@ class PostRepository:
             select(
                 Post.id.label("post_id"),
                 User.id.label("author_id"),
-                User.username.label("author_username"),
+                UserInfo.username.label("author_username"),
                 Post.content.label("content"),
                 Post.like_count.label("like_count"),
                 Post.comment_count.label("comment_count"),
@@ -58,6 +58,7 @@ class PostRepository:
             )
             .select_from(Post)
             .join(User, User.id == Post.user_id)
+            .outerjoin(UserInfo, UserInfo.user_id == User.id)
             .where(Post.is_deleted == False)
             .where(Post.status == PostStatus.ACCEPTED)
             .order_by(Post.created_at.desc())
