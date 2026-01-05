@@ -43,7 +43,7 @@ export function ContentTreeItem({
         }`}
       >
         <div className="flex items-start gap-3">
-          <div className={`p-1.5 ${iconColor} rounded-lg flex-shrink-0 mt-0.5`}>
+          <div className={`p-1.5 ${iconColor} rounded-lg shrink-0 mt-0.5`}>
             <Icon className="w-4 h-4" />
           </div>
 
@@ -67,7 +67,7 @@ export function ContentTreeItem({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {actions}
             {isExpanded ? (
               <ChevronDown className="w-4 h-4 text-muted-foreground" />

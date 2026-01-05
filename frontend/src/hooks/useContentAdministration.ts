@@ -1,251 +1,118 @@
 import { Topic, Lesson, LessonSection, Question } from "@/types/content";
 import { useState, useEffect } from "react";
 import { contentService } from "@/services/contentService";
-import { get } from "http";
 
 export function useContentAdministraion() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const [topic, setTopic] = useState<Topic[]>([]);
-    const [lesson, setLesson] = useState<Lesson[]>([]);
-    const [section, setSection] = useState<LessonSection[]>([]);
-    const [question, setQuestion] = useState<Question[]>([]);
+    const [topics, setTopics] = useState<Topic[]>([]);
+    const [lessons, setLessons] = useState<Record<number, Lesson[]>>({});
+    const [sections, setSections] = useState<Record<number, LessonSection[]>>({});
+    const [questions, setQuestions] = useState<Record<number, (Question & { is_deleted?: boolean })[]>>({});
 
-    const getTopicsByCreator = async (userId: number) => {
-        setLoading(true);
-        setError(null);
-        try {
-            const { data } = await contentService.getTopicsByCreator(userId);
-            setTopic(data);
-        } catch (err) {
-            setError("Failed to load topics.");
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Load all topics on mount
+    useEffect(() => {
+        getAllTopics();
+    }, []);
 
     const getAllTopics = async () => {
         setLoading(true);
         setError(null);
         try {
             const { data } = await contentService.getAllTopics();
-            setTopic(data);
+            setTopics(data);
         } catch (err) {
-            setError("Failed to load topics.");
+            setError("Failed to load topics");
         } finally {
             setLoading(false);
         }
-    };
-
-    const getTopicById = async (topicId: number) => {
-        setLoading(true);
-        setError(null);
-        try {
-            const { data } = await contentService.getTopicById(topicId);
-            setTopic([data]);
-        } catch (err) {
-            setError("Failed to load topic.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const getAllLessons = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const { data } = await contentService.getAllLessons();
-            setLesson(data);
-        } catch (err) {
-            setError("Failed to load lessons.");
-        } finally {
-            setLoading(false);
-        }  
     };
 
     const getLessonsByTopic = async (topicId: number) => {
-        setLoading(true);
-        setError(null);
+        if (lessons[topicId]) return; // Already loaded
+        
         try {
-            const { data } = await contentService.getLessonsByTopic(topicId);
-            setLesson(data);
+            const { data } = await contentService.getLessonsByTopic(topicId, { include_deleted: true });
+            setLessons(prev => ({ ...prev, [topicId]: data }));
         } catch (err) {
-            setError("Failed to load lessons.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const getLessonsByCreator = async (userId: number) => {
-        setLoading(true);
-        setError(null);
-        try {
-            const { data } = await contentService.getLessonsByCreator(userId);
-            setLesson(data);
-        } catch (err) {
-            setError("Failed to load lessons.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const getLessonById = async (lessonId: number) => {
-        setLoading(true);
-        setError(null);
-        try {
-            const { data } = await contentService.getLessonById(lessonId);
-            setLesson([data]);
-        } catch (err) {
-            setError("Failed to load lesson.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const getAllSections = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const { data } = await contentService.getAllSections();
-            setSection(data);
-        } catch (err) {
-            setError("Failed to load sections.");
-        } finally {
-            setLoading(false);
+            console.error("Failed to load lessons:", err);
         }
     };
 
     const getSectionsByLesson = async (lessonId: number) => {
-        setLoading(true);
-        setError(null);
+        if (sections[lessonId]) return; // Already loaded
+        
         try {
-            const { data } = await contentService.getSectionsByLesson(lessonId);
-            setSection(data);
+            const { data } = await contentService.getSectionsByLesson(lessonId, { include_deleted: true });
+            setSections(prev => ({ ...prev, [lessonId]: data }));
         } catch (err) {
-            setError("Failed to load sections.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const getSectionsByCreator = async (userId: number) => {
-        setLoading(true);
-        setError(null);
-        try {
-            const { data } = await contentService.getSectionsByCreator(userId);
-            setSection(data);
-        } catch (err) {
-            setError("Failed to load sections.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const getSectionById = async (sectionId: number) => {
-        setLoading(true);
-        setError(null);
-        try {
-            const { data } = await contentService.getSectionById(sectionId);
-            setSection([data]);
-        } catch (err) {
-            setError("Failed to load section.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const getQuestionById = async (questionId: number) => {
-        setLoading(true);
-        setError(null);
-        try {
-            const { data } = await contentService.getQuestionById(questionId);
-            setQuestion([data]);
-        } catch (err) {
-            setError("Failed to load question.");
-        } finally {
-            setLoading(false);
+            console.error("Failed to load sections:", err);
         }
     };
 
     const getQuestionsBySection = async (sectionId: number) => {
-        setLoading(true);
-        setError(null);
+        if (questions[sectionId]) return; // Already loaded
+        
         try {
             const { data } = await contentService.getQuestionsBySection(sectionId);
-            setQuestion(data);
+            setQuestions(prev => ({ ...prev, [sectionId]: data }));
         } catch (err) {
-            setError("Failed to load questions.");
-        } finally {
-            setLoading(false);
+            console.error("Failed to load questions:", err);
         }
     };
 
     const deleteQuestion = async (questionId: number) => {
-        setLoading(true);
-        setError(null);
-        try {
-            await contentService.deleteQuestion(questionId);
-            setQuestion(qs => qs.filter(q => q.id !== questionId));
-        } catch (err) {
-            setError("Failed to delete question.");
-        } finally {
-            setLoading(false);
-        }
+        await contentService.deleteQuestion(questionId);
+        
+        // Update local state
+        setQuestions(prev => {
+            const updated = { ...prev };
+            Object.keys(updated).forEach(sectionId => {
+                updated[Number(sectionId)] = updated[Number(sectionId)].map(q =>
+                    q.id === questionId ? { ...q, is_deleted: true } : q
+                );
+            });
+            return updated;
+        });
     };
 
     const restoreQuestion = async (questionId: number) => {
-        setLoading(true);
-        setError(null);
-        try {
-            const { data } = await contentService.restoreQuestion(questionId);
-            setQuestion(qs => [...qs, data]);
-        } catch (err) {
-            setError("Failed to restore question.");
-        } finally {
-            setLoading(false);
-        }
+        await contentService.restoreQuestion(questionId);
+        
+        // Update local state
+        setQuestions(prev => {
+            const updated = { ...prev };
+            Object.keys(updated).forEach(sectionId => {
+                updated[Number(sectionId)] = updated[Number(sectionId)].map(q =>
+                    q.id === questionId ? { ...q, is_deleted: false } : q
+                );
+            });
+            return updated;
+        });
     };
 
-    const getAllQuestions = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const { data } = await contentService.getAllQuestions();
-            setQuestion(data);
-        } catch (err) {
-            setError("Failed to load questions.");
-        }  finally {
-            setLoading(false);
-        }
-    };
-
+    // Auto-load nested data when parent is expanded
     useEffect(() => {
-        getAllLessons();
-    })
+        topics.forEach(topic => {
+            if (!lessons[topic.id]) {
+                getLessonsByTopic(topic.id);
+            }
+        });
+    }, [topics]);
     
     return {
         loading,
         error,
-        topic,
-        lesson,
-        section,
-        question,
-        getTopicsByCreator,
+        topics,
+        lessons,
+        sections,
+        questions,
         getAllTopics,
-        getTopicById,
-        getAllLessons,
         getLessonsByTopic,
-        getLessonsByCreator,
-        getLessonById,
-        getAllSections,
         getSectionsByLesson,
-        getSectionsByCreator,
-        getSectionById,
-        getQuestionById,
         getQuestionsBySection,
         deleteQuestion,
         restoreQuestion,
-        getAllQuestions,
-    }
+    };
 }
