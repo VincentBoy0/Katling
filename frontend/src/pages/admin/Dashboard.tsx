@@ -19,8 +19,8 @@ export default function AdminPage() {
         return <OverviewDashboard />;
       case "users":
         return <UserManagement />;
-      case "approval":
-        return <PostApproval />;
+      // case "approval":
+      //   return <PostApproval />;
       case "library":
         return <ContentLibrary />;
       case "errors":
