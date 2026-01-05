@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { adminService } from "@/services/adminService"
-import { User, UserInfo, UserUpdate, UserInfoUpdate, RoleType } from "@/types/user"
+import { User, UserInfo, UserUpdate, UserInfoUpdate, RoleType, RoleAssign } from "@/types/user"
 import { AdminUserVM } from "@/types/AdminUserVM";
 
 export function useAdminUsers() {
@@ -15,8 +15,7 @@ export function useAdminUsers() {
         data.map(async u => {
             const profile = await adminService.getUserProfileById(u.id);
 
-            // TODO: update roles
-            const roles: RoleType[] = [RoleType.LEARNER];
+            const roles: RoleType[] = (await adminService.getUserRoles(u.id)).data.roles;
 
             return {
                 id: u.id,
@@ -64,6 +63,36 @@ export function useAdminUsers() {
     setUsers(u => u.filter(x => x.id !== id))
   }
 
+  const assignRole = async (userId: number, {user_id, role_type} : RoleAssign) => {
+    await adminService.assignRole(userId, {user_id, role_type})
+    setUsers(users =>
+      users.map(u =>
+        u.id === userId
+          ? {
+              ...u,
+              roles: u.roles.includes(role_type)
+                ? u.roles
+                : [...u.roles, role_type],
+            }
+          : u
+      )
+    );
+  }
+
+  const removeRole = async (userId: number, roleType: RoleType) => {
+    await adminService.removeRole(userId, roleType);
+    setUsers(users =>
+      users.map(u =>
+        u.id === userId
+          ? {
+              ...u,
+              roles: u.roles.filter(r => r !== roleType),
+            }
+          : u
+      )
+    );
+  }
+
   useEffect(() => { loadUsers() }, [])
 
   return {
@@ -74,6 +103,8 @@ export function useAdminUsers() {
     updateProfile,
     ban,
     unban,
-    remove
+    remove,
+    assignRole,
+    removeRole
   };
 }
