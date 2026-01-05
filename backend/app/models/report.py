@@ -39,6 +39,7 @@ class ReportCategory(str, Enum):
     CONTENT_ERROR = "CONTENT_ERROR"      # Error in lesson/content
     PERFORMANCE = "PERFORMANCE"   # Performance/speed issue
     ACCESSIBILITY = "ACCESSIBILITY"      # Accessibility issue
+    POST = "POST"
     OTHER = "OTHER"               # Other issue
 
 
@@ -89,6 +90,11 @@ class Report(SQLModel, table=True):
     affected_lesson_id: Optional[int] = Field(
         default=None,
         foreign_key="lessons.id",
+        ondelete="SET NULL",
+    )
+    affected_post_id: Optional[int] = Field(
+        default=None,
+        foreign_key="posts.id",
         ondelete="SET NULL",
     )
     
