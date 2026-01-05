@@ -3,7 +3,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from fastapi import HTTPException, status
 from typing import List, Optional
 
+from sqlalchemy import func
+
 from models.lesson import Lesson, Topic
+from models.lesson import LessonSection
+from models.progress import ProgressStatus, UserProgress
 from schemas.lesson import LessonCreate, LessonUpdate
 
 
@@ -100,6 +104,65 @@ class LessonRepository:
         
         result = await self.session.exec(stmt)
         return result.all()
+
+    async def get_lessons_progress_by_topic(
+        self,
+        *,
+        user_id: int,
+        topic_id: int,
+        include_deleted: bool = False,
+    ) -> list[dict]:
+        """Return lessons in a topic with per-user progress.
+
+        Progress is derived from section-level `user_progress` rows.
+        Each item contains: id, type, title, total_sections, completed_sections.
+        """
+
+        statement = (
+            select(
+                Lesson.id.label("lesson_id"),
+                Lesson.type.label("type"),
+                Lesson.title.label("title"),
+                Lesson.order_index.label("order_index"),
+                func.count(func.distinct(LessonSection.id)).label("total_sections"),
+                func.count(func.distinct(UserProgress.section_id)).label("completed_sections"),
+            )
+            .select_from(Lesson)
+            .join(
+                LessonSection,
+                (LessonSection.lesson_id == Lesson.id) & (LessonSection.is_deleted == False),
+                isouter=True,
+            )
+            .join(
+                UserProgress,
+                (UserProgress.section_id == LessonSection.id)
+                & (UserProgress.user_id == user_id)
+                & (UserProgress.status == ProgressStatus.COMPLETED),
+                isouter=True,
+            )
+            .where(Lesson.topic_id == topic_id)
+            .group_by(Lesson.id, Lesson.type, Lesson.title, Lesson.order_index)
+            .order_by(Lesson.order_index, Lesson.id)
+        )
+
+        if not include_deleted:
+            statement = statement.where(Lesson.is_deleted == False)
+
+        result = await self.session.exec(statement)
+        rows = result.all()
+
+        out: list[dict] = []
+        for row in rows:
+            out.append(
+                {
+                    "id": int(row.lesson_id),
+                    "type": str(row.type),
+                    "title": row.title,
+                    "total_sections": int(row.total_sections or 0),
+                    "completed_sections": int(row.completed_sections or 0),
+                }
+            )
+        return out
 
     async def get_lessons_by_creator(
         self, 
