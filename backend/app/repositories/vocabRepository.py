@@ -176,6 +176,7 @@ class VocabRepository:
             word_id=vocab_id,
             status=status,
             category=normalized_category,
+            review_status=ReviewStatus.NEWBIE
         )
         self.session.add(user_word)
         try:
@@ -222,7 +223,7 @@ class VocabRepository:
             raise LookupError("UserWord not found")
 
         next_status_map: dict[ReviewStatus, ReviewStatus] = {
-            ReviewStatus.NEW: ReviewStatus.LEARNING,
+            ReviewStatus.NEWBIE: ReviewStatus.LEARNING,
             ReviewStatus.LEARNING: ReviewStatus.MASTERED,
         }
 

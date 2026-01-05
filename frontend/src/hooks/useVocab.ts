@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { vocabService } from "@/services/vocabService";
 
-export type ReviewStatus = "NEW" | "LEARNING" | "MASTERED";
+export type ReviewStatus = "NEWBIE" | "LEARNING" | "MASTERED";
 
 export type SavedWord = {
   id: number;
