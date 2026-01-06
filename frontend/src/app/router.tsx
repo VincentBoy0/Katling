@@ -36,6 +36,9 @@ import AdminDashboard from "@/pages/admin/Dashboard";
 /* Moderator */
 import ModeratorDashboard from "@/pages/moderator/Dashboard";
 import ModeratorLogIn from "@/pages/moderator/ModeratorLogIn";
+import TopicLessons from "@/pages/moderator/dashboard/topic-lessons";
+import LessonSections from "@/pages/moderator/dashboard/lesson-sections";
+import SectionQuestions from "@/pages/moderator/dashboard/section-questions";
 
 export const router = createBrowserRouter([
   {
@@ -88,7 +91,12 @@ export const router = createBrowserRouter([
       {
         path: "/moderator",
         element: <ModeratorLayout />,
-        children: [{ index: true, element: <ModeratorDashboard /> }],
+        children: [
+          { index: true, element: <ModeratorDashboard /> },
+          { path: "topics/:topicId/lessons", element: <TopicLessons /> },
+          { path: "lessons/:lessonId/sections", element: <LessonSections /> },
+          { path: "sections/:sectionId/questions", element: <SectionQuestions /> },
+        ],
       },
     ],
   },
