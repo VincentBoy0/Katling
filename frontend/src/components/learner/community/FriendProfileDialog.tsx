@@ -1,19 +1,11 @@
 import { Dialog, DialogContent } from "@/components/learner/dialog";
 import { Card } from "@/components/ui/card";
 import { Flame, Zap, Trophy } from "lucide-react";
-
-interface FriendDetail {
-  id: number;
-  name: string;
-  username: string;
-  avatarColor: string;
-  streak: number;
-  totalXp: number;
-  league: string;
-}
+import { Friend } from "@/types/friend";
+import { getAvatarColor } from "@/lib/avatar";
 
 interface FriendProfileDialogProps {
-  friend: FriendDetail | null;
+  friend: Friend | null;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -29,21 +21,23 @@ export function FriendProfileDialog({
         <Card className="w-full border-2 border-border rounded-3xl overflow-hidden bg-card">
           <div
             className={`h-24 w-full ${
-              friend.avatarColor.split(" ")[0]
+              getAvatarColor(friend.user_name).split(" ")[0]
             } opacity-50 relative`}
           ></div>
           <div className="px-6 pb-6 -mt-10 flex flex-col items-center">
             <div
-              className={`w-24 h-24 rounded-full border-4 border-card flex items-center justify-center text-3xl font-black shadow-sm ${friend.avatarColor}`}
+              className={`w-24 h-24 rounded-full border-4 border-card flex items-center justify-center text-3xl font-black shadow-sm ${getAvatarColor(
+                friend.user_name
+              )}`}
             >
-              {friend.name.charAt(0)}
+              {friend.user_name.charAt(0)}
             </div>
             <div className="text-center mt-3 mb-6 space-y-1">
               <h2 className="text-2xl font-black text-foreground">
-                {friend.name}
+                {friend.user_name}
               </h2>
               <p className="text-muted-foreground font-medium">
-                {friend.username}
+                {friend.user_name}
               </p>
             </div>
             {/* Stats */}
@@ -60,13 +54,13 @@ export function FriendProfileDialog({
               <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl border border-blue-100 text-center">
                 <Zap className="w-5 h-5 text-blue-500 mx-auto mb-1" />
                 <p className="text-lg font-black text-blue-700">
-                  {(friend.totalXp / 1000).toFixed(1)}k
+                  {(friend.xp / 1000).toFixed(1)}k
                 </p>
                 <p className="text-[10px] uppercase font-bold text-blue-600/70">
                   XP
                 </p>
               </div>
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-xl border border-yellow-100 text-center">
+              {/* <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-xl border border-yellow-100 text-center">
                 <Trophy className="w-5 h-5 text-yellow-500 mx-auto mb-1" />
                 <p className="text-lg font-black text-yellow-700">
                   {friend.league}
@@ -74,7 +68,7 @@ export function FriendProfileDialog({
                 <p className="text-[10px] uppercase font-bold text-yellow-600/70">
                   Hạng
                 </p>
-              </div>
+              </div> */}
             </div>
           </div>
         </Card>

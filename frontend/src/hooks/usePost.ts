@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FeedPost, Post } from "@/types/post";
 import { postService } from "@/services/postService";
 
@@ -178,7 +178,12 @@ export function usePost() {
             setError(err?.response?.data?.detail || err.message);
             throw err;
         }
-    };
+    }
+        
+    useEffect(() => {
+        getFeed();
+        getUserPost();
+    }, []);
 
     return {
         feed,
