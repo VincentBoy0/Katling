@@ -1,36 +1,35 @@
 import { api } from "@/lib/api";
+import { UserWordWithVocabOut, VocabSearchResponse, SaveVocabRequest, UserWordOut } from "@/types/vocab";
+
 
 export const vocabService = {
-  // search vocab (backend đã normalize)
-  search(word: string) {
-    return api.get("/vocabs/search", {
-      params: { word },
-    });
+
+  async search(word: string): Promise<VocabSearchResponse> {
+    const response = await api.get<VocabSearchResponse>(
+      `/vocabs/search`,
+      { params: { word } }
+    );
+    return response.data;
   },
 
-  // list user saved words
-  getUserWords() {
-    return api.get("/user-words");
+  async listUserWords(): Promise<UserWordWithVocabOut[]> {
+    const response = await api.get<UserWordWithVocabOut[]>(`/user-words`);
+    return response.data;
   },
 
-  // save vocab
-  saveWord(payload: {
-    word: string;
-    definition: Record<string, string[]>;
-    phonetic?: string | null;
-    audio_url?: string | null;
-    category?: string | null;
-  }) {
-    return api.post("/user-words", payload);
+  async saveUserWord(payload: SaveVocabRequest): Promise<UserWordOut> {
+    const response = await api.post<UserWordOut>("/user-words", payload);
+    return response.data;
   },
 
-  // delete vocab
-  deleteWord(word: string) {
-    return api.delete(`/user-words/${word}`);
+  async deleteUserWord(word: string) {
+    return await api.delete(`/user-words/${word}`);
   },
 
-  // promote NEW → LEARNING → MASTERED
-  promote(vocabId: number) {
-    return api.post(`/user-words/${vocabId}/promote`);
+  async promoteUserWord(vocabId: number) {
+    const response = await api.post(`/user-words/${vocabId}/promote`);
+    return response.data;
   },
 };
+
+export default vocabService;
