@@ -1,36 +1,15 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import learningService from "@/services/learningService";
-import { TopicProgressOut } from "@/types/learning";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { BookOpen, Check, Lock, Play, Star, Loader2, AlertCircle } from "lucide-react";
+import { BookOpen, Lock, Loader2, AlertCircle } from "lucide-react";
+import { useTopics } from "@/hooks/useTopics";
+import TopicCard from "@/components/learner/TopicCard";
 
 
 export default function LearnPage() {
   const navigate = useNavigate();
-  const [topics, setTopics] = useState<TopicProgressOut[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const loadTopics = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await learningService.getTopics();
-        setTopics(data.topics);
-      } catch (err: any) {
-        console.error("Error fetching topics:", err);
-        setError(err.response?.data?.message || "Đã có lỗi xảy ra khi tải chủ đề.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadTopics();
-  }, []);
+  const { topics, loading, error } = useTopics();
 
   if (loading) {
     return (
@@ -106,107 +85,6 @@ export default function LearnPage() {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// Component cho mỗi Topic
-interface TopicCardProps {
-  topic: TopicProgressOut;
-  index: number;
-  onStartLesson: (lessonId: number) => void;
-}
-
-function TopicCard({ topic, index, onStartLesson }: TopicCardProps) {
-  const isLocked = topic.status === 'locked';
-  const isCurrent = topic.status === 'current';
-  const isCompleted = topic.status === 'completed';
-
-  return (
-    <div className="relative">
-      {/* Topic Header Card */}
-      <div
-        className={`relative z-10 bg-card border-2 rounded-2xl overflow-hidden transition-all ${
-          isLocked
-            ? "border-border opacity-70 grayscale"
-            : "border-primary/20 shadow-sm"
-        }`}
-      >
-        {/* Progress Bar Top */}
-        {!isLocked && (
-          <div className="h-1.5 w-full bg-secondary/30">
-            <div
-              className="h-full bg-primary transition-all duration-500"
-              style={{ width: `${topic.progress}%` }}
-            />
-          </div>
-        )}
-
-        <div className="p-6 flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
-          <div className="flex gap-4 items-center">
-            {/* Badge Number */}
-            <div
-              className={`w-12 h-12 shrink-0 rounded-xl flex items-center justify-center font-extrabold text-xl border-2 ${
-                isLocked
-                  ? "bg-muted text-muted-foreground border-muted-foreground/20"
-                  : isCompleted
-                  ? "bg-green-500 text-white border-green-600"
-                  : "bg-primary text-primary-foreground border-primary-foreground/20"
-              }`}
-            >
-              {isCompleted ? (
-                <Check className="w-6 h-6" strokeWidth={3} />
-              ) : (
-                index + 1
-              )}
-            </div>
-
-            <div>
-              <h2 className="text-xl font-bold text-foreground">
-                {topic.name}
-              </h2>
-              <p className="text-sm text-muted-foreground font-medium mt-1">
-                {topic.description}
-              </p>
-            </div>
-          </div>
-
-          {isLocked ? (
-            <div className="p-2 bg-muted rounded-lg">
-              <Lock className="w-5 h-5 text-muted-foreground" />
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-sm font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg">
-              <Star className="w-4 h-4 fill-primary" />
-              <span>{Math.round(topic.progress)}%</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Action Button for Current Topic */}
-      {isCurrent && (
-        <div className="mt-6 flex justify-center">
-          <Button
-            size="lg"
-            onClick={() => onStartLesson(topic.id)}
-            className="font-bold shadow-md px-8"
-          >
-            <Play className="w-5 h-5 mr-2" />
-            Tiếp tục học
-          </Button>
-        </div>
-      )}
-
-      {/* Completed Badge */}
-      {isCompleted && (
-        <div className="mt-4 text-center">
-          <span className="inline-flex items-center gap-2 text-sm font-bold text-green-600 bg-green-50 dark:bg-green-900/20 px-4 py-2 rounded-full">
-            <Check className="w-4 h-4" />
-            Đã hoàn thành
-          </span>
-        </div>
-      )}
     </div>
   );
 }
