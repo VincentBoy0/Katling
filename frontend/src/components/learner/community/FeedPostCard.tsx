@@ -20,7 +20,8 @@ export function FeedPostCard({
   onAddComment,
 }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
-  const avatarColor = getAvatarColor(post.author_username);
+  const displayName = post.author_username || "Unknown User";
+  const avatarColor = getAvatarColor(displayName);
 
   return (
     <Card className="p-6 border-2 border-border rounded-2xl bg-card">
@@ -29,13 +30,13 @@ export function FeedPostCard({
         <div
           className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border-2 border-white shadow-sm ${avatarColor}`}
         >
-          {post.author_username?.charAt(0)}
+          {displayName.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between">
             <div>
               <h3 className="font-bold text-base text-foreground hover:underline cursor-pointer">
-                {post.author_username}
+                {displayName}
               </h3>
               <p className="text-xs text-muted-foreground font-medium pt-0.5">
                 Được đăng vào {post.created_at.slice(0, 10)}
