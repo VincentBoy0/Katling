@@ -1,5 +1,3 @@
-"use client";
-
 import {
   Bell,
   Settings,
@@ -14,7 +12,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "@/hooks/useUser";
+import { useUserInfo } from "@/hooks/useUserInfo";
 
 type Notification = {
   id: number;
@@ -36,6 +34,7 @@ export default function AdminHeader({ onNavigate }: AdminHeaderProps) {
   const navigate = useNavigate();
   const [mounted, setMounted] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const { userInfo } = useUserInfo();
 
   return (
     <header className="bg-card border-b border-border px-8 py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
@@ -68,7 +67,7 @@ export default function AdminHeader({ onNavigate }: AdminHeaderProps) {
           </div>
           <div className="hidden sm:block">
             <p className="text-sm font-medium text-foreground">
-              {user?.username}
+              {userInfo?.full_name}
             </p>
             <p className="text-xs text-muted-foreground">{user?.email}</p>
           </div>

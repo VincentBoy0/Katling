@@ -9,28 +9,31 @@ import PostApproval from "@/pages/admin/dashboard/post-approval";
 import AdminSettings from "@/pages/admin/dashboard/Settings";
 import AdminSidebar from "@/components/admin/Sidebar";
 import UserManagement from "@/pages/admin/dashboard/user-management";
+import UserReports from "./dashboard/user-reports";
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("overview");
 
   const renderContent = () => {
     switch (activeTab) {
-      case "overview":
-        return <OverviewDashboard />;
+      // case "overview":
+      //   return <OverviewDashboard />;
       case "users":
         return <UserManagement />;
       // case "approval":
       //   return <PostApproval />;
       case "library":
         return <ContentLibrary />;
-      case "errors":
-        return <ErrorChecking />;
-      case "analytics":
-        return <AnalyticsReporting />;
-      case "settings":
-        return <AdminSettings />;
+      // case "errors":
+      //   return <ErrorChecking />;
+      // case "analytics":
+      //   return <AnalyticsReporting />;
+      // case "settings":
+      //   return <AdminSettings />;
+      case "reports":
+        return <UserReports />;
       default:
-        return <OverviewDashboard />;
+        return <UserManagement />;
     }
   };
 

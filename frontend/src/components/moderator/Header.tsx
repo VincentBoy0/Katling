@@ -14,6 +14,8 @@ import { useTheme } from "next-themes";
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "@/hooks/useUser";
+import { useUserInfo } from "@/hooks/useUserInfo";
 
 // Kiểu dữ liệu thông báo
 type Notification = {
@@ -36,36 +38,37 @@ export default function ModeratorHeader({ onNavigate }: ModeratorHeaderProps) {
   const [mounted, setMounted] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const { userInfo } = useUserInfo();
 
-  // Mock Data cho Moderator
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: 1,
-      title: "Báo cáo vi phạm mới",
-      message: "User A đã báo cáo một bình luận xúc phạm.",
-      time: "2 phút trước",
-      read: false,
-      targetTab: "reports", // Chuyển đến tab Báo cáo
-    },
-    {
-      id: 2,
-      title: "Kháng cáo từ người dùng",
-      message: "User B yêu cầu xem xét lại lệnh cấm.",
-      time: "30 phút trước",
-      read: false,
-      targetTab: "appeals", // Chuyển đến tab Kháng cáo
-    },
-    {
-      id: 3,
-      title: "Hàng chờ duyệt",
-      message: "Có 15 bài viết mới cần phê duyệt.",
-      time: "1 giờ trước",
-      read: true,
-      targetTab: "review", // Chuyển đến tab Duyệt bài
-    },
-  ]);
+  // // Mock Data cho Moderator
+  // const [notifications, setNotifications] = useState<Notification[]>([
+  //   {
+  //     id: 1,
+  //     title: "Báo cáo vi phạm mới",
+  //     message: "User A đã báo cáo một bình luận xúc phạm.",
+  //     time: "2 phút trước",
+  //     read: false,
+  //     targetTab: "reports", // Chuyển đến tab Báo cáo
+  //   },
+  //   {
+  //     id: 2,
+  //     title: "Kháng cáo từ người dùng",
+  //     message: "User B yêu cầu xem xét lại lệnh cấm.",
+  //     time: "30 phút trước",
+  //     read: false,
+  //     targetTab: "appeals", // Chuyển đến tab Kháng cáo
+  //   },
+  //   {
+  //     id: 3,
+  //     title: "Hàng chờ duyệt",
+  //     message: "Có 15 bài viết mới cần phê duyệt.",
+  //     time: "1 giờ trước",
+  //     read: true,
+  //     targetTab: "review", // Chuyển đến tab Duyệt bài
+  //   },
+  // ]);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  // const unreadCount = notifications.filter((n) => !n.read).length;
 
   useEffect(() => {
     setMounted(true);
@@ -83,29 +86,29 @@ export default function ModeratorHeader({ onNavigate }: ModeratorHeaderProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleNotificationClick = (notification: Notification) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
-    );
-    if (notification.targetTab && onNavigate) {
-      onNavigate(notification.targetTab);
-      setShowNotifications(false);
-    }
-  };
+  // const handleNotificationClick = (notification: Notification) => {
+  //   setNotifications((prev) =>
+  //     prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
+  //   );
+  //   if (notification.targetTab && onNavigate) {
+  //     onNavigate(notification.targetTab);
+  //     setShowNotifications(false);
+  //   }
+  // };
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  };
+  // const markAllAsRead = () => {
+  //   setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  // };
 
   return (
     <header className="bg-card border-b border-border px-8 py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
       <h1 className="text-2xl font-bold text-foreground">
         Moderator Dashboard
       </h1>
-      <div className="flex items-center gap-4">
+      {/* <div className="flex items-center gap-4">
         {/* --- MENU THÔNG BÁO --- */}
-        <div className="relative" ref={notificationRef}>
-          <button
+      {/* <div className="relative" ref={notificationRef}>  */}
+      {/* <button
             onClick={() => setShowNotifications(!showNotifications)}
             className={`relative p-2 rounded-lg transition-colors ${
               showNotifications ? "bg-muted" : "hover:bg-muted"
@@ -115,9 +118,9 @@ export default function ModeratorHeader({ onNavigate }: ModeratorHeaderProps) {
             {unreadCount > 0 && (
               <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-destructive border-2 border-card rounded-full animate-pulse"></span>
             )}
-          </button>
+          </button> */}
 
-          {showNotifications && (
+      {/* {showNotifications && (
             <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-card border border-border rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right z-50">
               <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
                 <h3 className="font-semibold text-foreground">
@@ -175,10 +178,10 @@ export default function ModeratorHeader({ onNavigate }: ModeratorHeaderProps) {
               </div>
             </div>
           )}
-        </div>
+        </div> */}
 
-        {/* Nút bật/tắt Dark Mode */}
-        <button
+      {/* Nút bật/tắt Dark Mode */}
+      {/* <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className="p-2 rounded-lg hover:bg-muted transition-colors"
         >
@@ -187,35 +190,37 @@ export default function ModeratorHeader({ onNavigate }: ModeratorHeaderProps) {
           ) : (
             <Moon className="w-5 h-5 text-muted-foreground" />
           )}
-        </button>
+        </button> */}
 
-        {/* Nút Settings */}
-        <button
+      {/* Nút Settings */}
+      {/* <button
           onClick={() => onNavigate?.("settings")}
           className="p-2 rounded-lg hover:bg-muted transition-colors"
         >
           <Settings className="w-5 h-5 text-muted-foreground" />
-        </button>
+        </button> */}
 
-        {/* User Info */}
-        <div className="flex items-center gap-2 ml-4 pl-4 border-l border-border">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <User className="w-4 h-4 text-primary-foreground" />
-          </div>
-          <div className="hidden sm:block">
-            <p className="text-sm font-medium text-foreground">Moderator</p>
-            <p className="text-xs text-muted-foreground">{user?.email}</p>
-          </div>
-          <button
-            onClick={async () => {
-              await logout();
-              navigate("/moderator/login");
-            }}
-            className="p-1 hover:bg-muted rounded transition-colors"
-          >
-            <LogOut className="w-4 h-4 text-muted-foreground" />
-          </button>
+      {/* User Info */}
+      <div className="flex items-center gap-2 ml-4 pl-4 border-l border-border">
+        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+          <User className="w-4 h-4 text-primary-foreground" />
         </div>
+        <div className="hidden sm:block">
+          <p className="text-sm font-medium text-foreground">
+            {userInfo?.full_name}
+          </p>
+          <p className="text-xs text-muted-foreground">{user?.email}</p>
+        </div>
+        <button
+          onClick={async () => {
+            await logout();
+            navigate("/moderator/login");
+          }}
+          className="p-1 hover:bg-muted rounded transition-colors"
+        >
+          <LogOut className="w-4 h-4 text-muted-foreground" />
+        </button>
+        {/* </div> */}
       </div>
     </header>
   );

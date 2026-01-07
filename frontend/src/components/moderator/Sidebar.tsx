@@ -18,11 +18,11 @@ export default function ModeratorSidebar({
   setActiveTab,
 }: ModeratorSidebarProps) {
   const menuItems = [
-    { id: "overview", label: "Overview", icon: LayoutDashboard },
+    // { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "create", label: "Create Content", icon: Upload },
-    { id: "review", label: "Review Queue", icon: Eye },
+    // { id: "review", label: "Review Queue", icon: Eye },
     { id: "reports", label: "Reports", icon: Flag },
-    { id: "appeals", label: "Appeals", icon: MessageSquare },
+    // { id: "appeals", label: "Appeals", icon: MessageSquare },
   ];
 
   return (
@@ -35,7 +35,7 @@ export default function ModeratorSidebar({
             </span>
           </div>
           <div>
-            <h1 className="font-bold text-sidebar-foreground">English Learn</h1>
+            <h1 className="font-bold text-sidebar-foreground">Katling</h1>
             <p className="text-xs text-sidebar-foreground/60">
               Moderator Panel
             </p>
