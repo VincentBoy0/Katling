@@ -123,48 +123,87 @@ export default function CommunityPage() {
     } finally {
       setShowReportDialog(false);
       setReportPostId(null);
-      const handleFindFriend = async (query: string) => {
-        await searchUsers(query);
-      };
+    }
+  };
 
-      const handleAddFriend = async (receiverId: number) => {
-        try {
-          await sendFriendRequest(receiverId);
-          toast.success("Đã gửi lời mời kết bạn");
-        } catch (err: any) {
-          const errorMsg =
-            err?.response?.data?.detail || "Không thể gửi lời mời kết bạn";
-          toast.error(errorMsg);
-        }
-      };
+  const handleFindFriend = async (query: string) => {
+    await searchUsers(query);
+  };
 
-      const handleAcceptFriend = async (requestId: number) => {
-        try {
-          await acceptFriendRequest(requestId);
-          toast.success("Đã chấp nhận lời mời kết bạn");
-        } catch (err: any) {
-          const errorMsg =
-            err?.response?.data?.detail || "Không thể chấp nhận lời mời";
-          toast.error(errorMsg);
-        }
-      };
+  const handleAddFriend = async (receiverId: number) => {
+    try {
+      await sendFriendRequest(receiverId);
+      toast.success("Đã gửi lời mời kết bạn");
+    } catch (err: any) {
+      const errorMsg =
+        err?.response?.data?.detail || "Không thể gửi lời mời kết bạn";
+      toast.error(errorMsg);
+    }
+  };
 
-      const handleRejectFriend = async (requestId: number) => {
-        try {
-          await rejectFriendRequest(requestId);
-          toast.success("Đã từ chối lời mời kết bạn");
-        } catch (err: any) {
-          const errorMsg =
-            err?.response?.data?.detail || "Không thể từ chối lời mời";
-          toast.error(errorMsg);
-        }
-      };
+  const handleAcceptFriend = async (requestId: number) => {
+    try {
+      await acceptFriendRequest(requestId);
+      toast.success("Đã chấp nhận lời mời kết bạn");
+    } catch (err: any) {
+      const errorMsg =
+        err?.response?.data?.detail || "Không thể chấp nhận lời mời";
+      toast.error(errorMsg);
+    }
+  };
 
-      return (
-        <div className="p-4 md:p-8 space-y-8 max-w-5xl mx-auto min-h-screen">
-          <CommunityHeader
-            onCreatePost={() => setShowCreatePostDialog(true)}
-            onFindFriends={() => setShowFindFriendsDialog(true)}
+  const handleRejectFriend = async (requestId: number) => {
+    try {
+      await rejectFriendRequest(requestId);
+      toast.success("Đã từ chối lời mời kết bạn");
+    } catch (err: any) {
+      const errorMsg =
+        err?.response?.data?.detail || "Không thể từ chối lời mời";
+      toast.error(errorMsg);
+    }
+  };
+
+  useEffect(() => {
+    getFeed();
+    getUserPost();
+    getFriendsList();
+    getFriendRequests();
+  }, []);
+
+  return (
+    <div className="p-4 md:p-8 space-y-8 max-w-5xl mx-auto min-h-screen">
+      <CommunityHeader
+        onCreatePost={() => setShowCreatePostDialog(true)}
+        onFindFriends={() => setShowFindFriendsDialog(true)}
+      />
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+          <strong className="font-bold">Lỗi: </strong>
+          <span>{error}</span>
+        </div>
+      )}
+
+      {loading && (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Đang tải...</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="space-y-6">
+          <FriendsSidebar
+            friends={friends}
+            onFriendClick={setSelectedFriend}
+            // onInviteClick={() =>
+            //   openShareDialog("https://katling.app/invite/u/me")
+            // }
+          />
+
+          <FriendRequestsSidebar
+            requests={friendRequests}
+            onAccept={handleAcceptFriend}
+            onReject={handleRejectFriend}
           />
 
           {error && (
