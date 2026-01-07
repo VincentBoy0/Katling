@@ -52,11 +52,10 @@ export default function CommunityPage() {
     rejectFriendRequest,
   } = useFriend();
 
-  const { userInfo } = useUserInfo();
   const [showCreatePostDialog, setShowCreatePostDialog] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [reportPostId, setReportPostId] = useState<number | null>(null);
-  
+
   const [showFindFriendsDialog, setShowFindFriendsDialog] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   // const [shareLink, setShareLink] = useState("https://katling.app/invite/u/me");
@@ -124,6 +123,9 @@ export default function CommunityPage() {
     } finally {
       setShowReportDialog(false);
       setReportPostId(null);
+    }
+  };
+
   const handleFindFriend = async (query: string) => {
     await searchUsers(query);
   };
@@ -160,6 +162,13 @@ export default function CommunityPage() {
       toast.error(errorMsg);
     }
   };
+
+  useEffect(() => {
+    getFeed();
+    getUserPost();
+    getFriendsList();
+    getFriendRequests();
+  }, []);
 
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-5xl mx-auto min-h-screen">
