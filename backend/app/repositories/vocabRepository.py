@@ -73,6 +73,14 @@ class VocabRepository:
         result = await self.session.exec(statement)
         return result.first()
 
+    async def get_user_word_by_id(self, *, user_word_id: int, user_id: int) -> UserWord | None:
+        statement = select(UserWord).where(
+            UserWord.id == user_word_id,
+            UserWord.user_id == user_id,
+        )
+        result = await self.session.exec(statement)
+        return result.first()
+
     async def list_user_words(self, user_id: int) -> list[UserWord]:
         statement = (
             select(UserWord)
@@ -138,7 +146,7 @@ class VocabRepository:
                 {
                     "id": user_word.id,
                     "user_id": user_word.user_id,
-                    "vocab_id": user_word.word_id,
+                    "word_id": user_word.word_id,
                     "category": user_word.category,
                     "status": user_word.status,
                     "review_status": user_word.review_status,
@@ -206,7 +214,21 @@ class VocabRepository:
         if not existing:
             return False
 
-        self.session.delete(existing)
+        await self.session.delete(existing)
+        await self.session.commit()
+        return True
+
+    async def delete_user_word_by_id_idempotent(self, *, user_id: int, user_word_id: int) -> bool:
+        """Delete the saved word for a user by user_word_id.
+
+        Returns True if a row was deleted, False if it didn't exist.
+        """
+
+        existing = await self.get_user_word_by_id(user_word_id=user_word_id, user_id=user_id)
+        if not existing:
+            return False
+
+        await self.session.delete(existing)
         await self.session.commit()
         return True
 
@@ -219,6 +241,36 @@ class VocabRepository:
         """
 
         user_word = await self.get_user_word(user_id=user_id, vocab_id=vocab_id)
+        if not user_word:
+            raise LookupError("UserWord not found")
+
+        next_status_map: dict[ReviewStatus, ReviewStatus] = {
+            ReviewStatus.NEWBIE: ReviewStatus.LEARNING,
+            ReviewStatus.LEARNING: ReviewStatus.MASTERED,
+        }
+
+        next_status = next_status_map.get(user_word.review_status)
+        if not next_status:
+            raise ValueError("Cannot promote review_status from current status")
+
+        now = utc_now()
+        user_word.review_status = next_status
+        user_word.last_reviewed_at = now
+        user_word.next_reviewed_at = now
+
+        await self.session.commit()
+        await self.session.refresh(user_word)
+        return user_word
+
+    async def promote_user_word_by_id(self, *, user_id: int, user_word_id: int) -> UserWord:
+        """Promote review_status for a saved word to the next level by user_word_id.
+
+        Allowed transitions:
+        - NEW -> LEARNING
+        - LEARNING -> MASTERED
+        """
+
+        user_word = await self.get_user_word_by_id(user_word_id=user_word_id, user_id=user_id)
         if not user_word:
             raise LookupError("UserWord not found")
 

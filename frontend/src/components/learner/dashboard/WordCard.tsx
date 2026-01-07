@@ -26,7 +26,7 @@ export default function WordCard({
         </span>
 
         {/* Status badge */}
-        {word.review_status === "NEW" && (
+        {word.review_status === "NEWBIE" && (
           <span className="bg-blue-100 text-blue-600 text-[10px] font-bold px-2 py-1 rounded-lg uppercase">
             Mới
           </span>

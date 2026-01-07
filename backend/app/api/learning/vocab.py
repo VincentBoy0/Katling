@@ -34,7 +34,12 @@ async def search_vocab(word: str):
     return payload
 
 
-@router.get("/user-words", response_model=list[UserWordWithVocabOut], tags=["UserWords"])
+@router.get(
+    "/user-words",
+    response_model=list[UserWordWithVocabOut],
+    response_model_by_alias=False,
+    tags=["UserWords"],
+)
 async def list_user_words(
     session: AsyncSession = Depends(get_session),
     current_user=Depends(get_current_user),
@@ -45,7 +50,12 @@ async def list_user_words(
     return await repo.list_user_words_with_vocab(user_id=current_user.id)
 
 
-@router.post("/user-words", response_model=UserWordOut, tags=["UserWords"])
+@router.post(
+    "/user-words",
+    response_model=UserWordOut,
+    response_model_by_alias=False,
+    tags=["UserWords"],
+)
 async def save_user_word(
     payload: SaveVocabRequest,
     response: Response,
@@ -79,9 +89,9 @@ async def save_user_word(
     return user_word
 
 
-@router.delete("/user-words/{word}", status_code=204, tags=["UserWords"])
+@router.delete("/user-words/{user_word_id}", status_code=204, tags=["UserWords"])
 async def delete_user_word(
-    word: str,
+    user_word_id: int,
     session: AsyncSession = Depends(get_session),
     current_user=Depends(get_current_user),
 ):
@@ -89,17 +99,22 @@ async def delete_user_word(
 
     repo = VocabRepository(session)
 
-    vocab = await repo.get_vocab_by_word(word)
-    if not vocab:
-        raise HTTPException(status_code=404, detail="Vocab not found")
+    user_word = await repo.get_user_word_by_id(user_word_id=user_word_id, user_id=current_user.id)
+    if not user_word:
+        raise HTTPException(status_code=404, detail="User word not found")
 
-    await repo.delete_user_word_idempotent(user_id=current_user.id, vocab_id=vocab.id)
+    await repo.delete_user_word_by_id_idempotent(user_id=current_user.id, user_word_id=user_word_id)
     return Response(status_code=204)
 
 
-@router.post("/user-words/{vocab_id}/promote", response_model=UserWordOut, tags=["UserWords"])
+@router.post(
+    "/user-words/{user_word_id}/promote",
+    response_model=UserWordOut,
+    response_model_by_alias=False,
+    tags=["UserWords"],
+)
 async def promote_user_word(
-    vocab_id: int,
+    user_word_id: int,
     session: AsyncSession = Depends(get_session),
     current_user=Depends(get_current_user),
 ):
@@ -111,12 +126,8 @@ async def promote_user_word(
 
     repo = VocabRepository(session)
 
-    vocab = await repo.get_vocab_by_id(vocab_id)
-    if not vocab:
-        raise HTTPException(status_code=404, detail="Vocab not found")
-
     try:
-        user_word = await repo.promote_user_word(user_id=current_user.id, vocab_id=vocab_id)
+        user_word = await repo.promote_user_word_by_id(user_id=current_user.id, user_word_id=user_word_id)
     except LookupError:
         raise HTTPException(status_code=404, detail="User word not found")
     except ValueError as exc:
