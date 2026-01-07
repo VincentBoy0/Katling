@@ -152,7 +152,7 @@ async def update_report(
             update_data,
             resolved_by_user_id=current_user.id,
         )
-        logger.info(f"Report {report_id} updated by {current_user.username}")
+        logger.info(f"Report {report_id} updated by user {current_user.id}")
         return report
     except HTTPException:
         raise
@@ -193,7 +193,7 @@ async def resolve_report(
             update_data,
             resolved_by_user_id=current_user.id,
         )
-        logger.info(f"Report {report_id} marked as resolved by {current_user.username}")
+        logger.info(f"Report {report_id} marked as resolved by user {current_user.id}")
         return report
     except HTTPException:
         raise
@@ -234,7 +234,7 @@ async def close_report(
             update_data,
             resolved_by_user_id=current_user.id,
         )
-        logger.info(f"Report {report_id} closed by {current_user.username}")
+        logger.info(f"Report {report_id} closed by user {current_user.id}")
         return report
     except HTTPException:
         raise

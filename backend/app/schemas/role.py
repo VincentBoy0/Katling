@@ -7,7 +7,7 @@ from models.user import RoleType
 
 class RoleAssign(BaseModel):
     """Schema for assigning a role to a user."""
-    user_id: int = Field(..., description="User ID to assign role to")
+    # user_id: int = Field(..., description="User ID to assign role to")
     role_type: RoleType = Field(..., description="Role type to assign (ADMIN, MODERATOR, LEARNER)")
 
     class Config:

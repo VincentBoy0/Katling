@@ -5,20 +5,23 @@ import {
   FriendsSidebar,
   PostTabs,
   CreatePostDialog,
-  EditPostDialog,
   FindFriendsDialog,
   ShareDialog,
   FriendProfileDialog,
 } from "@/components/learner/community";
 import { ReportDialog } from "@/components/learner/management/ReportDialog";
 
+import { FriendRequestsSidebar } from "@/components/learner/community/FriendRequestsSidebar";
+
 import { usePost } from "@/hooks/usePost";
 import { useUserInfo } from "@/hooks/useUserInfo";
 import { useReport } from "@/hooks/useReport";
 import { ReportCreate } from "@/types/report";
+import { useFriend } from "@/hooks/useFriend";
+
+import { Friend } from "@/types/friend";
 
 export default function CommunityPage() {
-  // const [posts, setPosts] = useState<Post[]>(mockPosts);
   const {
     feed,
     userPost,
@@ -37,18 +40,26 @@ export default function CommunityPage() {
   const { createReport } = useReport();
 
   const { userInfo } = useUserInfo();
+  const {
+    friends,
+    searchResults,
+    friendRequests,
+    getFriendsList,
+    searchUsers,
+    getFriendRequests,
+    sendFriendRequest,
+    acceptFriendRequest,
+    rejectFriendRequest,
+  } = useFriend();
 
-  // Dialog States
+  const { userInfo } = useUserInfo();
   const [showCreatePostDialog, setShowCreatePostDialog] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [reportPostId, setReportPostId] = useState<number | null>(null);
-
-  // const [showFindFriendsDialog, setShowFindFriendsDialog] = useState(false);
-  // const [selectedFriend, setSelectedFriend] = useState<FriendDetail | null>(
-  //   null
-  // );
+  
+  const [showFindFriendsDialog, setShowFindFriendsDialog] = useState(false);
+  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   // const [shareLink, setShareLink] = useState("https://katling.app/invite/u/me");
-  // const friends = allUsers.filter((u) => u.isFriend);
 
   const handleToggleLike = async (postId: number, isLiked: boolean) => {
     try {
@@ -82,7 +93,6 @@ export default function CommunityPage() {
   const handleDeletePost = async (postId: number) => {
     try {
       await deletePost(postId);
-      // No need to refetch - optimistic update handles it
       toast.success("Đã xóa bài viết");
     } catch (err: any) {
       toast.error("Có lỗi khi xóa bài viết");
@@ -114,6 +124,40 @@ export default function CommunityPage() {
     } finally {
       setShowReportDialog(false);
       setReportPostId(null);
+  const handleFindFriend = async (query: string) => {
+    await searchUsers(query);
+  };
+
+  const handleAddFriend = async (receiverId: number) => {
+    try {
+      await sendFriendRequest(receiverId);
+      toast.success("Đã gửi lời mời kết bạn");
+    } catch (err: any) {
+      const errorMsg =
+        err?.response?.data?.detail || "Không thể gửi lời mời kết bạn";
+      toast.error(errorMsg);
+    }
+  };
+
+  const handleAcceptFriend = async (requestId: number) => {
+    try {
+      await acceptFriendRequest(requestId);
+      toast.success("Đã chấp nhận lời mời kết bạn");
+    } catch (err: any) {
+      const errorMsg =
+        err?.response?.data?.detail || "Không thể chấp nhận lời mời";
+      toast.error(errorMsg);
+    }
+  };
+
+  const handleRejectFriend = async (requestId: number) => {
+    try {
+      await rejectFriendRequest(requestId);
+      toast.success("Đã từ chối lời mời kết bạn");
+    } catch (err: any) {
+      const errorMsg =
+        err?.response?.data?.detail || "Không thể từ chối lời mời";
+      toast.error(errorMsg);
     }
   };
 
@@ -121,7 +165,7 @@ export default function CommunityPage() {
     <div className="p-4 md:p-8 space-y-8 max-w-5xl mx-auto min-h-screen">
       <CommunityHeader
         onCreatePost={() => setShowCreatePostDialog(true)}
-        // onFindFriends={() => setShowFindFriendsDialog(true)}
+        onFindFriends={() => setShowFindFriendsDialog(true)}
       />
 
       {error && (
@@ -138,13 +182,21 @@ export default function CommunityPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* <FriendsSidebar
-          friends={friends}
-          onFriendClick={setSelectedFriend}
-          onInviteClick={() =>
-            openShareDialog("https://katling.app/invite/u/me")
-          }
-        /> */}
+        <div className="space-y-6">
+          <FriendsSidebar
+            friends={friends}
+            onFriendClick={setSelectedFriend}
+            // onInviteClick={() =>
+            //   openShareDialog("https://katling.app/invite/u/me")
+            // }
+          />
+
+          <FriendRequestsSidebar
+            requests={friendRequests}
+            onAccept={handleAcceptFriend}
+            onReject={handleRejectFriend}
+          />
+        </div>
 
         <div className="col-span-1 lg:col-span-2 space-y-6">
           <PostTabs
@@ -168,17 +220,18 @@ export default function CommunityPage() {
         onPlatformClick={handlePlatformClick}
       /> */}
 
-      {/* <FindFriendsDialog
+      <FindFriendsDialog
         open={showFindFriendsDialog}
-        users={allUsers}
+        users={searchResults}
         onOpenChange={setShowFindFriendsDialog}
+        onFindFriend={handleFindFriend}
         onAddFriend={handleAddFriend}
-      /> */}
+      />
 
-      {/* <FriendProfileDialog
+      <FriendProfileDialog
         friend={selectedFriend}
         onOpenChange={(open) => !open && setSelectedFriend(null)}
-      /> */}
+      />
 
       <CreatePostDialog
         open={showCreatePostDialog}

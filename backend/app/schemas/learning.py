@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -41,3 +41,19 @@ class CompleteSectionResponse(BaseModel):
     score: int = Field(..., description="Submitted score")
     xp: int = Field(..., description="Earned XP")
     streak: Optional[int] = Field(default=None, description="Current streak (if applicable)")
+
+
+LessonInTopicStatus = Literal["available", "completed"]
+
+
+class LessonInTopicOut(BaseModel):
+    id: int = Field(..., description="Lesson ID")
+    type: str = Field(..., description="Lesson type")
+    title: str = Field(..., description="Lesson title")
+    progress: int = Field(..., ge=0, le=100, description="Lesson completion percentage (0-100)")
+    status: LessonInTopicStatus = Field(..., description="Lesson status")
+
+
+class TopicLessonsResponse(BaseModel):
+    topic_id: int = Field(..., description="Topic ID")
+    lessons: List[LessonInTopicOut] = Field(default_factory=list, description="Lessons in the topic")

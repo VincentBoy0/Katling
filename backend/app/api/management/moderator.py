@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from models.lesson import Topic
 from models.user import RoleType, User
 
 from schemas.lessson_section import LessonSectionCreate, LessonSectionResponse, LessonSectionUpdate
-from schemas.topic import TopicCreate, TopicUpdate
+from schemas.topic import TopicCreate, TopicResponse, TopicUpdate
 from schemas.lesson import LessonCreate, LessonUpdate, LessonResponse
 from schemas.question import QuestionCreate, QuestionResponse, QuestionUpdate
 
@@ -26,7 +27,7 @@ router = APIRouter(
 
 # ============ Topic Management ============
 
-@router.post("/topics", response_model=dict, status_code=status.HTTP_201_CREATED)
+@router.post("/topics", response_model=TopicResponse, status_code=status.HTTP_201_CREATED)
 async def add_topic(
     form: TopicCreate,
     session: AsyncSession = Depends(get_session),
@@ -49,7 +50,7 @@ async def add_topic(
     topic = await topic_repo.create_topic(user.id, form)
     return topic
 
-@router.patch("/topics/{topic_id:int}", response_model=dict)
+@router.patch("/topics/{topic_id:int}", response_model=TopicResponse)
 async def update_topic(
     topic_id: int,
     form: TopicUpdate,

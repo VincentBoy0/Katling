@@ -9,6 +9,7 @@ import {
   ToggleRight,
   Shield,
   BookOpen,
+  Trash2,
 } from "lucide-react";
 import { useState } from "react";
 import { RoleType } from "@/types/user";
@@ -68,6 +69,8 @@ export default function UserManagement() {
     ban,
     unban,
     remove,
+    assignRole,
+    removeRole,
   } = useAdminUsers();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -80,17 +83,18 @@ export default function UserManagement() {
     [key: number]: boolean;
   }>({});
 
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+  const searchLower = searchQuery.toLowerCase();
+    const filteredUsers = users.filter((user) => {
+      const matchesSearch =
+        (user.name?.toLowerCase() || "").includes(searchLower) ||
+        (user.email?.toLowerCase() || "").includes(searchLower);
 
-    const matchesRole =
-      selectedRoleFilter === "all" ||
-      user.roles.includes(selectedRoleFilter as RoleType);
+      const matchesRole =
+        selectedRoleFilter === "all" ||
+        user.roles.includes(selectedRoleFilter as RoleType);
 
-    return matchesSearch && matchesRole;
-  });
+      return matchesSearch && matchesRole;
+    });
 
   const startEditingRoles = (user: AdminUserVM) => {
     setEditingUserId(user.id);
@@ -111,12 +115,30 @@ export default function UserManagement() {
     });
   };
 
-  const saveRoles = (userId: number) => {
+  const saveRoles = async (userId: number) => {
+    const oldRoles = users.find((u) => u.id === userId)?.roles || [];
+    const newRoles = editingRoles[userId] || [];
+
+    const toAdd = newRoles.filter((r) => !oldRoles.includes(r));
+    const toRemove = oldRoles.filter((r) => !newRoles.includes(r));
+
     setConfirmingRoles((prev) => ({ ...prev, [userId]: true }));
-    setTimeout(() => {
+
+    try {
+      // Add
+      await Promise.all(
+        toAdd.map((role) =>
+          assignRole(userId, { user_id: userId, role_type: role })
+        )
+      );
+
+      // Remove
+      await Promise.all(toRemove.map((role) => removeRole(userId, role)));
+
       setEditingUserId(null);
+    } finally {
       setConfirmingRoles((prev) => ({ ...prev, [userId]: false }));
-    }, 1500);
+    }
   };
 
   return (
@@ -293,6 +315,18 @@ export default function UserManagement() {
                         ) : (
                           <ToggleRight className="w-4 h-4 text-green-600" />
                         )}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete user ${user.email}?`)) {
+                            remove(user.id);
+                          }
+                        }}
+                        className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                        title="Delete user"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
                       </button>
                     </div>
                   </td>

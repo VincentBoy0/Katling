@@ -10,7 +10,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models.leaderboard_snapshot import LeaderboardSnapshot, LeaderboardType
-from models.user import User, UserPoints
+from models.user import User, UserPoints, UserInfo
 
 
 class LeaderboardPeriod(str, Enum):
@@ -42,13 +42,14 @@ class LeaderboardRepository:
         base_stmt = (
             select(
                 User.id.label("user_id"),
-                User.username.label("username"),
+                UserInfo.username.label("username"),
                 func.coalesce(UserPoints.xp, 0).label("xp"),
                 func.coalesce(UserPoints.streak, 0).label("streak"),
                 func.rank().over(order_by=(sort_value.desc(), User.id.asc())).label("rank"),
             )
             .select_from(User)
             .outerjoin(UserPoints, UserPoints.user_id == User.id)
+            .outerjoin(UserInfo, UserInfo.user_id == User.id)
             .where(User.is_banned == False)
         )
 

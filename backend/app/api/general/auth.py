@@ -15,26 +15,39 @@ async def login(
     token: str,
     session: AsyncSession = Depends(get_session)
 ):
-    decoded = decode_id_token(token)
-    email = decoded.get("email")
-    firebase_uid = decoded.get("uid")
+    print("LOGIN CALLED")
 
-    if not email or not firebase_uid:
-        raise HTTPException(status_code=400, detail="Missing email or uid from Firebase token")
+    try:
+        decoded = decode_id_token(token)
+        print("DECODED:", decoded)
 
-    user_repo = UserRepository(session)
-    user = await user_repo.get_user_by_firebase_uid(firebase_uid)
+        email = decoded.get("email")
+        firebase_uid = decoded.get("uid")
 
-    if not user:
-        user = await user_repo.create_user(
-            UserCreate(
-                email=email,
-                firebase_uid=firebase_uid,
+        print("EMAIL:", email)
+        print("UID:", firebase_uid)
+
+        user_repo = UserRepository(session)
+        user = await user_repo.get_user_by_firebase_uid(firebase_uid)
+        print("USER FROM DB:", user)
+
+        if not user:
+            print("CREATING USER...")
+            user = await user_repo.create_user(
+                UserCreate(
+                    email=email,
+                    firebase_uid=firebase_uid,
+                )
             )
-        )
+            print("USER CREATED:", user)
 
-    return {
-        "user": user,
-        "firebase": decoded
-    }
+        return {
+            "user": user,
+            "firebase": decoded
+        }
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise
 

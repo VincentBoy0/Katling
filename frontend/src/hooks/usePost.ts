@@ -178,7 +178,12 @@ export function usePost() {
             setError(err?.response?.data?.detail || err.message);
             throw err;
         }
-    };
+    }
+        
+    useEffect(() => {
+        getFeed();
+        getUserPost();
+    }, []);
 
     
     useEffect(() => {

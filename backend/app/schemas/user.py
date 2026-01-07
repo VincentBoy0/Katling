@@ -73,6 +73,7 @@ class UserRoleSchemas(BaseModel):
 # --- User Profile (UserInfo table) Schemas ---
 class UserProfileCreate(BaseModel):
     user_id: int = Field(..., description="FK to users table")
+    username: Optional[str] = Field(default=None, description="Username")
     first_name: Optional[str] = Field(default=None, description="First name")
     last_name: Optional[str] = Field(default=None, description="Last name")
     full_name: Optional[str] = Field(default=None, description="Full name")
@@ -91,6 +92,7 @@ class UserProfileCreate(BaseModel):
 class UserProfileRead(BaseModel):
     id: int
     user_id: int
+    username: Optional[str]
     first_name: Optional[str]
     last_name: Optional[str]
     full_name: Optional[str]
@@ -111,6 +113,7 @@ class UserProfileRead(BaseModel):
 
 
 class UserProfileUpdate(BaseModel):
+    username: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     full_name: Optional[str] = None
@@ -128,6 +131,7 @@ class UserProfileUpdate(BaseModel):
 
 class UserInfoUpdate(BaseModel):
     """Schema for updating user profile information (UserInfo table)."""
+    username: Optional[str] = Field(default=None, max_length=100, description="Username")
     first_name: Optional[str] = Field(default=None, max_length=100, description="First name")
     last_name: Optional[str] = Field(default=None, max_length=100, description="Last name")
     full_name: Optional[str] = Field(default=None, max_length=255, description="Full name")
