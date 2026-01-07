@@ -1,10 +1,11 @@
-import { useUser } from "@/hooks/useUser";
+import { useUserInfo } from "@/hooks/useUserInfo";
 import {
   LayoutDashboard,
   Users,
   BarChart3,
   BookOpen,
   AlertCircle,
+  Flag,
 } from "lucide-react";
 
 interface AdminSidebarProps {
@@ -17,15 +18,15 @@ export default function AdminSidebar({
   setActiveTab,
 }: AdminSidebarProps) {
   const menuItems = [
-    { id: "overview", label: "Overview", icon: LayoutDashboard },
+    // { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "users", label: "Users", icon: Users },
     // { id: "approval", label: "Post Approval", icon: FileCheck },
     { id: "library", label: "Content Library", icon: BookOpen },
-    { id: "errors", label: "Error Checking", icon: AlertCircle },
-    { id: "analytics", label: "Analytics", icon: BarChart3 },
+    { id: "reports", label: "Reports", icon: Flag },
+    // { id: "analytics", label: "Analytics", icon: BarChart3 },
   ];
 
-  const { user } = useUser();
+  const { userInfo } = useUserInfo();
 
   return (
     <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
@@ -37,9 +38,7 @@ export default function AdminSidebar({
             </span>
           </div>
           <div>
-            <h1 className="font-bold text-sidebar-foreground">
-              {user?.username}
-            </h1>
+            <h1 className="font-bold text-sidebar-foreground">Katling</h1>
             <p className="text-xs text-sidebar-foreground/60">Admin Portal</p>
           </div>
         </div>

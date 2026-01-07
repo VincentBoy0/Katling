@@ -15,21 +15,21 @@ export default function ModeratorPage() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "overview":
-        return <ModeratorOverview />;
+      // case "overview":
+      //   return <ModeratorOverview />;
       case "create":
         return <CreateContent />;
-      case "review":
-        return <ReviewQueue />;
+      // case "review":
+      //   return <ReviewQueue />;
       case "reports":
         return <UserReports />;
-      case "appeals":
-        return <AppealsDashboard />;
+      // case "appeals":
+      //   return <AppealsDashboard />;
       // 2. Thêm case settings
-      case "settings":
-        return <ModeratorSettings />;
+      // case "settings":
+      //   return <ModeratorSettings />;
       default:
-        return <ModeratorOverview />;
+        return <CreateContent />;
     }
   };
 
