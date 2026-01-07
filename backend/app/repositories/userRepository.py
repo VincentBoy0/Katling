@@ -285,6 +285,8 @@ class UserRepository:
         try:
             # update only provided fields
             for field, value in data.items():
+                if (field == "full_name"):
+                    setattr(profile, "username", value)
                 setattr(profile, field, value)
 
             self.session.add(profile)
