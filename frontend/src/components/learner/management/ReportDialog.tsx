@@ -19,7 +19,7 @@ interface ReportDialogProps {
     description: string;
     severity: ReportSeverity;
     category: ReportCategory;
-  }) => Promise<void>;
+  }) => void;
   postId?: number | null;
 }
 
