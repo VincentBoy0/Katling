@@ -138,7 +138,7 @@ class VocabRepository:
                 {
                     "id": user_word.id,
                     "user_id": user_word.user_id,
-                    "vocab_id": user_word.word_id,
+                    "word_id": user_word.word_id,
                     "category": user_word.category,
                     "status": user_word.status,
                     "review_status": user_word.review_status,
@@ -206,7 +206,7 @@ class VocabRepository:
         if not existing:
             return False
 
-        self.session.delete(existing)
+        await self.session.delete(existing)
         await self.session.commit()
         return True
 
