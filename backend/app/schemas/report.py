@@ -30,6 +30,10 @@ class ReportCreate(BaseModel):
         default=None,
         description="ID of affected lesson (if applicable)"
     )
+    affected_post_id: Optional[int] = Field(
+        default=None,
+        description="ID of affected post (if applicable)"
+    )
 
     class Config:
         extra = "forbid"
@@ -65,6 +69,7 @@ class ReportResponse(BaseModel):
     category: ReportCategory
     affected_url: Optional[str]
     affected_lesson_id: Optional[int]
+    affected_post_id: Optional[int]
     resolved_by: Optional[int]
     resolution_notes: Optional[str]
     created_at: datetime

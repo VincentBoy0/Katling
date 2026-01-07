@@ -9,11 +9,14 @@ import {
   ShareDialog,
   FriendProfileDialog,
 } from "@/components/learner/community";
+import { ReportDialog } from "@/components/learner/management/ReportDialog";
 
 import { FriendRequestsSidebar } from "@/components/learner/community/FriendRequestsSidebar";
 
 import { usePost } from "@/hooks/usePost";
 import { useUserInfo } from "@/hooks/useUserInfo";
+import { useReport } from "@/hooks/useReport";
+import { ReportCreate } from "@/types/report";
 import { useFriend } from "@/hooks/useFriend";
 
 import { Friend } from "@/types/friend";
@@ -34,6 +37,9 @@ export default function CommunityPage() {
     deleteComment,
   } = usePost();
 
+  const { createReport } = useReport();
+
+  const { userInfo } = useUserInfo();
   const {
     friends,
     searchResults,
@@ -48,6 +54,9 @@ export default function CommunityPage() {
 
   const { userInfo } = useUserInfo();
   const [showCreatePostDialog, setShowCreatePostDialog] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportPostId, setReportPostId] = useState<number | null>(null);
+  
   const [showFindFriendsDialog, setShowFindFriendsDialog] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   // const [shareLink, setShareLink] = useState("https://katling.app/invite/u/me");
@@ -76,6 +85,11 @@ export default function CommunityPage() {
     }
   };
 
+  const openReportDialog = (postId: number) => {
+    setReportPostId(postId);
+    setShowReportDialog(true);
+  };
+
   const handleDeletePost = async (postId: number) => {
     try {
       await deletePost(postId);
@@ -98,6 +112,18 @@ export default function CommunityPage() {
     }
   };
 
+  const handleReport = async (data: ReportCreate) => {
+    try {
+      await createReport({
+        ...data,
+        affected_post_id: reportPostId ?? undefined,
+      });
+      toast.success("Đã gửi báo cáo");
+    } catch (err: any) {
+      toast.error(err?.message || "Báo cáo thất bại");
+    } finally {
+      setShowReportDialog(false);
+      setReportPostId(null);
   const handleFindFriend = async (query: string) => {
     await searchUsers(query);
   };
@@ -180,7 +206,7 @@ export default function CommunityPage() {
             onToggleLike={handleToggleLike}
             onAddComment={handleAddComment}
             onDelete={handleDeletePost}
-            // onReport={(id) => toast.info("Đã báo cáo bài viết")}
+            onReportClick={openReportDialog}
           />
         </div>
       </div>
@@ -211,6 +237,13 @@ export default function CommunityPage() {
         open={showCreatePostDialog}
         onOpenChange={setShowCreatePostDialog}
         onSubmit={handleCreatePost}
+      />
+
+      <ReportDialog
+        open={showReportDialog}
+        onOpenChange={setShowReportDialog}
+        onSubmit={handleReport}
+        postId={reportPostId}
       />
     </div>
   );

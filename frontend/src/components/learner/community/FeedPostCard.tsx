@@ -1,23 +1,24 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Heart, MessageCircle } from "lucide-react";
+import { Heart, MessageCircle, Flag } from "lucide-react";
 import { CommentSection } from "./CommentSection";
 import { FeedPost } from "@/types/post";
 import { getAvatarColor } from "@/lib/avatar";
+import { ReportCreate } from "@/types/report";
 
 interface PostCardProps {
   post: FeedPost;
   onToggleLike: (postId: number, isLiked: boolean) => void;
-  //   onReport?: (id: number) => void;
   onAddComment: (postId: number, content: string) => void;
+  onReportClick: (postId: number) => void;
 }
 
 export function FeedPostCard({
   post,
   onToggleLike,
-  //   onReport,
   onAddComment,
+  onReportClick,
 }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
   const displayName = post.author_username || "Unknown User";
@@ -42,16 +43,16 @@ export function FeedPostCard({
                 Được đăng vào {post.created_at.slice(0, 10)}
               </p>
             </div>
-            {/* <div className="flex gap-1">
+            <div className="flex gap-1">
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => onReport?.(post.id)}
+                onClick={() => onReportClick(post.post_id)}
                 className="h-8 w-8 text-muted-foreground hover:text-orange-500 hover:bg-orange-50"
               >
                 <Flag className="w-4 h-4" />
               </Button>
-            </div> */}
+            </div>
           </div>
         </div>
       </div>

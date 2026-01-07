@@ -8,6 +8,7 @@ import { PostCard } from "./PostCard";
 import { FeedPostCard } from "./FeedPostCard";
 import { Post, FeedPost } from "@/types/post";
 import { UserInfo } from "@/types/user";
+import { ReportCreate } from "@/types/report";
 
 interface PostTabsProps {
   feedPosts: FeedPost[];
@@ -16,7 +17,7 @@ interface PostTabsProps {
   onToggleLike: (postId: number, isLiked: boolean) => void;
   onAddComment: (postId: number, content: string) => void;
   onDelete: (postId: number) => void;
-  // onReport?: (id: number) => void;
+  onReportClick: (postId: number) => void;
 }
 
 export function PostTabs({
@@ -26,8 +27,8 @@ export function PostTabs({
   onToggleLike,
   onAddComment,
   onDelete,
-}: // onReport,
-PostTabsProps) {
+  onReportClick,
+}: PostTabsProps) {
   return (
     <Tabs defaultValue="feed" className="w-full">
       <TabsList className="grid w-full grid-cols-2 h-12 p-1 bg-muted/50 rounded-xl mb-6 border-2 border-transparent">
@@ -55,7 +56,7 @@ PostTabsProps) {
             post={post}
             onToggleLike={onToggleLike}
             onAddComment={onAddComment}
-            // onReport={onReport}
+            onReportClick={onReportClick}
           />
         ))}
       </TabsContent>

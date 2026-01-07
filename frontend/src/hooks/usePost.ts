@@ -185,6 +185,12 @@ export function usePost() {
         getUserPost();
     }, []);
 
+    
+    useEffect(() => {
+        getFeed();
+        getUserPost();
+    }, []);
+
     return {
         feed,
         userPost,
