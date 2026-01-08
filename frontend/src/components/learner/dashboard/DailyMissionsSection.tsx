@@ -1,8 +1,8 @@
 import DailyMissionItem from "./DailyMissionItem";
-import { Mission } from "@/services/missionService";
+import { DailyMissionOut } from "@/types/mission";
 
 interface DailyMissionsSectionProps {
-  missions: Mission[];
+  missions: DailyMissionOut[];
   onClaim: (missionId: number) => void;
   claimingId: number | null;
   timeRemaining: string;
