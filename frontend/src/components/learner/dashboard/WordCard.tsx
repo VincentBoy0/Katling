@@ -1,18 +1,17 @@
 import { Trash2, Check, } from "lucide-react";
 
 import { Button } from "../button";
-import type { SavedWord } from "@/hooks/useVocab";
+import type { UserWordWithVocabOut } from "@/types/vocab";
 
 type Props = {
-  word: SavedWord;
+  word: UserWordWithVocabOut;
   folders: string[];
-  onDelete: (word: string) => void;
-  onPromote: (vocabId: number) => void;
+  onDelete: (userWordId: number) => void;
+  onPromote: (userWordId: number) => void;
 };
 
 export default function WordCard({
   word,
-  folders,
   onDelete,
   onPromote,
 }: Props) {
@@ -57,7 +56,7 @@ export default function WordCard({
           </div>
         )}
 
-        {Object.entries(word.definition).map(([pos, defs]) => (
+        {word.definition && Object.entries(word.definition).map(([pos, defs]) => (
           <p key={pos} className="text-sm">
             <b>{pos}</b>: {defs[0]}
           </p>
@@ -69,7 +68,7 @@ export default function WordCard({
         <Button
           size="sm"
           variant="ghost"
-          onClick={() => onDelete(word.word)}
+          onClick={() => onDelete(word.id)}
         >
           <Trash2 className="w-4 h-4" />
         </Button>
@@ -79,7 +78,7 @@ export default function WordCard({
             size="sm"
             variant="outline"
             className="h-8 text-xs font-bold border-green-200 hover:bg-green-50 hover:text-green-600"
-            onClick={() => onPromote(word.vocab_id)}
+            onClick={() => onPromote(word.id)}
           >
             <Check className="w-4 h-4 mr-1" />
             Nâng cấp
