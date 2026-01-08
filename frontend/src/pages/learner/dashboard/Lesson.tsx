@@ -1,170 +1,39 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { learningService } from "@/services/learningService";
-import { useAuth } from "@/context/auth-context";
-import { Question, QuestionContent, AnswerSubmitResponse, CompleteSectionResponse } from "@/types/learning";
 import { QuestionRenderer } from "@/components/learner/questionRenderer";
 
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, } from "@/components/learner/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/learner/select";
-import { Textarea } from "@/components/learner/textarea";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Flag, Loader2, X, Flame, } from "lucide-react";
-
+import { AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Loader2, X, } from "lucide-react";
+import { useLesson } from "@/hooks/useLesson";
+import { useReport } from "@/hooks/useReport";
+import { ReportCreate } from "@/types/report";
+import { ReportDialog } from "@/components/learner/management/ReportDialog";
 
 export default function LessonPage() {
   const navigate = useNavigate();
   const params = useParams();
-  const { updateUser, user } = useAuth();
+  const lessonId = Number.parseInt(params.id as string);
+  const { loading, error, questions, currentQuestion, currentStep, progressPercent, submitting, completing, completed, completionData, submitAnswer, next, prev } = useLesson(lessonId);
 
-  // States
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [completed, setCompleted] = useState(false);
-  const [completionData, setCompletionData] = useState<CompleteSectionResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [completing, setCompleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lessonId, setLessonId] = useState<number | null>(null);
-  const [score, setScore] = useState(0);
-  const [sectionId, setSectionId] = useState<number | null>(null);
+  const { createReport } = useReport();
+  const [showReportDialog, setShowReportDialog] = useState(false);
 
-  // User answers tracking
-  const [userAnswers, setUserAnswers] = useState<Map<number, QuestionContent>>(new Map());
-  const [answerResults, setAnswerResults] = useState<Map<number, AnswerSubmitResponse>>(new Map());
-
-  // Dialog States
-  const [showBugReportDialog, setShowBugReportDialog] = useState(false);
-  const [showPronunciationWindow, setShowPronunciationWindow] = useState(false);
-  const [bugReport, setBugReport] = useState("");
-  const [bugType, setBugType] = useState("");
-
-  const lessonIdFromParams = Number.parseInt(params.id as string);
-
-  // Fetch next section and questions when component mounts
-  useEffect(() => {
-    const loadLessonData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // 1. Get next section for this lesson
-        const nextSectionData = await learningService.getNextSection(lessonIdFromParams);
-
-        if (nextSectionData.status === 'completed') {
-          alert(nextSectionData.message);
-          navigate('/dashboard/learn');
-          return;
-        }
-
-        if (!nextSectionData.section || !nextSectionData.lesson_id) {
-          throw new Error('Không tìm thấy section');
-        }
-
-        const section = nextSectionData.section;
-        setLessonId(nextSectionData.lesson_id);
-        setSectionId(section.id);
-
-        // 2. Get questions for this section
-        const questionsData = await learningService.getSectionQuestions(section.id);
-        setQuestions(questionsData.questions);
-
-      } catch (err: any) {
-        console.error('Error loading lesson:', err);
-        setError(err.response?.data?.detail || 'Không thể tải bài học');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (lessonId) {
-      loadLessonData();
-    }
-  }, [lessonId, navigate]);
-
-  const currentQuestion = questions[currentStep];
-  const progressPercent = questions.length > 0
-    ? ((currentStep + 1) / questions.length) * 100
-    : 0;
-
-  const handleAnswerSubmit = async (answer: QuestionContent) => {
-    if (!currentQuestion) return;
-
+  const handleReport = async (data: ReportCreate) => {
     try {
-      setSubmitting(true);
-      const result = await learningService.submitAnswer(currentQuestion.id, answer);
-
-      // Save answer and result
-      setUserAnswers((prev) => new Map(prev).set(currentQuestion.id, answer));
-      setAnswerResults((prev) => new Map(prev).set(currentQuestion.id, result));
-
+      await createReport({
+        ...data,
+        affected_lesson_id: lessonId ?? undefined,
+      });
+      toast.success("Đã gửi báo cáo");
     } catch (err: any) {
-      console.error('Error submitting answer:', err);
-      alert(err.response?.data?.detail || 'Lỗi khi gửi câu trả lời');
+      toast.error(err?.message || "Báo cáo thất bại");
     } finally {
-      setSubmitting(false);
+      setShowReportDialog(false);
     }
   };
-
-  const handleCompleted = async () => {
-    if (!lessonId || !sectionId) {
-      alert("Dữ liệu bài học không hợp lệ.");
-      return;
-    }
-
-    // Calculate score based on correct answers
-    const correctCount = Array.from(answerResults.values()).filter(result => result.is_correct).length;
-    const calculatedScore = questions.length > 0
-      ? Math.round((correctCount / questions.length) * 100)
-      : 0;
-
-    try {
-      setCompleting(true);
-      const result = await learningService.completeSection(
-        lessonId,
-        sectionId,
-        calculatedScore
-      );
-      setCompletionData(result);
-      const newExp = (user?.exp || 0) + 50;
-      updateUser({ exp: newExp });
-      setCompleted(true);
-    } catch (err: any) {
-      console.error('Error completing section:', err);
-      alert(err.response?.data?.detail || 'Lỗi khi hoàn thành bài học');
-    } finally {
-      setCompleting(false);
-    }
-  };
-
-  const handleContinue = () => {
-    navigate("/dashboard/learn");
-  }
-
-  const handleNext = async () => {
-    if (!answerResults.has(currentQuestion.id)) {
-      alert("Vui lòng trả lời câu hỏi trước khi tiếp tục.");
-      return;
-    }
-
-    if (currentStep === questions.length - 1) {
-      handleCompleted();
-    } else {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handleBugReport = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    alert("Báo cáo lỗi đã được gửi. Cảm ơn bạn!");
-    setBugReport("");
-    setBugType("");
-    setShowBugReportDialog(false);
-  }
 
   if (loading) {
     return (
@@ -209,7 +78,7 @@ export default function LessonPage() {
 
           <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-6 mb-8 border-2 border-green-100 dark:border-green-900">
             <p className="text-4xl font-black text-green-600 mb-2">
-              {Math.round(score)}%
+              {Math.round(completionData.score)}%
             </p>
             <p className="text-sm font-bold text-green-600/70 uppercase tracking-wider">
               Độ chính xác
@@ -230,7 +99,7 @@ export default function LessonPage() {
           </div>
 
           <Button
-            onClick={handleContinue}
+            onClick={next}
             className="w-full h-12 text-lg font-bold shadow-sm"
           >
             Tiếp tục
@@ -248,7 +117,6 @@ export default function LessonPage() {
     );
   }
 
-  // --- MÀN HÌNH HỌC TẬP ---
   return (
     <div className="min-h-screen bg-background flex flex-col max-w-3xl mx-auto p-4 md:p-6">
       {/* Header & Progress Bar */}
@@ -268,15 +136,6 @@ export default function LessonPage() {
             style={{ width: `${progressPercent}%` }}
           />
         </div>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setShowBugReportDialog(true)}
-          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-        >
-          <Flag className="w-5 h-5" />
-        </Button>
       </header>
 
       {/* Main Content Area */}
@@ -289,9 +148,7 @@ export default function LessonPage() {
           {/* Render question based on type */}
           <QuestionRenderer
             question={currentQuestion}
-            onAnswerSubmit={handleAnswerSubmit}
-            currentAnswer={userAnswers.get(currentQuestion.id)}
-            answerResult={answerResults.get(currentQuestion.id)}
+            onAnswerSubmit={(answer) => submitAnswer(currentQuestion.id, answer)}
             submitting={submitting}
           />
         </Card>
@@ -303,7 +160,7 @@ export default function LessonPage() {
           <Button
             variant="ghost"
             size="lg"
-            onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+            onClick={prev}
             disabled={currentStep === 0}
             className="font-bold text-muted-foreground hover:bg-muted"
           >
@@ -313,8 +170,8 @@ export default function LessonPage() {
 
           <Button
             size="lg"
-            onClick={handleNext}
-            disabled={submitting || !answerResults.has(currentQuestion.id)}
+            onClick={next}
+            disabled={submitting || completing}
             className={currentStep === questions.length - 1
               ? "px-10 h-12 font-bold bg-green-500 hover:bg-green-600 text-white shadow-md hover:translate-y-0.5 active:translate-y-1 transition-all"
             : ""
@@ -340,72 +197,11 @@ export default function LessonPage() {
         </div>
       </footer>
 
-      {/* Bug Report Dialog */}
-      <Dialog open={showBugReportDialog} onOpenChange={setShowBugReportDialog}>
-        <DialogContent className="sm:max-w-md border-2 border-border">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-              <AlertCircle className="w-6 h-6 text-destructive" />
-              Báo cáo vấn đề
-            </DialogTitle>
-            <DialogDescription>
-              Giúp chúng tôi cải thiện chất lượng bài học.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleBugReport} className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-foreground">
-                Loại lỗi
-              </label>
-              <Select value={bugType} onValueChange={setBugType}>
-                <SelectTrigger className="border-2 font-medium">
-                  <SelectValue placeholder="Chọn vấn đề gặp phải" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="content">Nội dung sai</SelectItem>
-                  <SelectItem value="audio">
-                    Âm thanh không nghe được
-                  </SelectItem>
-                  <SelectItem value="ui">Lỗi hiển thị</SelectItem>
-                  <SelectItem value="other">Khác</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-foreground">
-                Chi tiết
-              </label>
-              <Textarea
-                placeholder="Mô tả thêm..."
-                value={bugReport}
-                onChange={(e) => setBugReport(e.target.value)}
-                required
-                className="border-2 font-medium min-h-[100px]"
-              />
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <Button
-                type="button"
-                variant="ghost"
-                className="flex-1 font-bold"
-                onClick={() => setShowBugReportDialog(false)}
-              >
-                Hủy
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1 font-bold shadow-sm"
-                disabled={!bugType || !bugReport}
-              >
-                Gửi đi
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <ReportDialog
+        open={showReportDialog}
+        onOpenChange={setShowReportDialog}
+        onSubmit={handleReport}
+      />
     </div>
   );
 }

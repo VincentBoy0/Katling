@@ -1,28 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { vocabService } from "@/services/vocabService";
+import vocabService from "@/services/vocabService";
+import { ReviewStatus, UserWordWithVocabOut, VocabSearchResponse } from "@/types/vocab";
 
-export type ReviewStatus = "NEWBIE" | "LEARNING" | "MASTERED";
-
-export type SavedWord = {
-  id: number;
-  vocab_id: number;
-  word: string;
-  phonetic?: string | null;
-  audio_url?: string | null;
-  definition: Record<string, string[]>;
-  category?: string | null;
-  review_status: ReviewStatus;
-  created_at: string;
-};
 
 export function useVocab() {
   const [activeTab, setActiveTab] = useState<"dictionary" | "library">(
     "dictionary"
   );
 
-  const [dictResult, setDictResult] = useState<any | null>(null);
-  const [savedWords, setSavedWords] = useState<SavedWord[]>([]);
+  const [dictResult, setDictResult] = useState<VocabSearchResponse | null>(null);
+  const [savedWords, setSavedWords] = useState<UserWordWithVocabOut[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState<"all" | ReviewStatus>("all");
 
@@ -36,7 +24,7 @@ export function useVocab() {
     setError("");
 
     try {
-      const { data } = await vocabService.search(searchQuery);
+      const data = await vocabService.search(searchQuery);
       setDictResult(data);
     } catch (e: any) {
       setError(e.response?.data?.detail ?? "Không tìm thấy từ");
@@ -48,7 +36,7 @@ export function useVocab() {
   const saveWord = async (category?: string) => {
     if (!dictResult) return;
 
-    await vocabService.saveWord({
+    await vocabService.saveUserWord({
       word: dictResult.word,
       definition: dictResult.definition,
       phonetic: dictResult.phonetic,
@@ -59,29 +47,29 @@ export function useVocab() {
     toast.success("Đã lưu từ vựng");
 
     if (activeTab === "library") {
-      const res = await vocabService.getUserWords();
-      setSavedWords(res.data);
+      const res = await vocabService.listUserWords();
+      setSavedWords(res);
     }
   };
 
-  const deleteWord = async (word: string) => {
-    await vocabService.deleteWord(word);
-    setSavedWords((prev) => prev.filter((w) => w.word !== word));
+  const deleteWord = async (userWordId: number) => {
+    await vocabService.deleteUserWord(userWordId);
+    setSavedWords((prev) => prev.filter((w) => w.id !== userWordId));
   };
 
-  const promote = async (vocabId: number) => {
-    const { data } = await vocabService.promote(vocabId);
+  const promote = async (userWordId: number) => {
+    const data = await vocabService.promoteUserWord(userWordId);
     setSavedWords((prev) =>
       prev.map((w) =>
-        w.vocab_id === vocabId ? { ...w, review_status: data.review_status } : w
+        w.id === userWordId ? { ...w, review_status: data.review_status } : w
       )
     );
   };
 
   useEffect(() => {
     if (activeTab === "library") {
-      vocabService.getUserWords().then((res) => {
-        setSavedWords(res.data);
+      vocabService.listUserWords().then((res) => {
+        setSavedWords(res);
       });
     }
   }, [activeTab]);
