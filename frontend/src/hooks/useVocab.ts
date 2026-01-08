@@ -52,16 +52,16 @@ export function useVocab() {
     }
   };
 
-  const deleteWord = async (word: string) => {
-    await vocabService.deleteUserWord(word);
-    setSavedWords((prev) => prev.filter((w) => w.word !== word));
+  const deleteWord = async (userWordId: number) => {
+    await vocabService.deleteUserWord(userWordId);
+    setSavedWords((prev) => prev.filter((w) => w.id !== userWordId));
   };
 
-  const promote = async (vocabId: number) => {
-    const data = await vocabService.promoteUserWord(vocabId);
+  const promote = async (userWordId: number) => {
+    const data = await vocabService.promoteUserWord(userWordId);
     setSavedWords((prev) =>
       prev.map((w) =>
-        w.vocab_id === vocabId ? { ...w, review_status: data.review_status } : w
+        w.id === userWordId ? { ...w, review_status: data.review_status } : w
       )
     );
   };

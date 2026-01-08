@@ -22,12 +22,12 @@ export const vocabService = {
     return response.data;
   },
 
-  async deleteUserWord(word: string) {
-    return await api.delete(`/user-words/${word}`);
+  async deleteUserWord(userWordId: number) {
+    return await api.delete(`/user-words/${userWordId}`);
   },
 
-  async promoteUserWord(vocabId: number) {
-    const response = await api.post(`/user-words/${vocabId}/promote`);
+  async promoteUserWord(userWordId: number) {
+    const response = await api.post(`/user-words/${userWordId}/promote`);
     return response.data;
   },
 };

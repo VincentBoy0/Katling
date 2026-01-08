@@ -75,11 +75,11 @@ export default function LibraryTab({ vocab }: any) {
 
         <Button
           variant={
-            filterStatus === "NEW" ? "filterStatusLearning" : "filter"
+            filterStatus === "NEWBIE" ? "filterStatusLearning" : "filter"
           }
           size="sm"
           className="flex items-center gap-1"
-          onClick={() => setFilterStatus("NEW")}
+          onClick={() => setFilterStatus("NEWBIE")}
         >
           <Sparkles className="w-3 h-3" /> Từ mới
         </Button>
