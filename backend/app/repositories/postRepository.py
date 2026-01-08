@@ -254,3 +254,57 @@ class PostRepository:
         post.comment_count = max(int(post.comment_count or 0) - 1, 0)
         self.session.add(post)
         await self.session.flush()
+
+    async def list_comments_by_post(
+        self,
+        *,
+        post_id: int,
+        limit: int | None = 20,
+        offset: int | None = 0,
+    ) -> list[dict]:
+        """List all comments for a post with author information.
+
+        Args:
+            post_id: ID of the post to get comments for
+            limit: Maximum number of comments to return
+            offset: Number of comments to skip
+
+        Returns:
+            List of comment dictionaries with author info
+        """
+        limit, offset = self._normalize_pagination(limit, offset)
+
+        stmt = (
+            select(
+                PostComment.id.label("comment_id"),
+                PostComment.post_id.label("post_id"),
+                PostComment.user_id.label("author_id"),
+                UserInfo.username.label("author_username"),
+                PostComment.content.label("content"),
+                PostComment.is_deleted.label("is_deleted"),
+                PostComment.created_at.label("created_at"),
+            )
+            .select_from(PostComment)
+            .join(User, User.id == PostComment.user_id)
+            .outerjoin(UserInfo, UserInfo.user_id == User.id)
+            .where(PostComment.post_id == post_id)
+            .where(PostComment.is_deleted == False)
+            .order_by(PostComment.created_at.asc())
+            .limit(limit)
+            .offset(offset)
+        )
+
+        result = await self.session.exec(stmt)
+        rows = result.all()
+        return [
+            {
+                "comment_id": int(r.comment_id),
+                "post_id": int(r.post_id),
+                "author_id": int(r.author_id),
+                "author_username": r.author_username,
+                "content": r.content,
+                "is_deleted": bool(r.is_deleted),
+                "created_at": r.created_at,
+            }
+            for r in rows
+        ]

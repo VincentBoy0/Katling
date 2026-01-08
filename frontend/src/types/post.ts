@@ -19,3 +19,13 @@ export interface PostCreate {
 export interface PostCommentCreate {
     content: string, 
 }
+
+export interface Comment {
+    comment_id: number;
+    post_id: number;
+    author_id: number;
+    author_username: string | null;
+    content: string;
+    is_deleted: boolean;
+    created_at: string;
+}

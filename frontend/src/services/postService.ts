@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import { Post, FeedPost, PostCreate, PostCommentCreate } from "@/types/post";
+import { Post, FeedPost, PostCreate, PostCommentCreate, Comment } from "@/types/post";
 
 export const postService = {
     getPostFeed(limit = 20, offset = 0) {
@@ -33,5 +33,9 @@ export const postService = {
 
     deleteComment(postId: number, commentId: number) {
         return api.delete(`/posts/${postId}/comments/${commentId}`);
+    },
+
+    getComments(postId: number, limit = 20, offset = 0) {
+        return api.get<Comment[]>(`/posts/${postId}/comments`, { params: { limit, offset } });
     },
 }

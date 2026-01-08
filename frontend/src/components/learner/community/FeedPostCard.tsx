@@ -98,6 +98,7 @@ export function FeedPostCard({
 
       {showComments && (
         <CommentSection
+          postId={post.post_id}
           onAddComment={(content) => onAddComment(post.post_id, content)}
         />
       )}

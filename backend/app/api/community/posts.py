@@ -6,6 +6,7 @@ from database.session import get_session
 from models.user import User
 from repositories.postRepository import PostRepository
 from schemas.post import (
+	PostCommentResponse,
 	PostCreate,
 	PostCreateResponse,
 	PostCommentCreate,
@@ -45,6 +46,40 @@ async def get_my_posts(
 		limit=limit,
 		offset=offset,
 	)
+
+
+@router.get("/posts/{post_id}/comments", response_model=list[PostCommentResponse])
+async def get_post_comments(
+    post_id: int,
+    limit: int = 20,
+    offset: int = 0,
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Get all comments for a specific post.
+    
+    Args:
+        post_id: ID of the post to get comments for
+        limit: Maximum number of comments to return (default: 20)
+        offset: Number of comments to skip (default: 0)
+    
+    Returns:
+        List of comments with author information
+    """
+    repo = PostRepository(session)
+    
+    # Verify post exists
+    post = await repo.get_post_by_id(post_id)
+    if not post or post.is_deleted:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    comments = await repo.list_comments_by_post(
+        post_id=post_id,
+        limit=limit,
+        offset=offset,
+    )
+    
+    return comments
 
 
 @router.post("/posts", response_model=PostCreateResponse)

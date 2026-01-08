@@ -8,6 +8,7 @@ from models.user import RoleType, User
 from schemas.question import QuestionResponse, QuestionUpdate
 from schemas.lessson_section import LessonSectionListResponse
 
+from repositories.postRepository import PostRepository
 from repositories.questionRepository import QuestionRepository
 from repositories.topicRepository import TopicRepository
 from repositories.lessonRepository import LessonRepository
@@ -441,3 +442,51 @@ async def get_all_questions(
     result = await session.exec(stmt)
     return result.all()
 
+
+# ============ Endpoints related with community ============
+@router.delete("/posts/{post_id}/comments/{comment_id}")
+async def delete_comment_by_moderator(
+    post_id: int,
+    comment_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Delete a comment by moderator or admin.
+    
+    Only users with MODERATOR or ADMIN roles can delete comments.
+    
+    Args:
+        post_id: ID of the post containing the comment
+        comment_id: ID of the comment to delete
+    
+    Returns:
+        Success message
+    """
+    repo = PostRepository(session)
+    
+    try:
+        # Get the comment
+        comment = await repo.get_comment_by_id(comment_id)
+        if not comment or comment.post_id != post_id:
+            raise HTTPException(status_code=404, detail="Comment not found")
+        
+        if comment.is_deleted:
+            raise HTTPException(status_code=400, detail="Comment already deleted")
+        
+        # Soft delete the comment
+        await repo.soft_delete_comment(post_id=post_id, comment=comment)
+        await session.commit()
+        
+        return {"message": "Comment deleted successfully"}
+        
+    except ValueError as exc:
+        await session.rollback()
+        if str(exc) == "Post not found":
+            raise HTTPException(status_code=404, detail="Post not found") from exc
+        raise
+    except HTTPException:
+        await session.rollback()
+        raise
+    except Exception:
+        await session.rollback()
+        raise
