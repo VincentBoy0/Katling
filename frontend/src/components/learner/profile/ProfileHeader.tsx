@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useUserInfo } from "@/hooks/useUserInfo";
+import { useUserInfoContext } from "@/context/user-info-context";
 import { useUser } from "@/hooks/useUser";
 import { Calendar, Camera, Edit2, Lock } from "lucide-react";
 
@@ -18,7 +18,7 @@ export default function ProfileHeader({
   onChangePassword,
 }: ProfileHeaderProps) {
   const { user, loading } = useUser();
-  const { userInfo } = useUserInfo();
+  const { userInfo } = useUserInfoContext();
 
   if (loading) return <p>Đang tải...</p>;
   if (!user || !userInfo) return null;
