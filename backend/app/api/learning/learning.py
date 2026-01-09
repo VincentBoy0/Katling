@@ -59,12 +59,12 @@ async def get_topics(
 
 	topics_out: List[TopicProgressOut] = []
 	for idx, t in enumerate(topics_raw):
+		# All topics are accessible - no locking
+		# Only mark as completed if fully done, otherwise current
 		if idx < current_index:
 			status = "completed"
-		elif idx == current_index:
-			status = "current"
 		else:
-			status = "locked"
+			status = "current"
 
 		topics_out.append(
 			TopicProgressOut(
@@ -91,47 +91,49 @@ async def get_topic_lessons(
 	# 404 if topic not exist
 	await topic_repo.get_topic_by_id(topic_id)
 
-	topics_raw = await topic_repo.get_topics_progress(user_id=current_user.id)
-	# Derive current topic using the same rule as GET /topics
-	current_index = None
-	for idx, t in enumerate(topics_raw):
-		if t["total_sections"] > 0 and t["completed_sections"] < t["total_sections"]:
-			current_index = idx
-			break
-	if current_index is None:
-		current_index = len(topics_raw) - 1
-
-	requested_index = None
-	for idx, t in enumerate(topics_raw):
-		if int(t["id"]) == int(topic_id):
-			requested_index = idx
-			break
-	if requested_index is None:
-		# Topic exists but not returned by aggregation (should be rare); treat as not found.
-		raise HTTPException(status_code=404, detail="Topic not found")
-
-	if requested_index > current_index:
-		raise HTTPException(status_code=403, detail="Topic is locked")
-
+	# No topic locking - all topics are accessible
 	lesson_repo = LessonRepository(session)
 	lessons_raw = await lesson_repo.get_lessons_progress_by_topic(user_id=current_user.id, topic_id=topic_id)
 
 	lessons_out = []
+	previous_completed = True  # First lesson is always available
+	
 	for l in lessons_raw:
 		total = int(l["total_sections"])
 		completed = int(l["completed_sections"])
 		progress = int((completed * 100) / total) if total > 0 else 0
 		progress = max(0, min(100, progress))
-		status = "completed" if total > 0 and completed >= total else "available"
+		
+		# Determine lesson status based on previous lesson completion
+		is_completed = total > 0 and completed >= total
+		if is_completed:
+			status = "completed"
+		elif previous_completed:
+			status = "available"
+		else:
+			status = "locked"
+		
+		# Get sections for this lesson
+		sections = await lesson_repo.get_sections_with_progress(
+			user_id=current_user.id,
+			lesson_id=int(l["id"])
+		)
+		
 		lessons_out.append(
 			{
 				"id": int(l["id"]),
 				"type": l["type"],
 				"title": l["title"],
+				"description": None,  # Add description if available in Lesson model
 				"progress": progress,
 				"status": status,
+				"order_index": int(l["order_index"]),
+				"sections": sections,
 			}
 		)
+		
+		# Update previous_completed for next iteration
+		previous_completed = is_completed
 
 	return TopicLessonsResponse(topic_id=topic_id, lessons=lessons_out)
 

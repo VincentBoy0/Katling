@@ -3,7 +3,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from fastapi import HTTPException, status
 from typing import List, Optional
 
-from sqlalchemy import func
+from sqlalchemy import func, case
 
 from models.lesson import Lesson, Topic
 from models.lesson import LessonSection
@@ -158,6 +158,7 @@ class LessonRepository:
                     "id": int(row.lesson_id),
                     "type": str(row.type),
                     "title": row.title,
+                    "order_index": int(row.order_index or 0),
                     "total_sections": int(row.total_sections or 0),
                     "completed_sections": int(row.completed_sections or 0),
                 }
@@ -287,3 +288,64 @@ class LessonRepository:
         stmt = select(Topic).where(Topic.id == topic_id)
         result = await self.session.exec(stmt)
         return result.first()
+
+    async def get_sections_with_progress(
+        self,
+        *,
+        user_id: int,
+        lesson_id: int,
+        include_deleted: bool = False,
+    ) -> list[dict]:
+        """Return sections for a lesson with question counts and completion status.
+        
+        Returns list of dicts with: id, title, order_index, question_count, completed
+        """
+        from models.lesson import Question
+
+        statement = (
+            select(
+                LessonSection.id.label("section_id"),
+                LessonSection.title.label("title"),
+                LessonSection.order_index.label("order_index"),
+                func.count(func.distinct(Question.id)).label("question_count"),
+                func.max(
+                    case(
+                        (UserProgress.status == ProgressStatus.COMPLETED, 1),
+                        else_=0
+                    )
+                ).label("is_completed"),
+            )
+            .select_from(LessonSection)
+            .join(
+                Question,
+                (Question.section_id == LessonSection.id) & (Question.is_deleted == False),
+                isouter=True,
+            )
+            .join(
+                UserProgress,
+                (UserProgress.section_id == LessonSection.id) & (UserProgress.user_id == user_id),
+                isouter=True,
+            )
+            .where(LessonSection.lesson_id == lesson_id)
+            .group_by(LessonSection.id, LessonSection.title, LessonSection.order_index)
+            .order_by(LessonSection.order_index, LessonSection.id)
+        )
+
+        if not include_deleted:
+            statement = statement.where(LessonSection.is_deleted == False)
+
+        result = await self.session.exec(statement)
+        rows = result.all()
+
+        out: list[dict] = []
+        for row in rows:
+            out.append(
+                {
+                    "id": int(row.section_id),
+                    "title": row.title,
+                    "order_index": int(row.order_index),
+                    "question_count": int(row.question_count or 0),
+                    "completed": bool(row.is_completed),
+                }
+            )
+        return out

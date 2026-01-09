@@ -1,4 +1,4 @@
-type LessonInTopicStatus = "available" | "completed"
+type LessonInTopicStatus = "available" | "completed" | "locked"
 type TopicStatus = "completed" | "current" | "locked"
 
 
@@ -23,6 +23,17 @@ export interface TopicInTopicOut {
   id: number;
   type: string;
   title: string;
+  description?: string;
   progress: number;
   status: LessonInTopicStatus;
+  order_index: number;
+  sections?: LessonSectionSummary[];
+}
+
+export interface LessonSectionSummary {
+  id: number;
+  title: string;
+  order_index: number;
+  question_count?: number;
+  completed?: boolean;
 }
