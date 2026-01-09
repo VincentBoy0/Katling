@@ -8,7 +8,7 @@ from models.lesson import LessonStatus, LessonType, QuestionType
 
 class QuestionInfo(BaseModel):
     id: int = Field(..., description="Question ID")
-    lesson_id: int = Field(..., description="Lesson ID")
+    #lesson_id: int = Field(..., description="Lesson ID")
     section_id: int = Field(..., description="Section ID")
     type: QuestionType = Field(..., description="Question type")
 
