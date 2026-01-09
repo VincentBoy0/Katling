@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import { Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { getFirebaseErrorMessage } from "@/lib/auth-errors";
 
 export default function AdminLogIn() {
   const navigate = useNavigate();
@@ -11,25 +12,6 @@ export default function AdminLogIn() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  const getErrorMessage = (error: any): string => {
-    if (error.code === "auth/invalid-credential") {
-      return "Email hoặc mật khẩu không chính xác.";
-    }
-    if (error.code === "auth/user-not-found") {
-      return "Tài khoản không tồn tại.";
-    }
-    if (error.code === "auth/wrong-password") {
-      return "Mật khẩu không chính xác.";
-    }
-    if (error.code === "auth/too-many-requests") {
-      return "Quá nhiều lần thử. Vui lòng thử lại sau.";
-    }
-    if (error.code === "auth/network-request-failed") {
-      return "Lỗi kết nối. Vui lòng kiểm tra internet.";
-    }
-    return error.message || "Đăng nhập thất bại. Vui lòng thử lại.";
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +22,7 @@ export default function AdminLogIn() {
       // Navigation will be handled by auth-context based on portal
     } catch (error: any) {
       console.error("Admin login error:", error);
-      toast.error(getErrorMessage(error));
+      toast.error(getFirebaseErrorMessage(error));
       setIsLoading(false);
     }
   };

@@ -39,6 +39,14 @@ export class BannedUserError extends Error {
   }
 }
 
+// Custom error for permission denied
+export class PermissionDeniedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PermissionDeniedError";
+  }
+}
+
 interface AuthContextType {
   user: AuthUser | null;
   roles: RoleType[];
@@ -106,14 +114,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userRoles.includes(RoleType.ADMIN)) {
         window.location.href = "/admin";
       } else {
-        // User doesn't have admin role, redirect to appropriate page
-        throw new Error("Bạn không có quyền truy cập trang Admin.");
+        // User doesn't have admin role
+        throw new PermissionDeniedError(
+          "Bạn không có quyền truy cập trang Admin. Vui lòng liên hệ quản trị viên nếu bạn cần quyền truy cập."
+        );
       }
     } else if (portal === "moderator") {
       if (userRoles.includes(RoleType.MODERATOR)) {
         window.location.href = "/moderator";
       } else {
-        throw new Error("Bạn không có quyền truy cập trang Moderator.");
+        throw new PermissionDeniedError(
+          "Bạn không có quyền truy cập trang Moderator. Vui lòng liên hệ quản trị viên nếu bạn cần quyền truy cập."
+        );
       }
     } else {
       // Default learner portal - anyone can access dashboard
