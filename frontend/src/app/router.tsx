@@ -15,6 +15,7 @@ import Verify from "@/pages/learner/Verify";
 /* Learner */
 import Dashboard from "@/pages/learner/Dashboard";
 import Learn from "@/pages/learner/dashboard/Learn";
+import LessonOverview from "@/pages/learner/dashboard/LessonOverview";
 import Lesson from "@/pages/learner/dashboard/Lesson";
 import Practice from "@/pages/learner/dashboard/practice/Practice";
 import Chat from "@/pages/learner/dashboard/practice/Chat";
@@ -62,7 +63,8 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Dashboard /> },
           { path: "learn", element: <Learn /> },
-          { path: "lessons/:lessonId", element: <Lesson /> },
+          { path: "topics/:topicId/lessons/:lessonId", element: <LessonOverview /> },
+          { path: "lessons/:lessonId/sections/:sectionId", element: <Lesson /> },
           {
             path: "practice",
             children: [

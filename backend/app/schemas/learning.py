@@ -18,6 +18,17 @@ class LessonSectionOut(BaseModel):
         from_attributes = True
 
 
+class LessonSectionSummary(BaseModel):
+    id: int = Field(..., description="Section ID")
+    title: str = Field(..., description="Section title")
+    order_index: int = Field(..., description="Section order")
+    question_count: int = Field(default=0, description="Number of questions in the section")
+    completed: bool = Field(default=False, description="Whether the section is completed")
+
+    class Config:
+        from_attributes = True
+
+
 class NextSectionAvailable(BaseModel):
     lesson_id: int = Field(..., description="Lesson ID")
     section: LessonSectionOut = Field(..., description="Next uncompleted section")
@@ -43,15 +54,18 @@ class CompleteSectionResponse(BaseModel):
     streak: Optional[int] = Field(default=None, description="Current streak (if applicable)")
 
 
-LessonInTopicStatus = Literal["available", "completed"]
+LessonInTopicStatus = Literal["available", "completed", "locked"]
 
 
 class LessonInTopicOut(BaseModel):
     id: int = Field(..., description="Lesson ID")
     type: str = Field(..., description="Lesson type")
     title: str = Field(..., description="Lesson title")
+    description: Optional[str] = Field(default=None, description="Lesson description")
     progress: int = Field(..., ge=0, le=100, description="Lesson completion percentage (0-100)")
     status: LessonInTopicStatus = Field(..., description="Lesson status")
+    order_index: int = Field(..., description="Lesson order in topic")
+    sections: List[LessonSectionSummary] = Field(default_factory=list, description="Sections in the lesson")
 
 
 class TopicLessonsResponse(BaseModel):

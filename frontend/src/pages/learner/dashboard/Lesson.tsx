@@ -14,8 +14,8 @@ import { ReportDialog } from "@/components/learner/management/ReportDialog";
 
 export default function LessonPage() {
   const navigate = useNavigate();
-  const lessonId = Number(useParams().lessonId);
-  const { loading, error, questions, currentQuestion, currentStep, progressPercent, submitting, completing, completed, completionData, submitAnswer, next, prev, answerResults } = useLesson(lessonId);
+  const { lessonId, sectionId } = useParams();
+  const { loading, error, questions, currentQuestion, currentStep, progressPercent, submitting, completing, completed, completionData, submitAnswer, next, prev, answerResults } = useLesson(Number(lessonId), sectionId ? Number(sectionId) : undefined);
 
   const { createReport } = useReport();
   const [showReportDialog, setShowReportDialog] = useState(false);
@@ -24,7 +24,7 @@ export default function LessonPage() {
     try {
       await createReport({
         ...data,
-        affected_lesson_id: lessonId ?? undefined,
+        affected_lesson_id: lessonId ? Number(lessonId) : undefined,
       });
       toast.success("Đã gửi báo cáo");
     } catch (err: any) {
@@ -34,7 +34,7 @@ export default function LessonPage() {
     }
   };
 
-  if (Number.isNaN(lessonId)) {
+  if (!lessonId || Number.isNaN(Number(lessonId))) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="text-muted-foreground">Lesson không hợp lệ</p>
