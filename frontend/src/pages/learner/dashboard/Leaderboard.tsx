@@ -1,31 +1,24 @@
-import { useEffect, useState } from "react";
-import { leaderboardService } from "@/services/leaderboardService";
-import type {
-  LeaderboardResponse,
-  MyLeaderboardRank,
-} from "@/services/leaderboardService";
 
-
-
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/learner/tabs";
+import { Crown, Flame, Medal, Minus, MoveDown, TrendingUp, Zap, } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger, } from "@/components/learner/tabs";
 import { Card } from "@/components/ui/card";
-import {
-  Crown,
-  Flame,
-  Medal,
-  Minus,
-  MoveDown,
-  TrendingUp,
-  Zap,
-} from "lucide-react";
+import { useLeaderboard } from "@/hooks/useLeaderboard";
 
-// Helper để lấy icon và style cho Rank
-const getRankVisuals = (rank: number) => {
+const getRankVisuals = (rank?: number | null) => {
+  if (!rank || rank <= 0) {
+    return {
+      icon: (
+        <span className="text-xs font-bold text-muted-foreground">
+          —
+        </span>
+      ),
+      bg: "bg-card",
+      border: "border-border",
+      text: "text-muted-foreground",
+      badge: "bg-muted text-muted-foreground",
+    };
+  }
+
   switch (rank) {
     case 1:
       return {
@@ -67,31 +60,15 @@ const getRankVisuals = (rank: number) => {
 };
 
 export default function LeaderboardPage() {
-  const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
-  const [myRank, setMyRank] = useState<MyLeaderboardRank | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchLeaderboard = async () => {
-      try {
-        setIsLoading(true);
-        const [lb, me] = await Promise.all([
-          leaderboardService.getLeaderboard(),
-          leaderboardService.getMyRank(),
-        ]);
-
-        setLeaderboard(lb);
-        setMyRank(me);
-      } catch (e) {
-        setError("Không tải được bảng xếp hạng");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchLeaderboard();
-  }, []);
+  const {
+    xpLeaderboard,
+    streakLeaderboard,
+    myXpRank,
+    myStreakRank,
+    isLoading,
+    error,
+  } = useLeaderboard();
 
 
   const LeaderboardItem = ({
@@ -156,14 +133,13 @@ export default function LeaderboardPage() {
 
           {/* Trend Indicator */}
           <div className="w-8 flex justify-end">
-            {user.change === "up" && (
+            {user.change > 0 && (
               <TrendingUp className="w-5 h-5 text-green-500" />
             )}
-            {user.change === "down" && (
+            {user.change < 0 && (
               <MoveDown className="w-5 h-5 text-muted-foreground/50" />
-            )}{" "}
-            {/* Dùng xám thay vì đỏ */}
-            {user.change === "same" && (
+            )}
+            {(user.change === 0 || user.change === null) && (
               <Minus className="w-5 h-5 text-muted-foreground/30" />
             )}
           </div>
@@ -199,26 +175,19 @@ export default function LeaderboardPage() {
         </div>
 
         <div className="grid grid-cols-3 gap-4">
-          <div className="bg-background rounded-2xl p-4 border-2 border-indigo-100 dark:border-indigo-900 text-center">
-            <p className="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-1">
-              Cấp độ
-            </p>
-            <p className="text-2xl font-black text-foreground">#{myRank?.level.rank ?? "--"}</p>
-            <p className="text-xs text-muted-foreground font-medium">LVL {myRank?.level.value ?? "--"}</p>
-          </div>
           <div className="bg-background rounded-2xl p-4 border-2 border-orange-100 dark:border-orange-900 text-center">
             <p className="text-xs font-bold text-orange-500 uppercase tracking-wider mb-1">
               Streak
             </p>
-            <p className="text-2xl font-black text-foreground">#{myRank?.streak.rank ?? "--"}</p>
-            <p className="text-xs text-muted-foreground font-medium">#{myRank?.streak.value ?? "--"} ngày</p>
+            <p className="text-2xl font-black text-foreground">#{myStreakRank?.rank ?? "--"}</p>
+            <p className="text-xs text-muted-foreground font-medium">#{myStreakRank?.streak ?? "--"} ngày</p>
           </div>
           <div className="bg-background rounded-2xl p-4 border-2 border-emerald-100 dark:border-emerald-900 text-center">
             <p className="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-1">
               Kinh nghiệm
             </p>
-            <p className="text-2xl font-black text-foreground">#{myRank?.xp.rank ?? "--"}</p>
-            <p className="text-xs text-muted-foreground font-medium">{myRank?.xp.value ?? "--"} XP</p>
+            <p className="text-2xl font-black text-foreground">#{myXpRank?.rank ?? "--"}</p>
+            <p className="text-xs text-muted-foreground font-medium">{myXpRank?.xp ?? "--"} XP</p>
           </div>
         </div>
       </Card>
@@ -238,17 +207,10 @@ export default function LeaderboardPage() {
         )}
 
         <Tabs
-          defaultValue="level"
+          defaultValue="streak"
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-3 h-12 p-1 bg-muted/50 rounded-xl mb-6">
-            <TabsTrigger
-              value="level"
-              className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
-            >
-              <Crown className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Cấp độ</span>
-            </TabsTrigger>
             <TabsTrigger
               value="streak"
               className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:text-orange-500 data-[state=active]:shadow-sm transition-all"
@@ -266,31 +228,16 @@ export default function LeaderboardPage() {
           </TabsList>
 
           <TabsContent
-            value="level"
-            className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
-          >
-            {leaderboard?.level.map((user) => (
-              <LeaderboardItem
-                key={user.rank}
-                user={{
-                  ...user,
-                  change: user.rank_change,
-                }}
-                unit="Level"
-                icon={<Crown className="w-4 h-4 text-indigo-500" />}
-              />
-            ))}
-          </TabsContent>
-
-          <TabsContent
             value="streak"
             className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
           >
-            {leaderboard?.streak.map((user) => (
+            {streakLeaderboard?.map((user) => (
               <LeaderboardItem
-                key={user.rank}
+                key={user.user_id}
                 user={{
-                  ...user,
+                  rank: user.rank,
+                  name: user.username ?? "Katlinger",
+                  value: user.streak,
                   change: user.rank_change,
                 }}
                 unit="Streak"
@@ -303,11 +250,13 @@ export default function LeaderboardPage() {
             value="xp"
             className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
           >
-            {leaderboard?.xp.map((user) => (
+            {xpLeaderboard?.map((user) => (
               <LeaderboardItem
-                key={user.rank}
+                key={user.user_id}
                 user={{
-                  ...user,
+                  rank: user.rank,
+                  name: user.username ?? "Katlinger",
+                  value: user.xp,
                   change: user.rank_change,
                 }}
                 unit="XP"

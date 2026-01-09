@@ -1,40 +1,31 @@
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/auth-context";
-import { Flame, Target, Trophy, Zap } from "lucide-react";
+import { Flame, Target, Zap } from "lucide-react";
 
-// Components
 import WelcomeHeader from "@/components/learner/dashboard/WelcomeHeader";
 import ContinueLearningCard from "@/components/learner/dashboard/ContinueLearningCard";
 import EventBanner from "@/components/learner/dashboard/EventBanner";
 import StatCard from "@/components/learner/dashboard/StatCard";
 import DailyMissionsSection from "@/components/learner/dashboard/DailyMissionsSection";
 
-// Hooks
 import { useUserInfo } from "@/hooks/useUserInfo";
 import { useUserPoints } from "@/hooks/useUserPoints";
 import { useDailyMissions } from "@/hooks/useDailyMissions";
 
 export default function Dashboard() {
-  const { user, updateUser } = useAuth();
   const { userInfo } = useUserInfo();
   const { userPoints, refetchUserPoints } = useUserPoints();
   const navigate = useNavigate();
 
-  // Use custom hook for daily missions
   const {
     missions,
     loading: loadingMissions,
     claimingId,
     timeRemaining,
     claimMission,
-  } = useDailyMissions((xp, totalXp) => {
-    // Callback when claim success
-    updateUser({ exp: totalXp });
-
-    // Refetch user points if function exists
-    if (refetchUserPoints) {
+  } = useDailyMissions(() => {
+    setTimeout(() => {
       refetchUserPoints();
-    }
+    }, 0);
   });
 
   return (
@@ -77,12 +68,6 @@ export default function Dashboard() {
           value={userPoints?.xp || 0}
           label="Tổng XP"
           colorScheme="emerald"
-        />
-        <StatCard
-          icon={Trophy}
-          value={user?.level || 0}
-          label="Level"
-          colorScheme="purple"
         />
         <StatCard
           icon={Target}

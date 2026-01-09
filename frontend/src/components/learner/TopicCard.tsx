@@ -1,6 +1,6 @@
 import { TopicProgressOut } from "@/types/learning";
 import { Button } from "@/components/ui/button";
-import { Check, Lock, Play, Star } from "lucide-react";
+import { BookOpen, Check, Lock, Play, Star } from "lucide-react";
 import { useTopicLessons } from "@/hooks/useTopicLessons";
 
 
@@ -111,6 +111,86 @@ export default function TopicCard({
             <Check className="w-4 h-4" />
             Đã hoàn thành
           </span>
+        </div>
+      )}
+      {/* Lesson List - Timeline Style */}
+      {!isLocked && lessons.length > 0 && (
+        <div className="mt-6 ml-6 md:ml-8 pl-8 md:pl-10 border-l-2 border-border space-y-6 pb-4">
+          {lessons.map((lesson) => {
+            const isCompleted = lesson.status === "completed";
+            const isCurrent = lesson.status === "available";
+
+            return (
+              <div key={lesson.id} className="relative group">
+                {/* Horizontal connector */}
+                <div
+                  className={`absolute -left-[42px] md:-left-[50px] top-1/2 -translate-y-1/2 w-6 h-0.5 bg-primary/30`}
+                />
+
+                {/* Timeline dot */}
+                <div
+                  className={`absolute -left-[54px] md:-left-[62px] top-1/2 -translate-y-1/2 w-8 h-8 rounded-full border-2 flex items-center justify-center z-10 ${
+                    isCompleted
+                      ? "bg-green-500 border-green-600 text-white"
+                      : isCurrent
+                      ? "bg-primary border-primary text-white scale-110 shadow-[0_0_0_4px_rgba(var(--primary),0.2)]"
+                      : "bg-muted border-border text-muted-foreground"
+                  }`}
+                >
+                  {isCompleted && <Check className="w-4 h-4" strokeWidth={3} />}
+                  {isCurrent && <Play className="w-4 h-4 fill-current ml-0.5" />}
+                </div>
+
+                {/* Lesson card */}
+                <div
+                  className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+                    isCurrent
+                      ? "bg-card border-primary/30 shadow-md"
+                      : isCompleted
+                      ? "bg-card border-green-200 dark:border-green-900/50 opacity-80"
+                      : "bg-muted/30 border-transparent"
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`p-2.5 rounded-lg ${
+                        isCurrent
+                          ? "bg-primary/10 text-primary"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      <BookOpen className="w-5 h-5" />
+                    </div>
+
+                    <div>
+                      <h3
+                        className={`font-bold text-foreground`}
+                      >
+                        {lesson.title}
+                      </h3>
+
+                      {isCurrent && (
+                        <span className="text-xs font-bold text-primary animate-pulse">
+                          Đang học dở...
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action */}
+                  <div>
+                    <Button
+                      size="sm"
+                      variant={isCompleted ? "secondary" : "default"}
+                      onClick={() => onStartLesson(lesson.id)}
+                    >
+                      {isCompleted ? "Ôn tập" : "Bắt đầu"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

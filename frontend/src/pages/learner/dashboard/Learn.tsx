@@ -69,7 +69,7 @@ export default function LearnPage() {
             key={topic.id}
             topic={topic}
             index={index}
-            onStartLesson={(lessonId) => navigate(`/dashboard/lesson/${lessonId}`)}
+            onStartLesson={(lessonId) => navigate(`/dashboard/lessons/${lessonId}`)}
           />
         ))}
 

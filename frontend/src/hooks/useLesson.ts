@@ -33,11 +33,6 @@ export function useLesson(lessonId: number) {
           return;
         }
 
-        if ("status" in next && next.status === "completed") {
-          setCompleted(true);
-          return;
-        }
-
         setSectionId(next.section.id);
 
         const res = await lessonService.getSectionQuestions(
@@ -85,6 +80,7 @@ export function useLesson(lessonId: number) {
   };
 
   const next = async () => {
+    if (!sectionId) return;
     if (!currentQuestion) return;
     if (!answerResults.has(currentQuestion.id)) return;
 
@@ -109,15 +105,6 @@ export function useLesson(lessonId: number) {
     } finally {
       setCompleting(false);
     }
-  }
-
-  const handleBugReport = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    alert("Báo cáo lỗi đã được gửi. Cảm ơn bạn!");
-    setBugReport("");
-    setBugType("");
-    setShowBugReportDialog(false);
   }
 
   return {

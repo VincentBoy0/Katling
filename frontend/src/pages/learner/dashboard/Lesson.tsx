@@ -6,7 +6,7 @@ import { QuestionRenderer } from "@/components/learner/questionRenderer";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Loader2, X, } from "lucide-react";
+import { AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Flag, Loader2, X, } from "lucide-react";
 import { useLesson } from "@/hooks/useLesson";
 import { useReport } from "@/hooks/useReport";
 import { ReportCreate } from "@/types/report";
@@ -14,8 +14,7 @@ import { ReportDialog } from "@/components/learner/management/ReportDialog";
 
 export default function LessonPage() {
   const navigate = useNavigate();
-  const params = useParams();
-  const lessonId = Number.parseInt(params.id as string);
+  const lessonId = Number(useParams().lessonId);
   const { loading, error, questions, currentQuestion, currentStep, progressPercent, submitting, completing, completed, completionData, submitAnswer, next, prev } = useLesson(lessonId);
 
   const { createReport } = useReport();
@@ -34,6 +33,14 @@ export default function LessonPage() {
       setShowReportDialog(false);
     }
   };
+
+  if (Number.isNaN(lessonId)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-muted-foreground">Lesson không hợp lệ</p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -136,6 +143,15 @@ export default function LessonPage() {
             style={{ width: `${progressPercent}%` }}
           />
         </div>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setShowReportDialog(true)}
+          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+        >
+          <Flag className="w-5 h-5" />
+        </Button>
       </header>
 
       {/* Main Content Area */}

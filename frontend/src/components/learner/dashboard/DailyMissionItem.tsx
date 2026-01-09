@@ -1,8 +1,8 @@
 import { Star, CheckCircle, Lock } from "lucide-react";
-import { Mission } from "@/services/missionService";
+import { DailyMissionOut } from "@/types/mission";
 
 interface DailyMissionItemProps {
-  mission: Mission;
+  mission: DailyMissionOut;
   onClaim: (missionId: number) => void;
   isClaiming: boolean;
 }
