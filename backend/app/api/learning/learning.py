@@ -275,9 +275,9 @@ async def complete_section(
 
 	user_repo = UserRepository(session)
 
-	# Atomically: mark progress completed + add XP.
-	# If anything fails, both changes are rolled back.
-	async with session.begin():
+	# Single transaction boundary per request: router controls commit/rollback.
+	# Repositories/services must not commit implicitly.
+	try:
 		await progress_repo.upsert_section_completed(
 			user_id=current_user.id,
 			lesson_id=lesson_id,
@@ -293,10 +293,22 @@ async def complete_section(
 			commit=False,
 		)
 
-	mission_service = MissionService(session)
-	await mission_service.on_lesson_completed(user_id=current_user.id, lesson_type=lesson.type, score=payload.score)
+		mission_service = MissionService(session)
+		await mission_service.on_lesson_completed(
+			user_id=current_user.id,
+			lesson_type=lesson.type,
+			score=payload.score,
+		)
 
-	_, is_streak_increased_today = await user_repo.update_streak_on_activity(current_user.id)
+		_, is_streak_increased_today = await user_repo.update_streak_on_activity(current_user.id)
+
+		await session.commit()
+	except HTTPException:
+		await session.rollback()
+		raise
+	except Exception:
+		await session.rollback()
+		raise
 
 	return CompleteSectionResponse(
 		lesson_id=lesson_id,
