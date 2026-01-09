@@ -36,8 +36,8 @@ export default function AdminLogIn() {
     setIsLoading(true);
 
     try {
-      await login(email, password);
-      // Navigation will be handled by auth-context based on role
+      await login(email, password, "admin");
+      // Navigation will be handled by auth-context based on portal
     } catch (error: any) {
       console.error("Admin login error:", error);
       toast.error(getErrorMessage(error));

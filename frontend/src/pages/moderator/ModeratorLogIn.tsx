@@ -36,8 +36,8 @@ export default function ModeratorLogIn() {
     setIsLoading(true);
 
     try {
-      await login(email, password);
-      // Navigation will be handled by auth-context based on role
+      await login(email, password, "moderator");
+      // Navigation will be handled by auth-context based on portal
     } catch (error: any) {
       console.error("Moderator login error:", error);
       toast.error(getErrorMessage(error));
