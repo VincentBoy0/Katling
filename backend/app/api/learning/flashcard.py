@@ -24,8 +24,6 @@ router = APIRouter(prefix="/learning", tags=["Flashcards"])
 
 def _parse_review_status(raw: str) -> ReviewStatus:
 	value = raw.strip().upper()
-	if value == "NEWBIE":
-		value = "NEW"
 	try:
 		return ReviewStatus(value)
 	except ValueError as exc:
