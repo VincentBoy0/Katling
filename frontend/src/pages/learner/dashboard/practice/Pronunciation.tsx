@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -10,100 +10,64 @@ import {
   Mic,
   RotateCcw,
   Sparkles,
-  Volume2,
   X,
 } from "lucide-react";
 import { useRecorder } from "@/hooks/useRecorder";
-import { assessPronunciation, generateWordBatch } from "@/services/pronunciationService";
+import { usePronunciation } from "@/hooks/usePronunciation";
 
 
 export default function PronunciationPracticePage() {
   const navigate = useNavigate();
-  const TOTAL = 5;
 
-  const [words, setWords] = useState<any[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [results, setResults] = useState<Record<number, number>>({});
-  const [completedWords, setCompletedWords] = useState<number[]>([]);
+  const [mode, setMode] = useState<"word" | "sentence">("word");
+  const [total, setTotal] = useState<5 | 7 | 10>(5);
   const [isRecording, setIsRecording] = useState(false);
-
-  const currentWord = words[currentIndex];
-
-  useEffect(() => {
-    generateWordBatch(TOTAL).then((res) => {
-      setWords(res.words.slice(0, TOTAL));
-      setCurrentIndex(0);
-    });
-  }, []);
-
-  useEffect(() => {
-    setIsRecording(false);
-  }, [currentIndex]);
-
-  
-
-  const progressPercent = ((currentIndex + 1) / TOTAL) * 100;
-
-  // --- HANDLERS ---
-  const handlePlayAudio = () => {
-    console.log(`Playing: ${currentWord.word}`);
-  };
-
   const { start, stop } = useRecorder();
 
+  const {
+    items,
+    currentItem,
+    currentIndex,
+    results,
+    completed,
+    feedbacks,
+    errorsMap,
+    assess,
+    next,
+    retry,
+    loading,
+  } = usePronunciation(total, mode);
+
+  const displayText = currentItem?.text || "";
+
   const handleRecord = async () => {
-    if (isRecording) return;
+    if (
+      isRecording ||
+      !currentItem ||
+      results[currentIndex] !== undefined
+    )
+      return;
+
     setIsRecording(true);
     await start();
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    await new Promise((r) => setTimeout(r, 3000));
     const audioBlob = await stop();
     setIsRecording(false);
 
     try {
-      const result = await assessPronunciation(
-        audioBlob,
-        currentWord.word
-      );
-
-      const percent = Math.min(
-        100,
-        Math.max(
-          0,
-          Math.round(100 + result.assessment.overall_score * 10)
-        )
-      );
-
-      setResults((prev) => ({
-        ...prev,
-        [currentIndex]: percent,
-      }));
-
-      setCompletedWords((prev) =>
-        prev.includes(currentIndex) ? prev : [...prev, currentIndex]
-      );
-
-    } catch (error) {
-      console.error("Error assessing pronunciation:", error);
-      alert("Đã có lỗi xảy ra khi đánh giá phát âm. Vui lòng thử lại.");
-    } finally {
-      setIsRecording(false);
+      await assess(audioBlob);
+    } catch (e) {
+      alert("Đánh giá phát âm thất bại, thử lại nhé!");
     }
   };
 
   const handleNext = () => {
-    if (currentIndex < TOTAL - 1) {
-      setCurrentIndex((i) => i + 1);
-    } else {
-      navigate("/dashboard/practice"); // hoặc result page
-    }
+    if (currentIndex < total - 1) next();
+    else navigate("/dashboard/practice");
   };
 
   const handleRetry = () => {
-    setResults((prev) => {
-      const copy = { ...prev };
-      delete copy[currentIndex];
-      return copy;
-    });
+    retry();
   };
 
   // Helper: Màu sắc Feedback (Không dùng đỏ)
@@ -131,13 +95,16 @@ export default function PronunciationPracticePage() {
     };
   };
 
-  if (!currentWord) {
+  const progressPercent = ((currentIndex + 1) / total) * 100;
+
+  if (loading || !currentItem) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         Đang tải bài luyện...
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center p-4 md:p-8">
@@ -162,10 +129,32 @@ export default function PronunciationPracticePage() {
           </div>
 
           <div className="font-bold text-primary text-sm">
-            {currentIndex + 1}/{TOTAL}
+            {currentIndex + 1}/{total}
           </div>
         </div>
       </div>
+
+      <div className="flex gap-4 mb-6">
+        <select
+          value={mode}
+          onChange={(e) => setMode(e.target.value as any)}
+          className="border rounded-lg px-3 py-2"
+        >
+          <option value="word">Từ đơn</option>
+          <option value="sentence">Câu</option>
+        </select>
+
+        <select
+          value={total}
+          onChange={(e) => setTotal(Number(e.target.value) as any)}
+          className="border rounded-lg px-3 py-2"
+        >
+          <option value={5}>5</option>
+          <option value={7}>7</option>
+          <option value={10}>10</option>
+        </select>
+      </div>
+
 
       {/* 2. MAIN CARD */}
       <Card className="w-full max-w-2xl p-8 md:p-12 border-2 border-border rounded-3xl shadow-sm flex flex-col items-center text-center bg-card relative overflow-hidden">
@@ -175,38 +164,30 @@ export default function PronunciationPracticePage() {
         <div className="space-y-6 mb-10 w-full relative z-10">
           <div>
             <p className="text-sm font-bold text-primary/70 uppercase tracking-widest mb-2">
-              Đọc to từ này
+              {mode === "word" ? "Đọc to từ này" : "Đọc to câu sau"}
             </p>
             <h1 className="text-5xl md:text-6xl font-black text-primary mb-4 tracking-tight">
-              {currentWord.word}
+              {mode === "sentence" &&
+                results[currentIndex] !== undefined &&
+                errorsMap[currentIndex]?.length ? (
+                  renderHighlightedSentence(displayText, errorsMap[currentIndex])
+                ) : (
+                  displayText
+                )}
             </h1>
-
-            {/* Pronunciation Badge */}
-            <div className="inline-flex items-center gap-3 px-4 py-2 bg-background border-2 border-border rounded-xl shadow-sm">
-              <span className="font-mono text-xl text-muted-foreground">
-                {currentWord.pronunciation}
-              </span>
-              <button
-                onClick={handlePlayAudio}
-                className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-colors"
-              >
-                <Volume2 className="w-4 h-4" />
-              </button>
+            <div className="text-sm text-muted-foreground">
+              Phát âm rõ ràng và tự nhiên
             </div>
           </div>
-
-          <p className="text-xl font-medium text-muted-foreground">
-            {currentWord.meaning}
-          </p>
         </div>
 
         {/* 3. RECORDING AREA */}
         <div className="w-full flex flex-col items-center gap-6">
           {/* Chưa có kết quả -> Hiển thị nút Mic */}
-          {!results[currentIndex] ? (
+          {results[currentIndex] === undefined ? (
             <div
               className="relative group cursor-pointer"
-              onClick={!results[currentIndex] ? handleRecord : undefined}
+              onClick={results[currentIndex] === undefined ? handleRecord : undefined}
             >
               {/* Hiệu ứng sóng âm khi ghi âm (Dùng màu Primary/Accent) */}
               {isRecording && (
@@ -271,7 +252,7 @@ export default function PronunciationPracticePage() {
 
                 <Button
                   onClick={handleNext}
-                  disabled={!results[currentIndex]}
+                  disabled={results[currentIndex] === undefined}
                   className="font-bold h-12 px-8 shadow-md hover:translate-y-0.5 active:translate-y-1 transition-all"
                 >
                   Tiếp theo
@@ -280,6 +261,13 @@ export default function PronunciationPracticePage() {
               </div>
             </div>
           )}
+          {results[currentIndex] !== undefined && feedbacks[currentIndex] && (
+            <div className="mt-4 p-4 rounded-xl bg-muted/40 border text-left text-sm leading-relaxed whitespace-pre-line">
+              <p className="font-bold mb-2 text-foreground">Nhận xét</p>
+              {feedbacks[currentIndex]}
+            </div>
+          )}
+
         </div>
       </Card>
 
@@ -291,7 +279,7 @@ export default function PronunciationPracticePage() {
           </div>
           <div>
             <p className="text-2xl font-bold text-foreground">
-              {completedWords.length}
+              {completed.length}
             </p>
             <p className="text-xs font-bold text-muted-foreground uppercase">
               Đã hoàn thành
@@ -321,4 +309,33 @@ export default function PronunciationPracticePage() {
       </div>
     </div>
   );
+}
+
+
+function renderHighlightedSentence(
+  sentence: string,
+  errors: { word: string; severity?: string }[]
+) {
+  const errorMap = new Map(
+    errors.map((e) => [e.word.toLowerCase(), e.severity])
+  );
+
+  return sentence.split(" ").map((w, i) => {
+    const clean = w.toLowerCase().replace(/[.,!?]/g, "");
+    const severity = errorMap.get(clean);
+
+    let cls = "";
+    if (severity === "severe")
+      cls = "text-orange-700 font-bold underline decoration-2";
+    else if (severity === "moderate")
+      cls = "text-orange-600 underline decoration-dashed";
+    else if (severity === "minor")
+      cls = "text-yellow-600 underline decoration-dotted";
+
+    return (
+      <span key={i} className={cls}>
+        {w}{" "}
+      </span>
+    );
+  });
 }
