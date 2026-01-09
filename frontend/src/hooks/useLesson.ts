@@ -125,5 +125,7 @@ export function useLesson(lessonId: number) {
     submitAnswer,
     next,
     prev: () => setCurrentStep((s) => Math.max(s - 1, 0)),
+
+    answerResults,
   };
 }
