@@ -7,10 +7,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class PronunciationScorer:
+
+class Wav2VecScorer:
     """Singleton - Load model một lần"""
 
-    _instance: Optional['PronunciationScorer'] = None
+    _instance: Optional["Wav2VecScorer"] = None
 
     def __new__(cls):
         if cls._instance is None:
@@ -18,7 +19,7 @@ class PronunciationScorer:
         return cls._instance
 
     def __init__(self, model_id: str = "facebook/wav2vec2-base-960h"):
-        if hasattr(self, 'initialized'):
+        if hasattr(self, "initialized"):
             return
 
         logger.info(f"🔄 Loading Wav2Vec2: {model_id}")
@@ -31,10 +32,7 @@ class PronunciationScorer:
         logger.info("✅ Wav2Vec2 loaded")
 
     def score_pronunciation(
-        self,
-        audio: np.ndarray,
-        reference_text: str,
-        sample_rate: int = 16000
+        self, audio: np.ndarray, reference_text: str, sample_rate: int = 16000
     ) -> Dict:
         """
         Chấm điểm phát âm - Pure function
@@ -56,10 +54,7 @@ class PronunciationScorer:
 
         # Preprocess audio
         inputs = self.processor(
-            audio,
-            sampling_rate=sample_rate,
-            return_tensors="pt",
-            padding=True
+            audio, sampling_rate=sample_rate, return_tensors="pt", padding=True
         )
 
         # Get predictions
@@ -78,17 +73,12 @@ class PronunciationScorer:
 
         for word in words:
             word_tokens = self.processor.tokenizer.encode(
-                word,
-                add_special_tokens=False
+                word, add_special_tokens=False
             )
             score = self._calculate_word_score(log_probs, word_tokens)
             rating = self._score_to_rating(score)
 
-            word_scores.append({
-                "word": word,
-                "score": float(score),
-                "rating": rating
-            })
+            word_scores.append({"word": word, "score": float(score), "rating": rating})
 
         # Overall score
         overall_score = np.mean([w["score"] for w in word_scores])
@@ -98,7 +88,7 @@ class PronunciationScorer:
             "overall_rating": self._score_to_rating(overall_score),
             "word_scores": word_scores,
             "predicted_text": predicted_text.lower(),
-            "reference_text": reference_text.lower()
+            "reference_text": reference_text.lower(),
         }
 
     def _calculate_word_score(self, log_probs, word_tokens):
@@ -124,3 +114,20 @@ class PronunciationScorer:
             return "fair"
         else:
             return "poor"
+
+
+def extract_pronunciation_errors(word_scores):
+    errors = []
+
+    for w in word_scores:
+        if w["rating"] in ["fair", "poor"]:
+            errors.append(
+                {
+                    "word": w["word"],
+                    "phoneme": "vowel/consonant cluster",
+                    "error_type": "substitution",
+                    "severity": "moderate" if w["rating"] == "fair" else "severe",
+                }
+            )
+
+    return errors

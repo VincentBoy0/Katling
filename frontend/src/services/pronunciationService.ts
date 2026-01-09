@@ -1,35 +1,27 @@
-import { api } from '@/lib/api'
+import { api } from "@/lib/api";
+import {
+  GenerateMaterialResponse,
+  AssessPronunciationResponse,
+} from "@/types/pronunciation";
+
+export async function generateMaterial(params: {
+  mode: "word" | "sentence";
+  count: number;
+  level?: string;
+  topic?: string;
+}): Promise<GenerateMaterialResponse> {
+  const res = await api.post("/pronunciation/material", params);
+  return res.data;
+}
 
 export async function assessPronunciation(
   audio: Blob,
-  referenceText: string
-) {
+  reference: string
+): Promise<AssessPronunciationResponse> {
   const formData = new FormData();
-  formData.append("reference_text", referenceText);
-  formData.append("audio", audio, "speech.webm");
+  formData.append("reference", reference);
+  formData.append("audio", audio);
 
-  const res = await api.post(
-    "/chatbot/assess",
-    formData,
-    { headers: { "Content-Type": "multipart/form-data" } }
-  );
-
-  return res.data;
-}
-
-export async function generateWord(level = "beginner") {
-  const res = await api.post("/chatbot/generate-word", {
-    level,
-    topic: "daily",
-  });
-  return res.data;
-}
-
-export async function generateWordBatch(count = 5, level = "beginner") {
-  const res = await api.post("/chatbot/generate-word-batch", {
-    count,
-    level,
-    topic: "daily",
-  });
+  const res = await api.post("/pronunciation/assess", formData);
   return res.data;
 }

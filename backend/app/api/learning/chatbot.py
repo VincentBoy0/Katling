@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from schemas.chatbot import (
+from backend.app.schemas.conversation import (
     GeneratePracticeRequest,
     GeneratePracticeResponse,
     AssessmentResponse,
