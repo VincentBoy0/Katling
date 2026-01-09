@@ -1,23 +1,23 @@
+import { useEffect, useState } from "react";
+import { AlertCircle, CheckCircle, Loader2, Volume2 } from "lucide-react";
+
 import { Checkbox } from "@/components/learner/checkbox";
 import { Input } from "@/components/learner/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type {
-  AnswerSubmitResponse,
-  Question,
-  QuestionContent,
-} from "@/types/learning";
-import { AlertCircle, CheckCircle, Loader2, Volume2 } from "lucide-react";
-import { useEffect, useState } from "react";
+  QuestionAnswerSubmitResponse,
+  QuestionInfo,
+} from "@/types/lesson";
+
 
 interface BaseQuestionProps {
-  question: Question;
-  onAnswerSubmit: (answer: QuestionContent) => Promise<void>;
-  currentAnswer?: QuestionContent;
-  answerResult?: AnswerSubmitResponse;
+  question: QuestionInfo;
+  onAnswerSubmit: (answer: Record<string, any>) => Promise<void>;
+  currentAnswer?: Record<string, any>;
+  answerResult?: QuestionAnswerSubmitResponse;
   submitting: boolean;
 }
-
 
 export function MultipleChoiceQuestion({
   question,
@@ -40,7 +40,9 @@ export function MultipleChoiceQuestion({
     }
   };
 
-  const options = question.content?.options || [];
+  const options = Array.isArray(question.content?.options)
+    ? question.content.options
+    : [];
 
   return (
     <div className="space-y-6">
@@ -48,9 +50,10 @@ export function MultipleChoiceQuestion({
 
       <div className="space-y-3">
         {options.map((option: string, index: number) => {
-          const isSelected = selectedAnswer === option;
-          const isCorrect = answerResult?.correct_answer?.answer === option;
           const showResult = !!answerResult;
+          const isSelected = selectedAnswer === option;
+          const isCorrectAnswer =
+            answerResult?.correct_answer?.answer === option;
 
           return (
             <Button
@@ -58,7 +61,7 @@ export function MultipleChoiceQuestion({
               variant={isSelected ? "default" : "outline"}
               className={`w-full h-auto py-4 px-6 text-left justify-start text-base transition-all ${
                 showResult
-                  ? isCorrect
+                  ? isCorrectAnswer
                     ? "border-green-500 bg-green-50 dark:bg-green-900/20 hover:bg-green-50"
                     : isSelected
                     ? "border-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-50"
@@ -69,10 +72,10 @@ export function MultipleChoiceQuestion({
               disabled={!!answerResult}
             >
               <span className="flex-1">{option}</span>
-              {showResult && isCorrect && (
+              {showResult && isCorrectAnswer && (
                 <CheckCircle className="w-5 h-5 text-green-600 ml-2" />
               )}
-              {showResult && isSelected && !isCorrect && (
+              {showResult && isSelected && !isCorrectAnswer && (
                 <AlertCircle className="w-5 h-5 text-red-600 ml-2" />
               )}
             </Button>
@@ -149,7 +152,7 @@ export function MultipleSelectQuestion({
                     : isSelected && !isCorrect
                     ? "border-red-500 bg-red-50 dark:bg-red-900/20"
                     : ""
-                  : isSelected
+                  : isSelected && !showResult
                   ? "border-primary bg-primary/5"
                   : "border-border hover:border-primary/30"
               }`}
@@ -157,7 +160,7 @@ export function MultipleSelectQuestion({
             >
               <div className="flex items-center gap-3">
                 <Checkbox
-                  label="Accept terms"
+                  label=""
                   checked={isSelected}
                   disabled={!!answerResult}
                   className="pointer-events-none"
@@ -602,8 +605,73 @@ export function ArrangeWordsQuestion({
   );
 }
 
+export function TrueFalseQuestion({
+  question,
+  onAnswerSubmit,
+  currentAnswer,
+  answerResult,
+  submitting,
+}: BaseQuestionProps) {
+  const [value, setValue] = useState<boolean | null>(
+    currentAnswer?.answer ?? null
+  );
 
-function QuestionHeader({ question }: { question: Question }) {
+  const handleSubmit = async () => {
+    if (value !== null) {
+      await onAnswerSubmit({ answer: value });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <QuestionHeader question={question} />
+
+      <div className="flex gap-4 justify-center">
+        {[true, false].map((v) => {
+          const isSelected = value === v;
+          const isCorrect = answerResult?.correct_answer?.answer === v;
+
+          return (
+            <Button
+              key={String(v)}
+              variant={
+                answerResult
+                  ? "outline"
+                  : isSelected
+                  ? "default"
+                  : "outline"
+              }
+              disabled={!!answerResult}
+              onClick={() => setValue(v)}
+              className={
+                answerResult
+                  ? isCorrect
+                    ? "border-green-500 bg-green-50"
+                    : isSelected
+                    ? "border-red-500 bg-red-50"
+                    : ""
+                  : ""
+              }
+            >
+              {v ? "Đúng" : "Sai"}
+            </Button>
+          );
+        })}
+      </div>
+
+      <SubmitButton
+        onSubmit={handleSubmit}
+        disabled={submitting || value === null || !!answerResult}
+        submitting={submitting}
+      />
+
+      <ResultDisplay answerResult={answerResult} question={question} />
+    </div>
+  );
+}
+
+
+function QuestionHeader({ question }: { question: QuestionInfo }) {
   return (
     <div className="text-center space-y-4">
       <h2 className="text-2xl md:text-3xl font-bold text-foreground">
@@ -654,8 +722,8 @@ function ResultDisplay({
   answerResult,
   question,
 }: {
-  answerResult?: AnswerSubmitResponse;
-  question: Question;
+  answerResult?: QuestionAnswerSubmitResponse;
+  question: QuestionInfo;
 }) {
   if (!answerResult) return null;
 
@@ -708,8 +776,11 @@ function formatCorrectAnswer(correctAnswer: any, questionType: string): string {
       .map(([key, value]) => `${key} → ${value}`)
       .join(", ");
   }
-  if (questionType === "ARRANGE_WORDS") {
+  if (questionType === "ORDERING") {
     return correctAnswer.arranged_words?.join(" ") || "";
+  }
+  if (questionType === "TRUE_FALSE") {
+    return correctAnswer.answer ? "Đúng" : "Sai";
   }
   return correctAnswer.answer || correctAnswer.transcript || "";
 }
@@ -718,7 +789,7 @@ export function QuestionRenderer(props: BaseQuestionProps) {
   const { question } = props;
 
   switch (question.type) {
-    case "MULTIPLE_CHOICE":
+    case "MCQ":
       return <MultipleChoiceQuestion {...props} />;
     case "MULTIPLE_SELECT":
       return <MultipleSelectQuestion {...props} />;
@@ -728,8 +799,10 @@ export function QuestionRenderer(props: BaseQuestionProps) {
       return <MatchingQuestion {...props} />;
     case "TRANSCRIPT":
       return <TranscriptQuestion {...props} />;
-    case "ARRANGE_WORDS":
+    case "ORDERING":
       return <ArrangeWordsQuestion {...props} />;
+    case "TRUE_FALSE":
+      return <TrueFalseQuestion {...props} />;
     default:
       return (
         <div className="text-center text-muted-foreground">

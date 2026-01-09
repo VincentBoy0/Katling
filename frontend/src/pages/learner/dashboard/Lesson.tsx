@@ -15,7 +15,7 @@ import { ReportDialog } from "@/components/learner/management/ReportDialog";
 export default function LessonPage() {
   const navigate = useNavigate();
   const lessonId = Number(useParams().lessonId);
-  const { loading, error, questions, currentQuestion, currentStep, progressPercent, submitting, completing, completed, completionData, submitAnswer, next, prev } = useLesson(lessonId);
+  const { loading, error, questions, currentQuestion, currentStep, progressPercent, submitting, completing, completed, completionData, submitAnswer, next, prev, answerResults } = useLesson(lessonId);
 
   const { createReport } = useReport();
   const [showReportDialog, setShowReportDialog] = useState(false);
@@ -166,6 +166,7 @@ export default function LessonPage() {
             question={currentQuestion}
             onAnswerSubmit={(answer) => submitAnswer(currentQuestion.id, answer)}
             submitting={submitting}
+            answerResult={answerResults.get(currentQuestion.id)}
           />
         </Card>
       </main>

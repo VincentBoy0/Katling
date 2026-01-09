@@ -1,4 +1,4 @@
-type QuestionType = 'MULTIPLE_CHOICE' | 'MULTIPLE_SELECT' | 'FILL_IN_THE_BLANK' | 'MATCHING' | 'TRANSCRIPT' | 'ARRANGE_WORDS';
+type QuestionType = 'MCQ' | 'MULTIPLE_SELECT' | 'FILL_IN_THE_BLANK' | 'MATCHING' | 'TRANSCRIPT' | 'ORDERING' | 'TRUE_FALSE';
 
 
 export interface SectionQuestionsResponse {
