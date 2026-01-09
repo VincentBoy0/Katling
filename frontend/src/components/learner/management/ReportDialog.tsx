@@ -20,12 +20,14 @@ interface ReportDialogProps {
     severity: ReportSeverity;
     category: ReportCategory;
   }) => void;
+  postId?: number | null;
 }
 
 export function ReportDialog({
   open,
   onOpenChange,
   onSubmit,
+  postId,
 }: ReportDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
