@@ -7,7 +7,8 @@ import {
 } from "@/components/learner/dialog";
 import { Input } from "@/components/learner/input";
 import { Button } from "@/components/ui/button";
-import { useUserInfo } from "@/hooks/useUserInfo";
+import { useUserInfoContext } from "@/context/user-info-context";
+import { toast } from "sonner";
 
 interface EditNameDialogProps {
   open: boolean;
@@ -18,7 +19,7 @@ export default function EditNameDialog({
   open,
   onOpenChange,
 }: EditNameDialogProps) {
-  const { userInfo, loading, updateUserInfo } = useUserInfo();
+  const { userInfo, loading, updateUserInfo } = useUserInfoContext();
   const [name, setName] = useState("");
 
   useEffect(() => {
@@ -29,8 +30,15 @@ export default function EditNameDialog({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateUserInfo({ full_name: name });
-    onOpenChange(false);
+    try {
+      await updateUserInfo({ full_name: name });
+      toast.success("Đã cập nhật tên thành công");
+      onOpenChange(false);
+    } catch (error) {
+      toast.error("Không thể cập nhật tên", {
+        description: "Vui lòng thử lại sau.",
+      });
+    }
   };
 
   return (
