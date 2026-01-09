@@ -62,7 +62,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Dashboard /> },
           { path: "learn", element: <Learn /> },
-          { path: "lesson", element: <Lesson /> },
+          { path: "lessons/:lessonId", element: <Lesson /> },
           {
             path: "practice",
             children: [
