@@ -99,7 +99,6 @@ async def get_topic_lessons(
 	lessons_raw = await lesson_repo.get_lessons_progress_by_topic(user_id=current_user.id, topic_id=topic_id)
 
 	lessons_out = []
-	previous_completed = True  # First lesson is always available
 	
 	for l in lessons_raw:
 		total = int(l["total_sections"])
@@ -107,14 +106,9 @@ async def get_topic_lessons(
 		progress = int((completed * 100) / total) if total > 0 else 0
 		progress = max(0, min(100, progress))
 		
-		# Determine lesson status based on previous lesson completion
+		# Lessons in a topic are learnable in parallel: no prerequisites, no locking.
 		is_completed = total > 0 and completed >= total
-		if is_completed:
-			status = "completed"
-		elif previous_completed:
-			status = "available"
-		else:
-			status = "locked"
+		status = "completed" if is_completed else "available"
 		
 		lessons_out.append(
 			{
@@ -127,9 +121,6 @@ async def get_topic_lessons(
 				"order_index": int(l["order_index"]),
 			}
 		)
-		
-		# Update previous_completed for next iteration
-		previous_completed = is_completed
 
 	return TopicLessonsResponse(topic_id=topic_id, lessons=lessons_out)
 
