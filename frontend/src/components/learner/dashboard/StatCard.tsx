@@ -5,7 +5,7 @@ interface StatCardProps {
   icon: LucideIcon;
   value: string | number;
   label: string;
-  colorScheme: "orange" | "emerald" | "purple" | "blue";
+  colorScheme: "orange" | "emerald" | "purple" | "blue" | "yellow";
 }
 
 const colorClasses = {
@@ -32,6 +32,12 @@ const colorClasses = {
     icon: "bg-blue-100 dark:bg-blue-900/30 text-blue-600",
     value: "text-blue-700 dark:text-blue-500",
     label: "text-blue-600/70",
+  },
+  yellow: {
+    card: "border-yellow-200 dark:border-yellow-900 bg-yellow-50/50 dark:bg-yellow-900/10",
+    icon: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600",
+    value: "text-yellow-700 dark:text-yellow-500",
+    label: "text-yellow-600/70",
   },
 };
 

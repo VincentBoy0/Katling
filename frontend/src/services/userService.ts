@@ -4,6 +4,7 @@ import { UserInfo } from "@/types/user"
 import { UserInfoUpdate } from "@/types/user";
 import { UserPoints } from "@/types/user";
 import { UserPointsUpdate } from "@/types/user";
+import { UserSummary } from "@/types/user";
 
 // Backend returns array of Role objects
 interface RoleObject {
@@ -60,5 +61,13 @@ export const userService = {
    */
   getRoles() {
     return api.get<RoleObject[]>("/user/roles");
+  },
+
+  /**
+   * Get user's summary (xp, streak, energy)
+   * GET /home/summary
+   */
+  getSummary() {
+    return api.get<UserSummary>("/home/summary");
   }
 };

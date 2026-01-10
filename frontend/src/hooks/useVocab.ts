@@ -66,6 +66,14 @@ export function useVocab() {
     );
   };
 
+  // Load saved words on mount to have folders available for dictionary tab
+  useEffect(() => {
+    vocabService.listUserWords().then((res) => {
+      setSavedWords(res);
+    });
+  }, []);
+
+  // Reload when switching to library tab to get latest data
   useEffect(() => {
     if (activeTab === "library") {
       vocabService.listUserWords().then((res) => {
