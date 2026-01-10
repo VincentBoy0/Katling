@@ -3,12 +3,13 @@ import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
+import { UserInfoProvider } from "@/context/user-info-context";
 import { Settings } from "lucide-react";
 
 // Custom hooks
 import { useAvatarManager } from "@/hooks/useAvatarManager";
 import { usePasswordChange } from "@/hooks/usePasswordChange";
-import { useProfileEdit } from "@/hooks/useProfileEdit";
+import { useState } from "react";
 
 // Import components
 import ProfileHeader from "@/components/learner/profile/ProfileHeader";
@@ -18,13 +19,13 @@ import AvatarDialog from "@/components/learner/profile/AvatarDialog";
 import EditNameDialog from "@/components/learner/profile/EditNameDialog";
 import ChangePasswordDialog from "@/components/learner/profile/ChangePasswordDialog";
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const { user } = useAuth();
 
   // Custom hooks for logic separation
   const avatarManager = useAvatarManager();
   const passwordChange = usePasswordChange();
-  const profileEdit = useProfileEdit();
+  const [showEditNameDialog, setShowEditNameDialog] = useState(false);
 
   const badges = [
     {
@@ -104,7 +105,7 @@ export default function ProfilePage() {
       <ProfileHeader
         previewImage={avatarManager.previewImage}
         onAvatarClick={avatarManager.openDialog}
-        onEditName={profileEdit.openDialog}
+        onEditName={() => setShowEditNameDialog(true)}
         onChangePassword={passwordChange.openDialog}
       />
 
@@ -129,10 +130,8 @@ export default function ProfilePage() {
       />
 
       <EditNameDialog
-        open={profileEdit.showDialog}
-        onOpenChange={(open) =>
-          open ? profileEdit.openDialog() : profileEdit.closeDialog()
-        }
+        open={showEditNameDialog}
+        onOpenChange={setShowEditNameDialog}
       />
 
       <ChangePasswordDialog
@@ -152,5 +151,13 @@ export default function ProfilePage() {
         onCancel={passwordChange.closeDialog}
       />
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <UserInfoProvider>
+      <ProfilePageContent />
+    </UserInfoProvider>
   );
 }

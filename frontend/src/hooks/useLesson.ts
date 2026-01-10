@@ -3,10 +3,10 @@ import lessonService from "@/services/lessonService";
 import { QuestionInfo, QuestionAnswerSubmitResponse, CompleteSectionResponse } from "@/types/lesson";
 
 
-export function useLesson(lessonId: number) {
+export function useLesson(lessonId: number, initialSectionId?: number) {
   const [questions, setQuestions] = useState<QuestionInfo[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
-  const [sectionId, setSectionId] = useState<number | null>(null);
+  const [sectionId, setSectionId] = useState<number | null>(initialSectionId || null);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -26,6 +26,18 @@ export function useLesson(lessonId: number) {
         setLoading(true);
         setError(null);
 
+        // If sectionId is provided, load that specific section
+        if (initialSectionId) {
+          const res = await lessonService.getSectionQuestions(initialSectionId);
+          if (mounted) {
+            setSectionId(initialSectionId);
+            setQuestions(res.questions);
+            setCurrentStep(0);
+          }
+          return;
+        }
+
+        // Otherwise, get the next uncompleted section
         const next = await lessonService.getNextSection(lessonId);
 
         if ("status" in next && next.status === "completed") {
@@ -33,15 +45,17 @@ export function useLesson(lessonId: number) {
           return;
         }
 
-        setSectionId(next.section.id);
+        if ("section" in next) {
+          setSectionId(next.section.id);
 
-        const res = await lessonService.getSectionQuestions(
-          next.section.id
-        );
+          const res = await lessonService.getSectionQuestions(
+            next.section.id
+          );
 
-        if (mounted) {
-          setQuestions(res.questions);
-          setCurrentStep(0);
+          if (mounted) {
+            setQuestions(res.questions);
+            setCurrentStep(0);
+          }
         }
       } catch {
         if (mounted) {
@@ -59,7 +73,7 @@ export function useLesson(lessonId: number) {
     return () => {
       mounted = false;
     };
-  }, [lessonId]);
+  }, [lessonId, initialSectionId]);
 
   const currentQuestion = questions[currentStep];
   const progressPercent = questions.length > 0

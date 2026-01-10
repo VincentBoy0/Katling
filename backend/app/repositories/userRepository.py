@@ -426,8 +426,7 @@ class UserRepository:
             # Be defensive: create if missing
             user_point = UserPoints(user_id=user_id, xp=0, streak=0)
             self.session.add(user_point)
-            await self.session.commit()
-            await self.session.refresh(user_point)
+            await self.session.flush()
 
         now_utc = datetime.now(timezone.utc)
         today = now_utc.date()
@@ -442,7 +441,6 @@ class UserRepository:
             user.last_active_date = now_utc
             self.session.add(user)
             self.session.add(user_point)
-            await self.session.commit()
             return current_streak, True
 
         # Normalize last_active to UTC date for comparison
@@ -469,7 +467,6 @@ class UserRepository:
         user.last_active_date = now_utc
         self.session.add(user)
         self.session.add(user_point)
-        await self.session.commit()
         return current_streak, True
 
     async def consume_learning_energy(self, user_id: int, *, cost: int = 1) -> int:

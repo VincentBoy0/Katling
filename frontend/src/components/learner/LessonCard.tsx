@@ -17,7 +17,6 @@ import {
   ListOrdered,
   Lock
 } from "lucide-react";
-import { LessonStatus } from "@/types/content";
 
 interface LessonSection {
   id: number;
@@ -34,7 +33,7 @@ interface LessonCardProps {
     title: string;
     description?: string;
     progress: number;
-    status: LessonStatus;
+    status: "available" | "completed" | "locked";
     order_index: number;
     sections?: LessonSection[];
   };
@@ -76,12 +75,9 @@ export default function LessonCard({
   showSections = false,
 }: LessonCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const isPublished = lesson.status === "PUBLISHED" || lesson.status === "published";
-
-  const isCompleted = lesson.progress === 100;
-  const isInProgress = lesson.progress > 0 && lesson.progress < 100;
-  const isNotStarted = lesson.progress === 0;
-
+  const isCompleted = lesson.status === "completed";
+  const isAvailable = lesson.status === "available";
+  const isLocked = lesson.status === "locked";
 
   const LessonIcon = getLessonTypeIcon(lesson.type);
   const lessonColorClass = getLessonTypeColor(lesson.type);
@@ -92,7 +88,7 @@ export default function LessonCard({
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (hasSections && isPublished && showSections) {
+    if (hasSections && !isLocked && showSections) {
       setIsExpanded(!isExpanded);
     }
   };
@@ -100,7 +96,7 @@ export default function LessonCard({
   return (
     <Card
       className={`transition-all border-2 ${
-        isPublished
+        isAvailable
           ? "shadow-md hover:shadow-lg bg-card border-primary/30"
           : isCompleted
           ? "bg-card/50 border-green-200 dark:border-green-900/50"
@@ -109,11 +105,12 @@ export default function LessonCard({
     >
       {/* Lesson Header */}
       <div
-        className={`p-4 ${isPublished ? "cursor-pointer hover:bg-muted/30" : ""}`}
+        className={`p-4 ${!isLocked ? "cursor-pointer hover:bg-muted/30" : ""}`}
         onClick={(e) => {
           e.stopPropagation();
-          if (!isPublished) return;
-          onStartLesson(lesson.id);
+          if (!isLocked) {
+            onStartLesson(lesson.id);
+          }
         }}
       >
         <div className="flex items-center gap-4">
@@ -122,14 +119,14 @@ export default function LessonCard({
             className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg border-2 shrink-0 ${
               isCompleted
                 ? "bg-green-500 text-white border-green-600"
-                : isPublished
+                : isAvailable
                 ? "bg-primary text-primary-foreground border-primary"
                 : "bg-muted text-muted-foreground border-muted"
             }`}
           >
             {isCompleted ? (
               <Check className="w-6 h-6" strokeWidth={3} />
-            ) : !isPublished ? (
+            ) : isLocked ? (
               <Lock className="w-5 h-5" />
             ) : (
               lessonNumber
@@ -170,7 +167,7 @@ export default function LessonCard({
                 e.stopPropagation();
                 onStartLesson(lesson.id);
               }}
-              disabled={!isPublished}
+              disabled={isLocked}
               className="font-semibold"
             >
               {isCompleted ? (
@@ -178,7 +175,7 @@ export default function LessonCard({
                   <Check className="w-4 h-4 mr-1.5" />
                   Ôn tập
                 </>
-              ) : isInProgress && lesson.progress > 0 ? (
+              ) : isAvailable && lesson.progress > 0 ? (
                 <>
                   <Play className="w-4 h-4 mr-1.5" />
                   Tiếp tục
@@ -191,7 +188,7 @@ export default function LessonCard({
               )}
             </Button>
 
-            {hasSections && isPublished && showSections && (
+            {hasSections && !isLocked && showSections && (
               <Button
                 variant="ghost"
                 size="icon"

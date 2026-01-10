@@ -39,8 +39,7 @@ export default function EnhancedTopicCard({
 
   const { lessons, loading } = useTopicLessons(topic.id);
 
-  const completedLessons = lessons.filter(l => l.progress === 100);
-
+  const completedLessons = lessons.filter((l) => l.status === "completed").length;
   const totalLessons = lessons.length;
 
   const handleToggle = () => {

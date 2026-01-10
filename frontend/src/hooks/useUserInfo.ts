@@ -7,11 +7,16 @@ export function useUserInfo() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState< string | null>(null);
 
-    useEffect(() => {
+    const fetchUserInfo = () => {
+        setLoading(true);
         userService.getUserInfo() 
             .then(res => setInfo(res.data))
             .catch(() => setError("Unable to fetch data"))
             .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        fetchUserInfo();
     }, []);
 
 
@@ -21,12 +26,14 @@ export function useUserInfo() {
         try {
             const res = await userService.updateUserInfo(updateInfo);
             setInfo(res.data);
+            return res.data;
         } catch(err) {
             setError("Update failes");
+            throw err;
         } finally {
             setLoading(false);
         }
     };
 
-    return {userInfo, loading, error, updateUserInfo};
+    return {userInfo, loading, error, updateUserInfo, refreshUserInfo: fetchUserInfo};
 }
