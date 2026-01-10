@@ -2,6 +2,7 @@ import { api } from "@/lib/api";
 import {
   TopicsResponse,
   TopicLessonsResponse,
+  LessonSectionsResponse,
 } from "@/types/learning";
 
 export const learningService = {
@@ -15,6 +16,11 @@ export const learningService = {
     const response = await api.get<TopicLessonsResponse>(`/topics/${topicId}/lessons`);
     return response.data;
   },
+
+  async getLessonSections(lessonId: number): Promise<LessonSectionsResponse> {
+    const response = await api.get<LessonSectionsResponse>(`/lessons/${lessonId}/sections`);
+    return response.data;
+  }
 };
 
 export default learningService;
