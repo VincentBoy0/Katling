@@ -59,12 +59,14 @@ async def get_topics(
 
 	topics_out: List[TopicProgressOut] = []
 	for idx, t in enumerate(topics_raw):
-		# All topics are accessible - no locking
-		# Only mark as completed if fully done, otherwise current
+		# Exactly one topic is "current".
+		# Topics before it are "completed"; topics after it are "locked".
 		if idx < current_index:
 			status = "completed"
-		else:
+		elif idx == current_index:
 			status = "current"
+		else:
+			status = "locked"
 
 		topics_out.append(
 			TopicProgressOut(
