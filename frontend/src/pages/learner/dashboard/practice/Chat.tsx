@@ -5,7 +5,8 @@ import { Input } from "@/components/learner/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Bot, ChevronLeft, Mic, Send, Sparkles, User } from "lucide-react";
-import { chatWithBot } from "@/services/chatService";
+import { getConversationHistory, sendChatMessage } from "@/services/chatService";
+
 
 interface Message {
   id: number;
@@ -37,8 +38,7 @@ export default function ChatPage() {
   }, [messages, isTyping]);
 
   const handleSend = async () => {
-    if (isTyping) return;
-    if (!input.trim()) return;
+    if (isTyping || !input.trim()) return;
 
     const userMsg: Message = {
       id: Date.now(),
@@ -52,7 +52,7 @@ export default function ChatPage() {
     setIsTyping(true);
 
     try {
-      const res = await chatWithBot(input);
+      const res = await sendChatMessage(input);
 
       const botMsg: Message = {
         id: Date.now() + 1,
@@ -76,6 +76,24 @@ export default function ChatPage() {
       setIsTyping(false);
     }
   };
+
+  useEffect(() => {
+    async function loadHistory() {
+      try {
+        const res = await getConversationHistory();
+        const historyMessages: Message[] = res.history.map((h, i) => ({
+          id: i + 1,
+          text: h.content,
+          sender: h.role === "assistant" ? "bot" : "user",
+          timestamp: new Date(),
+        }));
+        setMessages(historyMessages);
+      } catch {}
+    }
+
+    loadHistory();
+  }, []);
+
 
   const handleQuickReply = (text: string) => {
     setInput(text);
