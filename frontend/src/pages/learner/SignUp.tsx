@@ -2,8 +2,8 @@ import { Link } from "react-router-dom";
 import { Lock, Mail, User } from "lucide-react";
 
 import { Input } from "@/components/learner/input";
-import { Card } from "@/components/learner/card"
-import { Button} from "@/components/learner/button"
+import { Card } from "@/components/learner/card";
+import { Button } from "@/components/learner/button";
 import { OAuthButtons } from "@/components/auth/OAuthButtons";
 import { ErrorAlert } from "@/components/auth/ErrorAlert";
 import { useSignUpForm } from "@/hooks/useAuthForm";
@@ -38,23 +38,6 @@ export default function SignUp() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Tên hiển thị
-            </label>
-            <div className="relative">
-              <User className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Nguyễn Văn A"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="pl-10"
-                required
-              />
-            </div>
-          </div>
-
           <div>
             <label className="block text-sm font-medium mb-2">Email</label>
             <div className="relative">
