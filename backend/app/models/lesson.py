@@ -29,6 +29,10 @@ class Topic(SQLModel, table=True):
     created_by: int = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
     name: str = Field(max_length=255)
     description: Optional[str] = None
+    status: LessonStatus = Field(
+        sa_column=Column(SAEnum(LessonStatus, name="lesson_status_enum")),
+        default=LessonStatus.DRAFT,
+    )
     order_index: int = Field(default=0, index=True)
     created_at: datetime = Field(
         default_factory=utc_now, 
@@ -128,6 +132,10 @@ class Question(SQLModel, table=True):
     )
     audio_url: Optional[str] = Field(default=None, max_length=512)
     explanation: Optional[str] = None
+    status: LessonStatus = Field(
+        sa_column=Column(SAEnum(LessonStatus, name="lesson_status_enum")),
+        default=LessonStatus.DRAFT,
+    )
     order_index: int = Field(default=0, index=True)
     created_at: datetime = Field(
         default_factory=utc_now, 
