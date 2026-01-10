@@ -19,7 +19,13 @@ async def get_daily_missions(
 ) -> DailyMissionsResponse:
     mission_service = MissionService(session)
     date_value = mission_service.today_local()
-    missions = await mission_service.get_daily_missions(user_id=current_user.id, date_value=date_value)
+    try:
+        missions = await mission_service.get_daily_missions(user_id=current_user.id, date_value=date_value)
+        # get_daily_missions() may assign missions (flush-only). Persist them.
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
     return DailyMissionsResponse(date=date_value, missions=missions)
 
 
@@ -30,8 +36,14 @@ async def claim_daily_mission(
     current_user=Depends(get_current_user),
 ) -> ClaimMissionResponse:
     mission_service = MissionService(session)
-    xp, total_xp = await mission_service.claim_mission(
-        user_id=current_user.id,
-        user_daily_mission_id=user_daily_mission_id,
-    )
+    try:
+        xp, total_xp = await mission_service.claim_mission(
+            user_id=current_user.id,
+            user_daily_mission_id=user_daily_mission_id,
+        )
+        # claim_mission() applies flush-only updates (mark claimed, add xp, log xp).
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
     return ClaimMissionResponse(xp=xp, total_xp=total_xp)

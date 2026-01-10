@@ -82,8 +82,15 @@ async def save_user_word(
     )
 
     if created:
-        mission_service = MissionService(session)
-        await mission_service.on_word_saved(user_id=current_user.id)
+        # MissionService uses commit=False (flush only). Without an explicit commit
+        # here, mission progress will be rolled back when the request ends.
+        try:
+            mission_service = MissionService(session)
+            await mission_service.on_word_saved(user_id=current_user.id)
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
     response.status_code = 201 if created else 200
     return user_word
