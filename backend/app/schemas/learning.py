@@ -65,6 +65,10 @@ class LessonInTopicOut(BaseModel):
     progress: int = Field(..., ge=0, le=100, description="Lesson completion percentage (0-100)")
     status: LessonInTopicStatus = Field(..., description="Lesson status")
     order_index: int = Field(..., description="Lesson order in topic")
+
+
+class LessonSectionsResponse(BaseModel):
+    lesson_id: int = Field(..., description="Lesson ID")
     sections: List[LessonSectionSummary] = Field(default_factory=list, description="Sections in the lesson")
 
 
