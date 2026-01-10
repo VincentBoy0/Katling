@@ -63,8 +63,8 @@ export function useAdminUsers() {
     setUsers(u => u.filter(x => x.id !== id))
   }
 
-  const assignRole = async (userId: number, {user_id, role_type} : RoleAssign) => {
-    await adminService.assignRole(userId, {user_id, role_type})
+  const assignRole = async (userId: number, { role_type }: RoleAssign) => {
+    await adminService.assignRole(userId, { role_type })
     setUsers(users =>
       users.map(u =>
         u.id === userId

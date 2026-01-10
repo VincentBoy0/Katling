@@ -52,8 +52,8 @@ export const adminService = {
         return api.delete<void>(`/admin/users/${userId}`)
     },
 
-    assignRole(userId: number, {user_id, role_type} : RoleAssign) {
-        return api.post<UserRole>(`/admin/users/${userId}/roles`, {user_id, role_type})
+    assignRole(userId: number, { role_type }: RoleAssign) {
+        return api.post<UserRole>(`/admin/users/${userId}/roles`, { role_type })
     },
 
     removeRole(userId: number, roleType: RoleType) {
