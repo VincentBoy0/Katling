@@ -1,11 +1,31 @@
-import { Outlet, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import { RoleType } from "@/types/user";
+import ModeratorHeader from "@/components/moderator/Header";
+import ModeratorSidebar from "@/components/moderator/Sidebar";
 
 export default function ModeratorLayout() {
   const { isAuthenticated, roles, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState("create");
+
+  // Determine active tab from current route
+  useEffect(() => {
+    const path = location.pathname;
+    if (
+      path.includes("/topics/") ||
+      path.includes("/lessons/") ||
+      path.includes("/sections/") ||
+      path === "/moderator" ||
+      path === "/moderator/"
+    ) {
+      setActiveTab("create");
+    } else if (path.includes("/reports")) {
+      setActiveTab("reports");
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -43,5 +63,15 @@ export default function ModeratorLayout() {
     return null;
   }
 
-  return <Outlet />;
+  return (
+    <div className="flex h-screen bg-background transition-colors duration-300">
+      <ModeratorSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <ModeratorHeader onNavigate={setActiveTab} />
+        <main className="flex-1 overflow-auto bg-muted/10">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
 }
