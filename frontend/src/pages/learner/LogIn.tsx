@@ -21,10 +21,10 @@ export default function LogIn() {
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate("/dashboard");
-    } catch (err) {
-      setError("Email hoặc mật khẩu không chính xác.");
+      await login(email, password, "learner");
+      // Navigation handled by auth-context
+    } catch (err: any) {
+      setError(err?.message || "Email hoặc mật khẩu không chính xác.");
     } finally {
       setLoading(false);
     }
@@ -34,10 +34,10 @@ export default function LogIn() {
     setError("");
     setLoading(true);
     try {
-      await loginWithOAuth(provider);
-      navigate("/dashboard");
-    } catch (err) {
-      setError(`Không thể đăng nhập bằng ${provider}. Vui lòng thử lại.`);
+      await loginWithOAuth(provider, "learner");
+      // Navigation handled by auth-context
+    } catch (err: any) {
+      setError(err?.message || `Không thể đăng nhập bằng ${provider}. Vui lòng thử lại.`);
     } finally {
       setLoading(false);
     }

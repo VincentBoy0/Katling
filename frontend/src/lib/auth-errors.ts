@@ -1,3 +1,5 @@
+import { BannedUserError, PermissionDeniedError } from '@/context/auth-context';
+
 // Firebase Auth Error Codes và Messages
 export const FIREBASE_AUTH_ERRORS: Record<string, string> = {
   'auth/email-already-in-use': 'Email này đã được sử dụng.',
@@ -21,12 +23,24 @@ export const GENERIC_ERRORS = {
   NETWORK_ERROR: 'Lỗi kết nối. Vui lòng kiểm tra internet.',
   UNKNOWN_ERROR: 'Có lỗi xảy ra. Vui lòng thử lại.',
   PASSWORDS_DO_NOT_MATCH: 'Mật khẩu không khớp.',
+  USER_BANNED: 'Tài khoản của bạn đã bị khóa.',
+  NO_PERMISSION: 'Bạn không có quyền truy cập trang này.',
 } as const;
 
 /**
  * Parse Firebase Auth Error to Vietnamese message
  */
 export function getFirebaseErrorMessage(error: unknown): string {
+  // Check for BannedUserError first
+  if (error instanceof BannedUserError) {
+    return GENERIC_ERRORS.USER_BANNED;
+  }
+
+  // Check for PermissionDeniedError
+  if (error instanceof PermissionDeniedError) {
+    return error.message;
+  }
+
   if (error && typeof error === 'object' && 'code' in error) {
     const code = (error as { code: string }).code;
     return FIREBASE_AUTH_ERRORS[code] || GENERIC_ERRORS.UNKNOWN_ERROR;

@@ -7,7 +7,6 @@ import { getFirebaseErrorMessage, GENERIC_ERRORS } from '@/lib/auth-errors';
  * Custom hook for SignIn form logic
  */
 export function useSignInForm() {
-  const navigate = useNavigate();
   const { login, loginWithOAuth } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,8 +19,8 @@ export function useSignInForm() {
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      await login(email, password, 'learner');
+      // Navigation handled by auth-context
     } catch (err) {
       setError(getFirebaseErrorMessage(err));
     } finally {
@@ -34,8 +33,8 @@ export function useSignInForm() {
     setLoading(true);
     
     try {
-      await loginWithOAuth(provider);
-      navigate('/dashboard');
+      await loginWithOAuth(provider, 'learner');
+      // Navigation handled by auth-context
     } catch (err) {
       setError(getFirebaseErrorMessage(err));
     } finally {
@@ -96,8 +95,8 @@ export function useSignUpForm() {
     setLoading(true);
     
     try {
-      await loginWithOAuth(provider);
-      navigate('/dashboard');
+      await loginWithOAuth(provider, 'learner');
+      // Navigation handled by auth-context
     } catch (err) {
       setError(getFirebaseErrorMessage(err));
     } finally {

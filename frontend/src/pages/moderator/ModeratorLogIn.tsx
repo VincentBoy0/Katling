@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import { Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { getFirebaseErrorMessage } from "@/lib/auth-errors";
 
 export default function ModeratorLogIn() {
   const navigate = useNavigate();
@@ -12,35 +13,16 @@ export default function ModeratorLogIn() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const getErrorMessage = (error: any): string => {
-    if (error.code === "auth/invalid-credential") {
-      return "Email hoặc mật khẩu không chính xác.";
-    }
-    if (error.code === "auth/user-not-found") {
-      return "Tài khoản không tồn tại.";
-    }
-    if (error.code === "auth/wrong-password") {
-      return "Mật khẩu không chính xác.";
-    }
-    if (error.code === "auth/too-many-requests") {
-      return "Quá nhiều lần thử. Vui lòng thử lại sau.";
-    }
-    if (error.code === "auth/network-request-failed") {
-      return "Lỗi kết nối. Vui lòng kiểm tra internet.";
-    }
-    return error.message || "Đăng nhập thất bại. Vui lòng thử lại.";
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      await login(email, password);
-      // Navigation will be handled by auth-context based on role
+      await login(email, password, "moderator");
+      // Navigation will be handled by auth-context based on portal
     } catch (error: any) {
       console.error("Moderator login error:", error);
-      toast.error(getErrorMessage(error));
+      toast.error(getFirebaseErrorMessage(error));
       setIsLoading(false);
     }
   };
