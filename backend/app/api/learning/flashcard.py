@@ -97,5 +97,10 @@ async def complete_flashcards(
 	repo = VocabRepository(session)
 	await repo.touch_last_reviewed_at(user_id=current_user.id, user_word_ids=payload.user_word_ids)
 	mission_service = MissionService(session)
-	await mission_service.on_flashcard_reviewed(user_id=current_user.id)
+	try:
+		await mission_service.on_flashcard_reviewed(user_id=current_user.id)
+		await session.commit()
+	except Exception:
+		await session.rollback()
+		raise
 	return Response(status_code=204)
