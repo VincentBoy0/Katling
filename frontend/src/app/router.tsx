@@ -11,6 +11,7 @@ import Home from "@/pages/learner/Home";
 import LogIn from "@/pages/learner/LogIn";
 import SignUp from "@/pages/learner/SignUp";
 import Verify from "@/pages/learner/Verify";
+import VerifyEmail from "@/pages/learner/VerifyEmail";
 
 /* Learner */
 import Dashboard from "@/pages/learner/Dashboard";
@@ -49,6 +50,7 @@ export const router = createBrowserRouter([
       { path: "/login", element: <LogIn /> },
       { path: "/signup", element: <SignUp /> },
       { path: "/verify", element: <Verify /> },
+      { path: "/verify-email", element: <VerifyEmail /> },
       { path: "/forgot-password", element: <ForgotPasswordPage /> },
       { path: "/forgot-password/reset", element: <ResetPasswordPage /> },
       { path: "/auth/action", element: <ActionHandler /> },
