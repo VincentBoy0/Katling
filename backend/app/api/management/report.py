@@ -94,7 +94,6 @@ async def list_reports(
 async def get_report_details(
     report_id: int,
     session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
 ):
     """
     Get detailed information about a specific report.
@@ -109,10 +108,9 @@ async def get_report_details(
     Returns:
         Report details
     """
+    repo = ReportRepository(session)
     try:
-        repo = ReportRepository(session)
         report = await repo.get_report_by_id(report_id)
-        
         if not report:
             raise HTTPException(status_code=404, detail="Report not found")
         
@@ -246,7 +244,6 @@ async def close_report(
 @router.get("/stats/summary")
 async def get_reports_summary(
     session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
 ):
     """
     Get a summary of all reports grouped by status.
@@ -263,7 +260,6 @@ async def get_reports_summary(
     try:
         repo = ReportRepository(session)
         stats = await repo.get_reports_by_status()
-        
         total = sum(stats.values())
         pending = stats.get("PENDING", 0)
         in_progress = stats.get("IN_PROGRESS", 0)

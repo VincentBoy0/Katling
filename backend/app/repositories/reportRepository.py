@@ -59,7 +59,8 @@ class ReportRepository:
         """
         stmt = select(Report).where(Report.id == report_id)
         result = await self.session.exec(stmt)
-        return result.first()
+        report = result.first()
+        return report 
     
     async def get_user_reports(self, user_id: int, skip: int = 0, limit: int = 50) -> list[Report]:
         """Get all reports filed by a user.
