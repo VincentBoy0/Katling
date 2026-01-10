@@ -10,6 +10,7 @@ from repositories.userRepository import UserRepository
 from schemas.user import TraditionalSignUp, UserCreate, UserProfileUpdate
 from schemas.role import RoleAssign, RoleRemove, UserRolesListResponse
 
+from models.lesson import Lesson, LessonStatus, Topic, LessonSection, Question
 from models.user import RoleType, User, UserInfo
 
 
@@ -157,7 +158,6 @@ async def remove_role_from_user(
 	user_id: int,
 	role_type: RoleType,
 	session: AsyncSession = Depends(get_session),
-	current_user: User = Depends(get_current_user),
 ):
 	"""
 	Remove a role from a user.
@@ -233,3 +233,69 @@ async def check_user_role(
 		"role_type": role_type,
 		"has_role": has_role,
 	}
+
+@router.patch("/lesson/{lesson_id:int}", response_model=Lesson)
+async def update_status_lesson(
+	lesson_id: int,
+	status: LessonStatus,
+	session: AsyncSession = Depends(get_session)
+):
+	lesson = await session.get(Lesson, lesson_id)
+	if not lesson:
+		raise HTTPException(status_code=404, detail="Lesson not found")
+	lesson.status = status
+	session.add(lesson)
+	await session.commit() 
+	await session.refresh(lesson)
+	return lesson
+
+
+@router.patch("/topic/{topic_id:int}", response_model=Topic)
+async def update_status_topic(
+	topic_id: int,
+	status: LessonStatus,
+	session: AsyncSession = Depends(get_session)
+):
+	"""Update the status of a topic."""
+	topic = await session.get(Topic, topic_id)
+	if not topic:
+		raise HTTPException(status_code=404, detail="Topic not found")
+	topic.status = status
+	session.add(topic)
+	await session.commit()
+	await session.refresh(topic)
+	return topic
+
+
+@router.patch("/section/{section_id:int}", response_model=LessonSection)
+async def update_status_section(
+	section_id: int,
+	status: LessonStatus,
+	session: AsyncSession = Depends(get_session)
+):
+	"""Update the status of a lesson section."""
+	section = await session.get(LessonSection, section_id)
+	if not section:
+		raise HTTPException(status_code=404, detail="Section not found")
+	section.status = status
+	session.add(section)
+	await session.commit()
+	await session.refresh(section)
+	return section
+
+
+@router.patch("/question/{question_id:int}", response_model=Question)
+async def update_status_question(
+	question_id: int,
+	status: LessonStatus,
+	session: AsyncSession = Depends(get_session)
+):
+	"""Update the status of a question."""
+	question = await session.get(Question, question_id)
+	if not question:
+		raise HTTPException(status_code=404, detail="Question not found")
+	question.status = status
+	session.add(question)
+	await session.commit()
+	await session.refresh(question)
+	return question 
