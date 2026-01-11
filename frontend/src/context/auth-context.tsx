@@ -174,13 +174,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             
             setUser(parsedUser);
 
-            // Restore roles from localStorage or fetch from backend
+            // Restore roles from localStorage
             if (savedRoles) {
               const parsedRoles = JSON.parse(savedRoles) as RoleType[];
               setRoles(parsedRoles);
             } else {
               // No saved roles, fetch from backend
               await fetchUserRoles();
+            }
+
+            // CRITICAL: Get a fresh token to replace the potentially expired one
+            try {
+              const freshToken = await firebaseUser.getIdToken(true);
+              localStorage.setItem("firebase_token", freshToken);
+            } catch (tokenError) {
+              console.error("Failed to refresh token:", tokenError);
+              // If token refresh fails, re-authenticate
+              await restoreUserSession(firebaseUser);
             }
           } catch (error) {
             console.error("Failed to parse saved user:", error);
@@ -205,12 +215,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
+  // Periodically refresh Firebase token (every 50 minutes)
+  // Firebase tokens expire after 1 hour, so we refresh proactively
+  useEffect(() => {
+    if (!user) return;
+
+    const refreshInterval = setInterval(async () => {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        try {
+          const freshToken = await currentUser.getIdToken(true);
+          localStorage.setItem("firebase_token", freshToken);
+          console.log("Token refreshed successfully");
+        } catch (error) {
+          console.error("Periodic token refresh failed:", error);
+        }
+      }
+    }, 50 * 60 * 1000); // 50 minutes
+
+    return () => clearInterval(refreshInterval);
+  }, [user]);
+
   /**
    * Restore user session from backend when Firebase is authenticated but local data is missing
    */
   const restoreUserSession = async (firebaseUser: FirebaseUser) => {
     try {
-      const firebaseToken = await firebaseUser.getIdToken();
+      // Always get a fresh token (force refresh if needed)
+      const firebaseToken = await firebaseUser.getIdToken(true);
       const backendData = await loginWithBackend(firebaseToken);
 
       // Check if user is banned
