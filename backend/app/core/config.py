@@ -29,12 +29,13 @@ class Settings(BaseSettings):
     class Config:
         env_file = "../.env"
 
-    @property
-    def DATABASE_URL(self) -> str:
-        return (
-            f"postgresql+asyncpg://{self.database_username}:"
-            f"{self.database_password}@{self.database_hostname}:"
-            f"{self.database_port}/{self.database_name}"
-        )
+    DATABASE_URL: str = Field(..., env="DATABASE_URL")
+    # @property
+    # def DATABASE_URL(self) -> str:
+    #     return (
+    #         f"postgresql+asyncpg://{self.database_username}:"
+    #         f"{self.database_password}@{self.database_hostname}:"
+    #         f"{self.database_port}/{self.database_name}"
+    #     )
 
 settings = Settings()
