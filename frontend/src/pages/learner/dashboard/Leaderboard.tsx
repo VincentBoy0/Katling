@@ -174,7 +174,7 @@ export default function LeaderboardPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div className="bg-background rounded-2xl p-4 border-2 border-orange-100 dark:border-orange-900 text-center">
             <p className="text-xs font-bold text-orange-500 uppercase tracking-wider mb-1">
               Streak
@@ -210,7 +210,7 @@ export default function LeaderboardPage() {
           defaultValue="streak"
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-3 h-12 p-1 bg-muted/50 rounded-xl mb-6">
+          <TabsList className="grid w-full grid-cols-2 h-12 p-1 bg-muted/50 rounded-xl mb-6">
             <TabsTrigger
               value="streak"
               className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:text-orange-500 data-[state=active]:shadow-sm transition-all"
