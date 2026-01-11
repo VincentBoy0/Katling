@@ -6,9 +6,15 @@ import {
   NextSectionResponse,
   CompleteSectionRequest,
   CompleteSectionResponse,
+  LessonContentResponse,
 } from "@/types/lesson";
 
 export const lessonService = {
+
+  async getLessonContent(lessonId: number): Promise<LessonContentResponse> {
+    const response = await api.get<LessonContentResponse>(`/lessons/${lessonId}/content`);
+    return response.data;
+  },
 
   async getSectionQuestions(sectionId: number): Promise<SectionQuestionsResponse> {
     const response = await api.get<SectionQuestionsResponse>(`/sections/${sectionId}/questions`);
