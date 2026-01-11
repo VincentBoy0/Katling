@@ -1,5 +1,6 @@
 "use client";
 
+import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Eye,
@@ -17,16 +18,25 @@ export default function ModeratorSidebar({
   activeTab,
   setActiveTab,
 }: ModeratorSidebarProps) {
+  const navigate = useNavigate();
+
   const menuItems = [
     // { id: "overview", label: "Overview", icon: LayoutDashboard },
-    { id: "create", label: "Create Content", icon: Upload },
+    { id: "create", label: "Create Content", icon: Upload, path: "/moderator" },
     // { id: "review", label: "Review Queue", icon: Eye },
-    { id: "reports", label: "Reports", icon: Flag },
+    { id: "reports", label: "Reports", icon: Flag, path: "/moderator/reports" },
     // { id: "appeals", label: "Appeals", icon: MessageSquare },
   ];
 
+  const handleMenuClick = (item: (typeof menuItems)[0]) => {
+    setActiveTab(item.id);
+    if (item.path) {
+      navigate(item.path);
+    }
+  };
+
   return (
-    <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
+    <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col shrink-0">
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
@@ -49,7 +59,7 @@ export default function ModeratorSidebar({
           return (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => handleMenuClick(item)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 activeTab === item.id
                   ? "bg-sidebar-primary text-sidebar-primary-foreground"

@@ -41,6 +41,7 @@ import ModeratorLogIn from "@/pages/moderator/ModeratorLogIn";
 import TopicLessons from "@/pages/moderator/dashboard/topic-lessons";
 import LessonSections from "@/pages/moderator/dashboard/lesson-sections";
 import SectionQuestions from "@/pages/moderator/dashboard/section-questions";
+import ModeratorReports from "@/pages/moderator/dashboard/user-reports";
 
 export const router = createBrowserRouter([
   {
@@ -66,7 +67,10 @@ export const router = createBrowserRouter([
           { index: true, element: <Dashboard /> },
           { path: "learn", element: <Learn /> },
           { path: "lessons/:lessonId", element: <LessonOverview /> },
-          { path: "lessons/:lessonId/sections/:sectionId", element: <Lesson /> },
+          {
+            path: "lessons/:lessonId/sections/:sectionId",
+            element: <Lesson />,
+          },
           {
             path: "practice",
             children: [
@@ -99,7 +103,11 @@ export const router = createBrowserRouter([
           { index: true, element: <ModeratorDashboard /> },
           { path: "topics/:topicId/lessons", element: <TopicLessons /> },
           { path: "lessons/:lessonId/sections", element: <LessonSections /> },
-          { path: "sections/:sectionId/questions", element: <SectionQuestions /> },
+          {
+            path: "sections/:sectionId/questions",
+            element: <SectionQuestions />,
+          },
+          { path: "reports", element: <ModeratorReports /> },
         ],
       },
     ],

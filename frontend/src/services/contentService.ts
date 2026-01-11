@@ -124,6 +124,13 @@ export const contentService = {
         return api.delete<MessageResponse>(`/moderator/topics/${topicId}`);
     },
 
+    /**
+     * Restore a deleted topic (Moderator)
+     */
+    restoreTopic(topicId: number) {
+        return api.post<Topic>(`/moderator/topics/${topicId}/restore`);
+    },
+
     // ============ Lesson Management ============
 
     /**
@@ -175,6 +182,13 @@ export const contentService = {
         return api.delete<MessageResponse>(`/moderator/lessons/${lessonId}`);
     },
 
+    /**
+     * Restore a deleted lesson (Moderator)
+     */
+    restoreLesson(lessonId: number) {
+        return api.post<Lesson>(`/moderator/lessons/${lessonId}/restore`);
+    },
+
     // ============ Lesson Section Management ============
 
     /**
@@ -224,6 +238,13 @@ export const contentService = {
      */
     deleteSection(sectionId: number) {
         return api.delete<MessageResponse>(`/moderator/lesson-sections/${sectionId}`);
+    },
+
+    /**
+     * Restore a deleted lesson section (Moderator)
+     */
+    restoreSection(sectionId: number) {
+        return api.post<LessonSection>(`/moderator/lesson-sections/${sectionId}/restore`);
     },
 
     // ============ Question Management ============

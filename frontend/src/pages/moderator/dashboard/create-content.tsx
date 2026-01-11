@@ -1,19 +1,47 @@
-import { BookOpen, Plus, Trash2, X } from "lucide-react";
+import { BookOpen, Plus, Trash2, Edit, Folder, RotateCcw } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { contentService, TopicCreateRequest } from "@/services/contentService";
+import {
+  contentService,
+  TopicCreateRequest,
+  TopicUpdateRequest,
+} from "@/services/contentService";
 import { Topic } from "@/types/content";
+import { toast } from "sonner";
+import {
+  PageHeader,
+  LoadingState,
+  ErrorState,
+  EmptyState,
+} from "@/components/shared/PageComponents";
+import { ContentCard, ActionMenu } from "@/components/shared/ContentComponents";
+import { Modal, ConfirmModal } from "@/components/shared/Modal";
 
 export default function CreateContent() {
   const [topics, setTopics] = useState<Topic[]>([]);
+  const [deletedTopics, setDeletedTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRecycleBin, setShowRecycleBin] = useState(false);
+  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const navigate = useNavigate();
 
-  // Form state
-  const [formData, setFormData] = useState<TopicCreateRequest>({
+  // Form state for create
+  const [createFormData, setCreateFormData] = useState<TopicCreateRequest>({
+    name: "",
+    description: "",
+    order_index: 0,
+  });
+
+  // Form state for edit
+  const [editFormData, setEditFormData] = useState<TopicUpdateRequest>({
     name: "",
     description: "",
     order_index: 0,
@@ -28,11 +56,19 @@ export default function CreateContent() {
       setLoading(true);
       setError(null);
       const response = await contentService.getAllTopics();
-      // Sort topics by order_index
-      const sortedTopics = response.data.sort((a, b) => a.order_index - b.order_index);
-      setTopics(sortedTopics);
+      const allTopics = response.data;
+      const activeTopics = allTopics
+        .filter((t) => !t.is_deleted)
+        .sort((a, b) => a.order_index - b.order_index);
+      const deleted = allTopics
+        .filter((t) => t.is_deleted)
+        .sort((a, b) => a.order_index - b.order_index);
+      setTopics(activeTopics);
+      setDeletedTopics(deleted);
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || "Failed to fetch topics");
+      setError(
+        err.response?.data?.detail || err.message || "Failed to fetch topics"
+      );
       console.error("Error fetching topics:", err);
     } finally {
       setLoading(false);
@@ -40,7 +76,6 @@ export default function CreateContent() {
   };
 
   const handleTopicClick = (topic: Topic) => {
-    // Only navigate if topic is not deleted
     if (!topic.is_deleted) {
       navigate(`/moderator/topics/${topic.id}/lessons`);
     }
@@ -48,35 +83,110 @@ export default function CreateContent() {
 
   const handleCreateTopic = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.name.trim()) {
+
+    if (!createFormData.name.trim()) {
+      toast.error("Tên topic không được để trống");
       return;
     }
 
     try {
       setCreating(true);
       await contentService.createTopic({
-        name: formData.name.trim(),
-        description: formData.description?.trim() || undefined,
-        order_index: formData.order_index,
+        name: createFormData.name.trim(),
+        description: createFormData.description?.trim() || undefined,
+        order_index: createFormData.order_index,
       });
-      
-      // Reset form and close modal
-      setFormData({ name: "", description: "", order_index: 0 });
+
+      setCreateFormData({ name: "", description: "", order_index: 0 });
       setShowCreateModal(false);
-      
-      // Refresh topics list
+      toast.success("Tạo topic thành công!");
       await fetchTopics();
     } catch (err: any) {
       console.error("Error creating topic:", err);
-      alert(err.response?.data?.detail || "Failed to create topic");
+      toast.error(err.response?.data?.detail || "Không thể tạo topic");
     } finally {
       setCreating(false);
     }
   };
 
+  const handleEditClick = (topic: Topic) => {
+    setSelectedTopic(topic);
+    setEditFormData({
+      name: topic.name,
+      description: topic.description || "",
+      order_index: topic.order_index,
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateTopic = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedTopic || !editFormData.name?.trim()) {
+      toast.error("Tên topic không được để trống");
+      return;
+    }
+
+    try {
+      setUpdating(true);
+      await contentService.updateTopic(selectedTopic.id, {
+        name: editFormData.name.trim(),
+        description: editFormData.description?.trim() || undefined,
+        order_index: editFormData.order_index,
+      });
+
+      setShowEditModal(false);
+      setSelectedTopic(null);
+      toast.success("Cập nhật topic thành công!");
+      await fetchTopics();
+    } catch (err: any) {
+      console.error("Error updating topic:", err);
+      toast.error(err.response?.data?.detail || "Không thể cập nhật topic");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeleteClick = (topic: Topic) => {
+    setSelectedTopic(topic);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteTopic = async () => {
+    if (!selectedTopic) return;
+
+    try {
+      setDeleting(true);
+      await contentService.deleteTopic(selectedTopic.id);
+
+      setShowDeleteConfirm(false);
+      setSelectedTopic(null);
+      toast.success("Đã chuyển topic vào thùng rác!");
+      await fetchTopics();
+    } catch (err: any) {
+      console.error("Error deleting topic:", err);
+      toast.error(err.response?.data?.detail || "Không thể xóa topic");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleRestoreTopic = async (topic: Topic) => {
+    try {
+      setRestoring(true);
+      await contentService.restoreTopic(topic.id);
+      toast.success("Khôi phục topic thành công!");
+      await fetchTopics();
+    } catch (err: any) {
+      console.error("Error restoring topic:", err);
+      toast.error(err.response?.data?.detail || "Không thể khôi phục topic");
+    } finally {
+      setRestoring(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    return new Date(dateString).toLocaleDateString("vi-VN", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -85,203 +195,370 @@ export default function CreateContent() {
 
   return (
     <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-foreground">Learning Topics</h2>
-          <p className="text-muted-foreground mt-2">
-            Manage learning topics and their sections
-          </p>
-        </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold"
-        >
-          <Plus className="w-5 h-5" />
-          Create New Topic
-        </button>
-      </div>
+      <PageHeader
+        icon={<Folder className="w-6 h-6 text-primary" />}
+        title="Quản lý Nội dung"
+        subtitle="Quản lý các chủ đề học tập và bài học"
+        actions={
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowRecycleBin(!showRecycleBin)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium ${
+                showRecycleBin
+                  ? "bg-red-500/10 text-red-500 border border-red-500/20"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Trash2 className="w-4 h-4" />
+              Thùng rác{" "}
+              {deletedTopics.length > 0 && `(${deletedTopics.length})`}
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold"
+            >
+              <Plus className="w-5 h-5" />
+              Tạo Topic mới
+            </button>
+          </div>
+        }
+      />
 
       {loading ? (
-        <div className="flex items-center justify-center p-12">
-          <div className="text-center">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-            <p className="text-muted-foreground mt-4">Loading topics...</p>
-          </div>
-        </div>
+        <LoadingState message="Đang tải topics..." />
       ) : error ? (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6">
-          <p className="text-red-600 font-medium">Error: {error}</p>
-          <button
-            onClick={fetchTopics}
-            className="mt-4 px-4 py-2 bg-red-500/20 text-red-600 rounded-lg hover:bg-red-500/30 transition-colors"
-          >
-            Retry
-          </button>
+        <ErrorState message={error} onRetry={fetchTopics} />
+      ) : showRecycleBin ? (
+        // Recycle Bin View
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-4 p-4 bg-red-500/5 border border-red-500/20 rounded-lg">
+            <Trash2 className="w-5 h-5 text-red-500" />
+            <span className="text-sm text-red-600 font-medium">
+              Các topic đã xóa ({deletedTopics.length})
+            </span>
+          </div>
+          {deletedTopics.length === 0 ? (
+            <div className="bg-card border border-border rounded-xl p-12 text-center">
+              <Trash2 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground text-lg">Thùng rác trống</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {deletedTopics.map((topic) => (
+                <div
+                  key={topic.id}
+                  className="bg-card border border-red-500/20 rounded-xl p-6 opacity-75"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Folder className="w-5 h-5 text-red-500" />
+                        <span className="text-xs px-2 py-0.5 rounded bg-red-500/10 text-red-500 font-semibold">
+                          Đã xóa
+                        </span>
+                      </div>
+                      <h3 className="text-foreground font-semibold mb-1">
+                        {topic.name}
+                      </h3>
+                      {topic.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {topic.description}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleRestoreTopic(topic)}
+                      disabled={restoring}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-500/10 text-green-600 rounded-lg hover:bg-green-500/20 transition-colors font-medium disabled:opacity-50"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Khôi phục
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ) : topics.length === 0 ? (
-        <div className="bg-card border border-border rounded-xl p-12 text-center">
-          <BookOpen className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground text-lg mb-4">
-            No topics created yet
-          </p>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold"
-          >
-            Create Your First Topic
-          </button>
-        </div>
+        <EmptyState
+          icon={<BookOpen className="w-full h-full" />}
+          title="Chưa có topic nào"
+          description="Bắt đầu bằng cách tạo topic đầu tiên"
+          action={
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold"
+            >
+              Tạo Topic đầu tiên
+            </button>
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {topics.map((topic) => (
-            <div
+            <ContentCard
               key={topic.id}
+              type="topic"
+              icon={
+                topic.is_deleted ? (
+                  <Trash2 className="w-6 h-6" />
+                ) : (
+                  <Folder className="w-6 h-6" />
+                )
+              }
+              title={topic.name}
+              subtitle={topic.description}
+              badge={topic.is_deleted ? "Đã xóa" : undefined}
+              meta={[
+                { label: "Thứ tự", value: topic.order_index },
+                { label: "Ngày tạo", value: formatDate(topic.created_at) },
+              ]}
               onClick={() => handleTopicClick(topic)}
-              className={`
-                bg-card border rounded-xl p-6 transition-all
-                ${
-                  topic.is_deleted
-                    ? "border-red-500/30 bg-red-500/5 opacity-60 cursor-not-allowed"
-                    : "border-border hover:shadow-lg hover:border-primary/50 cursor-pointer"
-                }
-              `}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`
-                    p-3 rounded-lg
-                    ${
-                      topic.is_deleted
-                        ? "bg-red-500/10"
-                        : "bg-primary/10"
-                    }
-                  `}
-                  >
-                    {topic.is_deleted ? (
-                      <Trash2 className="w-6 h-6 text-red-500" />
-                    ) : (
-                      <BookOpen className="w-6 h-6 text-primary" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg text-foreground">
-                      {topic.name}
-                    </h3>
-                    {topic.is_deleted && (
-                      <span className="text-xs font-semibold text-red-500 bg-red-500/10 px-2 py-1 rounded-full">
-                        Deleted
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {topic.description && (
-                <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
-                  {topic.description}
-                </p>
-              )}
-
-              <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-4">
-                <span>Order: {topic.order_index}</span>
-                <span>{formatDate(topic.created_at)}</span>
-              </div>
-            </div>
+              actions={
+                !topic.is_deleted && (
+                  <ActionMenu
+                    items={[
+                      {
+                        icon: <Edit className="w-4 h-4" />,
+                        label: "Chỉnh sửa",
+                        onClick: () => handleEditClick(topic),
+                      },
+                      {
+                        icon: <Trash2 className="w-4 h-4" />,
+                        label: "Xóa",
+                        onClick: () => handleDeleteClick(topic),
+                        variant: "danger",
+                      },
+                    ]}
+                  />
+                )
+              }
+            />
           ))}
         </div>
       )}
 
       {/* Create Topic Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card border border-border rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-card border-b border-border p-6 flex items-center justify-between">
-              <h3 className="text-2xl font-bold text-foreground">Create New Topic</h3>
-              <button
-                onClick={() => {
-                  setShowCreateModal(false);
-                  setFormData({ name: "", description: "", order_index: 0 });
-                }}
-                className="p-2 hover:bg-muted rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateTopic} className="p-6 space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Topic Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., Basic Grammar"
-                  className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
-                  required
-                  maxLength={255}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Brief description of this topic..."
-                  className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors resize-none"
-                  rows={4}
-                  maxLength={1000}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {formData.description?.length || 0}/1000 characters
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Order Index
-                </label>
-                <input
-                  type="number"
-                  value={formData.order_index}
-                  onChange={(e) => setFormData({ ...formData, order_index: parseInt(e.target.value) || 0 })}
-                  min={0}
-                  className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Controls the display order (lower numbers appear first)
-                </p>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    setFormData({ name: "", description: "", order_index: 0 });
-                  }}
-                  className="flex-1 px-6 py-3 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors font-semibold"
-                  disabled={creating}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating || !formData.name.trim()}
-                  className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {creating ? "Creating..." : "Create Topic"}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => {
+          setShowCreateModal(false);
+          setCreateFormData({ name: "", description: "", order_index: 0 });
+        }}
+        title="Tạo Topic mới"
+      >
+        <form onSubmit={handleCreateTopic} className="p-6 space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              Tên Topic <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={createFormData.name}
+              onChange={(e) =>
+                setCreateFormData({
+                  ...createFormData,
+                  name: e.target.value,
+                })
+              }
+              placeholder="VD: Ngữ pháp cơ bản"
+              className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
+              required
+              maxLength={255}
+            />
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              Mô tả
+            </label>
+            <textarea
+              value={createFormData.description}
+              onChange={(e) =>
+                setCreateFormData({
+                  ...createFormData,
+                  description: e.target.value,
+                })
+              }
+              placeholder="Mô tả ngắn gọn về topic này..."
+              className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors resize-none"
+              rows={4}
+              maxLength={1000}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              {createFormData.description?.length || 0}/1000 ký tự
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              Thứ tự hiển thị
+            </label>
+            <input
+              type="number"
+              value={createFormData.order_index}
+              onChange={(e) =>
+                setCreateFormData({
+                  ...createFormData,
+                  order_index: parseInt(e.target.value) || 0,
+                })
+              }
+              min={0}
+              className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Số nhỏ hơn sẽ hiển thị trước
+            </p>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreateModal(false);
+                setCreateFormData({
+                  name: "",
+                  description: "",
+                  order_index: 0,
+                });
+              }}
+              className="flex-1 px-6 py-3 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors font-semibold"
+              disabled={creating}
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={creating || !createFormData.name.trim()}
+              className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creating ? "Đang tạo..." : "Tạo Topic"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Topic Modal */}
+      <Modal
+        isOpen={showEditModal && !!selectedTopic}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedTopic(null);
+          setEditFormData({ name: "", description: "", order_index: 0 });
+        }}
+        title="Chỉnh sửa Topic"
+      >
+        <form onSubmit={handleUpdateTopic} className="p-6 space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              Tên Topic <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={editFormData.name}
+              onChange={(e) =>
+                setEditFormData({ ...editFormData, name: e.target.value })
+              }
+              placeholder="VD: Ngữ pháp cơ bản"
+              className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
+              required
+              maxLength={255}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              Mô tả
+            </label>
+            <textarea
+              value={editFormData.description}
+              onChange={(e) =>
+                setEditFormData({
+                  ...editFormData,
+                  description: e.target.value,
+                })
+              }
+              placeholder="Mô tả ngắn gọn về topic này..."
+              className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors resize-none"
+              rows={4}
+              maxLength={1000}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              {editFormData.description?.length || 0}/1000 ký tự
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              Thứ tự hiển thị
+            </label>
+            <input
+              type="number"
+              value={editFormData.order_index}
+              onChange={(e) =>
+                setEditFormData({
+                  ...editFormData,
+                  order_index: parseInt(e.target.value) || 0,
+                })
+              }
+              min={0}
+              className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Số nhỏ hơn sẽ hiển thị trước
+            </p>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setShowEditModal(false);
+                setSelectedTopic(null);
+                setEditFormData({
+                  name: "",
+                  description: "",
+                  order_index: 0,
+                });
+              }}
+              className="flex-1 px-6 py-3 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors font-semibold"
+              disabled={updating}
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={updating || !editFormData.name?.trim()}
+              className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {updating ? "Đang lưu..." : "Lưu thay đổi"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm && !!selectedTopic}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setSelectedTopic(null);
+        }}
+        onConfirm={handleDeleteTopic}
+        title="Xác nhận xóa"
+        message={
+          <>
+            Bạn có chắc chắn muốn xóa topic{" "}
+            <strong className="text-foreground">"{selectedTopic?.name}"</strong>
+            ? Hành động này không thể hoàn tác và sẽ xóa tất cả các bài học liên
+            quan.
+          </>
+        }
+        confirmText={deleting ? "Đang xóa..." : "Xóa Topic"}
+        confirmDisabled={deleting}
+        variant="danger"
+      />
     </div>
   );
 }

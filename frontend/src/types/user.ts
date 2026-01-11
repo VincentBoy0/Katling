@@ -83,7 +83,6 @@ export interface UserRole {
 }
 
 export interface RoleAssign {
-  user_id: number;
   role_type: RoleType;
 }
 

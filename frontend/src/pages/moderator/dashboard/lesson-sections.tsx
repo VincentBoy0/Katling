@@ -1,21 +1,62 @@
-import { List, Plus, Trash2, ArrowLeft, Edit } from "lucide-react";
+import {
+  List,
+  Plus,
+  Trash2,
+  Edit,
+  BookOpen,
+  Folder,
+  FileText,
+  RotateCcw,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { contentService, LessonSectionCreateRequest } from "@/services/contentService";
+import {
+  contentService,
+  LessonSectionCreateRequest,
+  LessonSectionUpdateRequest,
+} from "@/services/contentService";
 import { Lesson, LessonSection } from "@/types/content";
+import { toast } from "sonner";
+import {
+  PageHeader,
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  Breadcrumb,
+  ContentCard,
+  ActionMenu,
+  Modal,
+  ConfirmModal,
+} from "@/components/shared";
 
 export default function LessonSections() {
   const { lessonId } = useParams<{ lessonId: string }>();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [sections, setSections] = useState<LessonSection[]>([]);
+  const [deletedSections, setDeletedSections] = useState<LessonSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRecycleBin, setShowRecycleBin] = useState(false);
+  const [selectedSection, setSelectedSection] = useState<LessonSection | null>(
+    null
+  );
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState<LessonSectionCreateRequest>({
-    lesson_id: parseInt(lessonId || "0"),
+  const [createFormData, setCreateFormData] =
+    useState<LessonSectionCreateRequest>({
+      lesson_id: parseInt(lessonId || "0"),
+      title: "",
+      order_index: 0,
+    });
+
+  const [editFormData, setEditFormData] = useState<LessonSectionUpdateRequest>({
     title: "",
     order_index: 0,
   });
@@ -31,14 +72,30 @@ export default function LessonSections() {
       setLoading(true);
       setError(null);
       const [lessonResponse, sectionsResponse] = await Promise.all([
-        contentService.getLessonById(parseInt(lessonId!), { include_deleted: true }),
-        contentService.getSectionsByLesson(parseInt(lessonId!), { include_deleted: true }),
+        contentService.getLessonById(parseInt(lessonId!), {
+          include_deleted: true,
+        }),
+        contentService.getSectionsByLesson(parseInt(lessonId!), {
+          include_deleted: true,
+        }),
       ]);
       setLesson(lessonResponse.data);
-      const sortedSections = sectionsResponse.data.sort((a, b) => a.order_index - b.order_index);
-      setSections(sortedSections);
+
+      // Separate active and deleted sections
+      const allSections = sectionsResponse.data;
+      const activeSections = allSections
+        .filter((s) => !s.is_deleted)
+        .sort((a, b) => a.order_index - b.order_index);
+      const deleted = allSections
+        .filter((s) => s.is_deleted)
+        .sort((a, b) => a.order_index - b.order_index);
+
+      setSections(activeSections);
+      setDeletedSections(deleted);
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || "Failed to fetch data");
+      setError(
+        err.response?.data?.detail || err.message || "Không thể tải dữ liệu"
+      );
       console.error("Error fetching lesson and sections:", err);
     } finally {
       setLoading(false);
@@ -51,35 +108,110 @@ export default function LessonSections() {
     }
   };
 
+  const handleEditClick = (section: LessonSection) => {
+    setSelectedSection(section);
+    setEditFormData({
+      title: section.title,
+      order_index: section.order_index,
+    });
+    setShowEditModal(true);
+  };
+
+  const handleDeleteClick = (section: LessonSection) => {
+    setSelectedSection(section);
+    setShowDeleteConfirm(true);
+  };
+
   const handleCreateSection = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title.trim()) return;
+    if (!createFormData.title.trim()) return;
 
     try {
       setCreating(true);
       await contentService.createSection({
-        ...formData,
+        ...createFormData,
         lesson_id: parseInt(lessonId!),
-        title: formData.title.trim(),
+        title: createFormData.title.trim(),
       });
 
-      setFormData({
+      setCreateFormData({
         lesson_id: parseInt(lessonId || "0"),
         title: "",
         order_index: 0,
       });
       setShowCreateModal(false);
+      toast.success("Tạo section thành công!");
       await fetchLessonAndSections();
     } catch (err: any) {
       console.error("Error creating section:", err);
-      alert(err.response?.data?.detail || "Failed to create section");
+      toast.error(err.response?.data?.detail || "Không thể tạo section");
     } finally {
       setCreating(false);
     }
   };
 
+  const handleUpdateSection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSection || !selectedSection.id || !editFormData.title?.trim())
+      return;
+
+    try {
+      setUpdating(true);
+      await contentService.updateSection(selectedSection.id, {
+        ...editFormData,
+        title: editFormData.title?.trim(),
+      });
+
+      setShowEditModal(false);
+      setSelectedSection(null);
+      setEditFormData({ title: "", order_index: 0 });
+      toast.success("Cập nhật section thành công!");
+      await fetchLessonAndSections();
+    } catch (err: any) {
+      console.error("Error updating section:", err);
+      toast.error(err.response?.data?.detail || "Không thể cập nhật section");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeleteSection = async () => {
+    if (!selectedSection || !selectedSection.id) return;
+
+    try {
+      setDeleting(true);
+      await contentService.deleteSection(selectedSection.id);
+
+      setShowDeleteConfirm(false);
+      setSelectedSection(null);
+      toast.success("Xóa section thành công!");
+      await fetchLessonAndSections();
+    } catch (err: any) {
+      console.error("Error deleting section:", err);
+      toast.error(err.response?.data?.detail || "Không thể xóa section");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleRestoreSection = async (section: LessonSection) => {
+    if (!section.id) return;
+
+    try {
+      setRestoring(true);
+      await contentService.restoreSection(section.id);
+      toast.success("Khôi phục section thành công!");
+      await fetchLessonAndSections();
+    } catch (err: any) {
+      console.error("Error restoring section:", err);
+      toast.error(err.response?.data?.detail || "Không thể khôi phục section");
+    } finally {
+      setRestoring(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    return new Date(dateString).toLocaleDateString("vi-VN", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -88,180 +220,323 @@ export default function LessonSections() {
 
   return (
     <div className="p-8">
-      <div className="mb-8">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Lessons
-        </button>
-        
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold text-foreground">
-              {loading ? "Loading..." : lesson?.title || "Lesson Sections"}
-            </h2>
-            <p className="text-muted-foreground mt-2">
-              {lesson?.description || "Manage sections for this lesson"}
-            </p>
+      <Breadcrumb
+        items={[
+          {
+            label: "Nội dung",
+            href: "/moderator",
+            icon: <Folder className="w-4 h-4" />,
+          },
+          {
+            label: lesson?.topic_id ? `Topic ${lesson.topic_id}` : "Topic",
+            href: lesson?.topic_id
+              ? `/moderator/topics/${lesson.topic_id}/lessons`
+              : "/moderator/topics",
+            icon: <BookOpen className="w-4 h-4" />,
+          },
+          {
+            label: lesson?.title || "Sections",
+            icon: <FileText className="w-4 h-4" />,
+          },
+        ]}
+      />
+
+      <PageHeader
+        icon={<FileText className="w-6 h-6 text-primary" />}
+        title={
+          loading
+            ? "Đang tải..."
+            : showRecycleBin
+            ? "Thùng rác - Sections"
+            : lesson?.title || "Các phần của bài học"
+        }
+        subtitle={
+          showRecycleBin
+            ? "Các section đã xóa có thể khôi phục"
+            : lesson?.description || "Quản lý các phần trong bài học này"
+        }
+        actions={
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowRecycleBin(!showRecycleBin)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all ${
+                showRecycleBin
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              <Trash2 className="w-5 h-5" />
+              Thùng rác ({deletedSections.length})
+            </button>
+            {!showRecycleBin && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold"
+              >
+                <Plus className="w-5 h-5" />
+                Tạo Section mới
+              </button>
+            )}
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold"
-          >
-            <Plus className="w-5 h-5" />
-            Create New Section
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {loading ? (
-        <div className="flex items-center justify-center p-12">
-          <div className="text-center">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-            <p className="text-muted-foreground mt-4">Loading sections...</p>
-          </div>
-        </div>
+        <LoadingState message="Đang tải sections..." />
       ) : error ? (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6">
-          <p className="text-red-600 font-medium">Error: {error}</p>
-          <button
-            onClick={fetchLessonAndSections}
-            className="mt-4 px-4 py-2 bg-red-500/20 text-red-600 rounded-lg hover:bg-red-500/30 transition-colors"
-          >
-            Retry
-          </button>
-        </div>
+        <ErrorState message={error} onRetry={fetchLessonAndSections} />
+      ) : showRecycleBin ? (
+        // Recycle Bin View
+        deletedSections.length === 0 ? (
+          <EmptyState
+            icon={<Trash2 className="w-full h-full" />}
+            title="Thùng rác trống"
+            description="Không có section nào đã xóa"
+          />
+        ) : (
+          <div className="space-y-4">
+            {deletedSections.map((section, index) => (
+              <ContentCard
+                key={section.id}
+                type="section"
+                icon={<Trash2 className="w-6 h-6" />}
+                title={section.title}
+                badge="Đã xóa"
+                meta={[
+                  { label: "Thứ tự", value: section.order_index },
+                  { label: "Ngày tạo", value: formatDate(section.created_at) },
+                ]}
+                actions={
+                  <button
+                    onClick={() => handleRestoreSection(section)}
+                    disabled={restoring}
+                    className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Khôi phục
+                  </button>
+                }
+              />
+            ))}
+          </div>
+        )
       ) : sections.length === 0 ? (
-        <div className="bg-card border border-border rounded-xl p-12 text-center">
-          <List className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground text-lg mb-4">
-            No sections created yet
-          </p>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold"
-          >
-            Create Your First Section
-          </button>
-        </div>
+        <EmptyState
+          icon={<List className="w-full h-full" />}
+          title="Chưa có section nào"
+          description="Bắt đầu bằng cách tạo section đầu tiên"
+          action={
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold"
+            >
+              Tạo Section đầu tiên
+            </button>
+          }
+        />
       ) : (
         <div className="space-y-4">
           {sections.map((section, index) => (
-            <div
+            <ContentCard
               key={section.id}
-              onClick={() => handleSectionClick(section)}
-              className={`
-                bg-card border rounded-xl p-6 transition-all
-                ${
-                  section.is_deleted
-                    ? "border-red-500/30 bg-red-500/5 opacity-60 cursor-not-allowed"
-                    : "border-border hover:shadow-lg hover:border-primary/50 cursor-pointer"
-                }
-              `}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 flex-1">
-                  <div className={`
-                    flex items-center justify-center w-10 h-10 rounded-lg font-bold
-                    ${section.is_deleted ? "bg-red-500/10 text-red-500" : "bg-primary/10 text-primary"}
-                  `}>
-                    {index + 1}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-bold text-lg text-foreground">
-                        {section.title}
-                      </h3>
-                      {section.is_deleted && (
-                        <span className="text-xs font-semibold text-red-500 bg-red-500/10 px-2 py-1 rounded-full">
-                          Deleted
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>Order: {section.order_index}</span>
-                      <span>{formatDate(section.created_at)}</span>
-                    </div>
-                  </div>
+              type="section"
+              icon={
+                <div className="w-6 h-6 flex items-center justify-center font-bold text-sm">
+                  {index + 1}
                 </div>
-                {!section.is_deleted && (
-                  <Edit className="w-5 h-5 text-muted-foreground" />
-                )}
-              </div>
-            </div>
+              }
+              title={section.title}
+              meta={[
+                { label: "Thứ tự", value: section.order_index },
+                { label: "Ngày tạo", value: formatDate(section.created_at) },
+              ]}
+              onClick={() => handleSectionClick(section)}
+              actions={
+                section.id && (
+                  <ActionMenu
+                    items={[
+                      {
+                        icon: <Edit className="w-4 h-4" />,
+                        label: "Chỉnh sửa",
+                        onClick: () => handleEditClick(section),
+                      },
+                      {
+                        icon: <Trash2 className="w-4 h-4" />,
+                        label: "Xóa",
+                        onClick: () => handleDeleteClick(section),
+                        variant: "danger",
+                      },
+                    ]}
+                  />
+                )
+              }
+            />
           ))}
         </div>
       )}
 
       {/* Create Section Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card border border-border rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-card border-b border-border p-6 flex items-center justify-between">
-              <h3 className="text-2xl font-bold text-foreground">Create New Section</h3>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="p-2 hover:bg-muted rounded-lg transition-colors"
-              >
-                ×
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateSection} className="p-6 space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Section Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="e.g., Introduction"
-                  className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
-                  required
-                  maxLength={150}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Order Index
-                </label>
-                <input
-                  type="number"
-                  value={formData.order_index}
-                  onChange={(e) => setFormData({ ...formData, order_index: parseInt(e.target.value) || 0 })}
-                  min={0}
-                  className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Controls the display order (lower numbers appear first)
-                </p>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-6 py-3 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors font-semibold"
-                  disabled={creating}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating || !formData.title.trim()}
-                  className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {creating ? "Creating..." : "Create Section"}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Tạo Section mới"
+      >
+        <form onSubmit={handleCreateSection} className="p-6 space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              Tiêu đề Section <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={createFormData.title}
+              onChange={(e) =>
+                setCreateFormData({
+                  ...createFormData,
+                  title: e.target.value,
+                })
+              }
+              placeholder="VD: Giới thiệu"
+              className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
+              required
+              maxLength={150}
+            />
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              Thứ tự hiển thị
+            </label>
+            <input
+              type="number"
+              value={createFormData.order_index}
+              onChange={(e) =>
+                setCreateFormData({
+                  ...createFormData,
+                  order_index: parseInt(e.target.value) || 0,
+                })
+              }
+              min={0}
+              className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Số nhỏ hơn sẽ hiển thị trước
+            </p>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(false)}
+              className="flex-1 px-6 py-3 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors font-semibold"
+              disabled={creating}
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={creating || !createFormData.title.trim()}
+              className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creating ? "Đang tạo..." : "Tạo Section"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Section Modal */}
+      <Modal
+        isOpen={showEditModal && !!selectedSection}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedSection(null);
+        }}
+        title="Chỉnh sửa Section"
+      >
+        <form onSubmit={handleUpdateSection} className="p-6 space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              Tiêu đề Section <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={editFormData.title}
+              onChange={(e) =>
+                setEditFormData({ ...editFormData, title: e.target.value })
+              }
+              placeholder="VD: Giới thiệu"
+              className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
+              required
+              maxLength={150}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              Thứ tự hiển thị
+            </label>
+            <input
+              type="number"
+              value={editFormData.order_index}
+              onChange={(e) =>
+                setEditFormData({
+                  ...editFormData,
+                  order_index: parseInt(e.target.value) || 0,
+                })
+              }
+              min={0}
+              className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Số nhỏ hơn sẽ hiển thị trước
+            </p>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setShowEditModal(false);
+                setSelectedSection(null);
+              }}
+              className="flex-1 px-6 py-3 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors font-semibold"
+              disabled={updating}
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={updating || !editFormData.title?.trim()}
+              className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {updating ? "Đang lưu..." : "Lưu thay đổi"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm && !!selectedSection}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setSelectedSection(null);
+        }}
+        onConfirm={handleDeleteSection}
+        title="Xác nhận xóa"
+        message={
+          <>
+            Bạn có chắc chắn muốn xóa section{" "}
+            <strong className="text-foreground">
+              "{selectedSection?.title}"
+            </strong>
+            ? Hành động này không thể hoàn tác và sẽ xóa tất cả các câu hỏi liên
+            quan.
+          </>
+        }
+        confirmText={deleting ? "Đang xóa..." : "Xóa Section"}
+        confirmDisabled={deleting}
+        variant="danger"
+      />
     </div>
   );
 }

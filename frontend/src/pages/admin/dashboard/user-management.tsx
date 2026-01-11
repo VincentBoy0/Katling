@@ -128,7 +128,7 @@ export default function UserManagement() {
       // Add
       await Promise.all(
         toAdd.map((role) =>
-          assignRole(userId, { user_id: userId, role_type: role })
+          assignRole(userId, { role_type: role })
         )
       );
 

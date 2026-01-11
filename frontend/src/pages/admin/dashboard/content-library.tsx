@@ -25,6 +25,13 @@ import {
 } from "@/components/admin/content/Badges";
 import { toast } from "sonner";
 import { useContentAdministraion } from "@/hooks/useContentAdministration";
+import {
+  PageHeader,
+  Tabs,
+  LoadingState,
+  ErrorState,
+  EmptyState,
+} from "@/components/shared/PageComponents";
 
 interface ExpandedState {
   topics: Set<number>;
@@ -349,71 +356,37 @@ export default function ContentLibrary() {
 
   return (
     <div className="p-8">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Library className="w-6 h-6 text-primary" />
-          </div>
-          <h2 className="text-3xl font-bold text-foreground">
-            Content Library
-          </h2>
-        </div>
-        <p className="text-muted-foreground">
-          Browse and manage all learning content
-        </p>
-      </div>
+      <PageHeader
+        icon={<Library className="w-6 h-6 text-primary" />}
+        title="Content Library"
+        subtitle="Browse and manage all learning content"
+      />
 
       {/* Tabs */}
-      <div className="mb-6 border-b border-border">
-        <div className="flex gap-1">
-          <button
-            onClick={() => setActiveTab("library")}
-            className={`px-6 py-3 text-sm font-medium transition-colors relative ${
-              activeTab === "library"
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Library
-            {activeTab === "library" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("recycling-bin")}
-            className={`px-6 py-3 text-sm font-medium transition-colors relative flex items-center gap-2 ${
-              activeTab === "recycling-bin"
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Trash2 className="w-4 h-4" />
-            Recycling Bin
-            {activeTab === "recycling-bin" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-            )}
-          </button>
-        </div>
-      </div>
+      <Tabs
+        tabs={[
+          { id: "library", label: "Library" },
+          {
+            id: "recycling-bin",
+            label: "Recycling Bin",
+            icon: <Trash2 className="w-4 h-4" />,
+          },
+        ]}
+        activeTab={activeTab}
+        onTabChange={(tabId) => setActiveTab(tabId as TabType)}
+      />
 
       {loading && topics.length === 0 ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading topics...</p>
-          </div>
-        </div>
+        <LoadingState message="Loading topics..." />
       ) : error ? (
-        <div className="text-center py-12 bg-card rounded-xl border border-red-500/20">
-          <p className="text-red-600">{error}</p>
-        </div>
+        <ErrorState message={error} />
       ) : (
         <div className="space-y-3 max-w-6xl">
           {topics.length === 0 ? (
-            <div className="text-center py-12 bg-card rounded-xl border border-border">
-              <Library className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-              <p className="text-muted-foreground">No topics found</p>
-            </div>
+            <EmptyState
+              icon={<Library className="w-full h-full" />}
+              title="No topics found"
+            />
           ) : (
             topics.map(renderTopic)
           )}
