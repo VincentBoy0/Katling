@@ -1,19 +1,21 @@
-import { useNavigate } from "react-router-dom";
 import { Battery, Flame, Target, Zap } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-import WelcomeHeader from "@/components/learner/dashboard/WelcomeHeader";
-import ContinueLearningCard from "@/components/learner/dashboard/ContinueLearningCard";
-import EventBanner from "@/components/learner/dashboard/EventBanner";
-import StatCard from "@/components/learner/dashboard/StatCard";
+import CurrentProgressCard from "@/components/learner/dashboard/CurrentProgressCard";
 import DailyMissionsSection from "@/components/learner/dashboard/DailyMissionsSection";
+import MotivationCard from "@/components/learner/dashboard/MotivationCard";
+import StatCard from "@/components/learner/dashboard/StatCard";
+import WelcomeHeader from "@/components/learner/dashboard/WelcomeHeader";
 
-import { useUserInfo } from "@/hooks/useUserInfo";
-import { useSummary } from "@/hooks/useSummary";
 import { useDailyMissions } from "@/hooks/useDailyMissions";
+import { useSummary } from "@/hooks/useSummary";
+import { useTopics } from "@/hooks/useTopics";
+import { useUserInfo } from "@/hooks/useUserInfo";
 
 export default function Dashboard() {
   const { userInfo } = useUserInfo();
   const { summary, refetchSummary } = useSummary();
+  const { topics, loading: loadingTopics } = useTopics();
   const navigate = useNavigate();
 
   const {
@@ -28,6 +30,9 @@ export default function Dashboard() {
     }, 0);
   });
 
+  // Find the current topic (status = "current") or first available
+  const currentTopic = topics.find((t) => t.status === "current") || null;
+
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-5xl mx-auto min-h-screen">
       {/* 1. WELCOME & CONTINUE LEARNING */}
@@ -35,28 +40,20 @@ export default function Dashboard() {
         <div className="lg:col-span-2 space-y-6">
           <WelcomeHeader userName={userInfo?.full_name || "Katlinger"} />
 
-          <ContinueLearningCard
-            unit="Unit 3"
-            lesson="Bài 4"
-            title="Giao tiếp tại nhà hàng"
-            description="Học cách gọi món và thanh toán hóa đơn."
+          <CurrentProgressCard
+            currentTopic={currentTopic}
+            loading={loadingTopics}
             onContinue={() => navigate("/dashboard/learn")}
           />
         </div>
 
         <div className="lg:col-span-1">
-          <EventBanner
-            eventName="Sự kiện tháng 12"
-            title="Lễ hội Âm nhạc Mèo Katling 🎵"
-            description="Thu thập 30 nốt nhạc để nhận huy hiệu!"
-            progress={12}
-            total={30}
-          />
+          <MotivationCard summary={summary} />
         </div>
       </div>
 
       {/* 2. STATS GRID */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <StatCard
           icon={Flame}
           value={summary?.streak || 0}
@@ -74,12 +71,6 @@ export default function Dashboard() {
           value={`${summary?.energy || 0}/${summary?.max_energy || 30}`}
           label="Năng lượng"
           colorScheme="yellow"
-        />
-        <StatCard
-          icon={Target}
-          value="85%"
-          label="Mục tiêu"
-          colorScheme="blue"
         />
       </div>
 
