@@ -167,7 +167,11 @@ class FriendRepository:
             .select_from(User)
             .outerjoin(UserInfo, UserInfo.user_id == User.id)
             .where(User.id != current_user_id)
-            .where(func.lower(UserInfo.username).like(f"%{q.lower()}%"))
+            # .where(func.lower(UserInfo.username).like(f"%{q.lower()}%"))
+            .where(
+                (func.lower(UserInfo.username).like(f"%{q.lower()}%"))
+                | (func.lower(User.email).like(f"%{q.lower()}%"))
+            )
             .order_by(UserInfo.username.asc())
             .limit(limit)
         )

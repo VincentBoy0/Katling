@@ -89,17 +89,17 @@ export function FindFriendsDialog({
                 <div className="flex items-center gap-3">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${getAvatarColor(
-                      user.username
+                      user.username || "U"
                     )}`}
                   >
-                    {user.username.charAt(0)}
+                    {user.username?.charAt(0) || "?"}
                   </div>
                   <div>
                     <span className="font-bold text-sm block">
-                      {user.username}
+                      {user.username || "Unknown User"}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {user.username}
+                      {user.username || "N/A"}
                     </span>
                   </div>
                 </div>

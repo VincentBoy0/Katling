@@ -40,7 +40,7 @@ export function PostCard({
         <div
           className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border-2 border-white shadow-sm ${avatarColor}`}
         >
-          {user?.full_name.charAt(0)}
+          {user?.full_name?.charAt(0) || "K"}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between">
