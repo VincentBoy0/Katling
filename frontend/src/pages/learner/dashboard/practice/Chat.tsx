@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { useNavigate } from "react-router-dom";
 
 import { Input } from "@/components/learner/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  getConversationHistory,
+  sendChatMessage,
+} from "@/services/chatService";
 import { Bot, ChevronLeft, Mic, Send, Sparkles, User } from "lucide-react";
-import { getConversationHistory, sendChatMessage } from "@/services/chatService";
-
 
 interface Message {
   id: number;
@@ -94,7 +97,6 @@ export default function ChatPage() {
     loadHistory();
   }, []);
 
-
   const handleQuickReply = (text: string) => {
     setInput(text);
   };
@@ -176,7 +178,52 @@ export default function ChatPage() {
                     }
                   `}
                 >
-                  {msg.text}
+                  {msg.sender === "bot" ? (
+                    <ReactMarkdown
+                      components={{
+                        p: ({ children }) => (
+                          <p className="mb-2 last:mb-0">{children}</p>
+                        ),
+                        strong: ({ children }) => (
+                          <strong className="font-bold text-primary dark:text-primary">
+                            {children}
+                          </strong>
+                        ),
+                        em: ({ children }) => (
+                          <em className="italic text-emerald-600 dark:text-emerald-400">
+                            {children}
+                          </em>
+                        ),
+                        ul: ({ children }) => (
+                          <ul className="list-disc list-inside mb-2 space-y-1">
+                            {children}
+                          </ul>
+                        ),
+                        ol: ({ children }) => (
+                          <ol className="list-decimal list-inside mb-2 space-y-1">
+                            {children}
+                          </ol>
+                        ),
+                        li: ({ children }) => (
+                          <li className="ml-2">{children}</li>
+                        ),
+                        code: ({ children }) => (
+                          <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-primary">
+                            {children}
+                          </code>
+                        ),
+                        blockquote: ({ children }) => (
+                          <blockquote className="border-l-4 border-primary/50 pl-3 italic text-muted-foreground my-2">
+                            {children}
+                          </blockquote>
+                        ),
+                      }}
+                    >
+                      {msg.text}
+                    </ReactMarkdown>
+                  ) : (
+                    msg.text
+                  )}
                 </div>
               </div>
             </div>
