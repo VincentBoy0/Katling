@@ -73,11 +73,11 @@ export default function LessonCard({
         isAvailable
           ? "cursor-pointer hover:shadow-lg hover:scale-[1.01] border-2 border-primary/30 hover:border-primary"
           : isCompleted
-          ? "bg-gradient-to-r from-green-50/50 to-transparent dark:from-green-900/10 border-2 border-green-200 dark:border-green-900/50"
+          ? "cursor-pointer hover:shadow-lg hover:scale-[1.01] bg-gradient-to-r from-green-50/50 to-transparent dark:from-green-900/10 border-2 border-green-200 dark:border-green-900/50 hover:border-green-400"
           : "bg-muted/30 border-2 border-border opacity-60"
       }`}
       onClick={() => {
-        if (isAvailable) onOpenLesson(lesson.id);
+        if (isAvailable || isCompleted) onOpenLesson(lesson.id);
       }}
     >
       {/* Progress Bar at top */}
