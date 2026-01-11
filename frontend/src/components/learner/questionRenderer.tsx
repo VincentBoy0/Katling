@@ -51,8 +51,10 @@ export function MultipleChoiceQuestion({
         {options.map((option: string, index: number) => {
           const showResult = !!answerResult;
           const isSelected = selectedAnswer === option;
-          const isCorrectAnswer =
-            answerResult?.correct_answer?.answer === option;
+          // If is_correct is true, correct_answer will be null, so the selected answer is correct
+          const isCorrectAnswer = answerResult?.is_correct
+            ? isSelected
+            : answerResult?.correct_answer?.answer === option;
 
           return (
             <Button
@@ -127,7 +129,10 @@ export function MultipleSelectQuestion({
   };
 
   const options = question.content?.options || [];
-  const correctAnswers = answerResult?.correct_answer?.answers || [];
+  // If is_correct is true, correct_answer will be null, so all selected answers are correct
+  const correctAnswers = answerResult?.is_correct
+    ? selectedAnswers
+    : answerResult?.correct_answer?.answers || [];
 
   return (
     <div className="space-y-6">
@@ -142,6 +147,12 @@ export function MultipleSelectQuestion({
           const isSelected = selectedAnswers.includes(option);
           const isCorrect = correctAnswers.includes(option);
           const showResult = !!answerResult;
+          // For incorrect answers: show red only if selected but not in correct answers
+          const isWrongSelection =
+            showResult &&
+            isSelected &&
+            !answerResult?.is_correct &&
+            !correctAnswers.includes(option);
 
           return (
             <Card
@@ -150,7 +161,7 @@ export function MultipleSelectQuestion({
                 showResult
                   ? isCorrect
                     ? "border-green-500 bg-green-100 dark:bg-green-900/30"
-                    : isSelected && !isCorrect
+                    : isWrongSelection
                     ? "border-red-500 bg-red-100 dark:bg-red-900/30"
                     : "opacity-50"
                   : isSelected && !showResult
@@ -170,7 +181,7 @@ export function MultipleSelectQuestion({
                 {showResult && isCorrect && (
                   <CheckCircle className="w-5 h-5 text-green-600" />
                 )}
-                {showResult && isSelected && !isCorrect && (
+                {showResult && isWrongSelection && (
                   <AlertCircle className="w-5 h-5 text-red-600" />
                 )}
               </div>
@@ -302,7 +313,10 @@ export function MatchingQuestion({
     }
   };
 
-  const correctMatches = answerResult?.correct_answer?.matches || {};
+  // If is_correct is true, correct_answer will be null, so all matches are correct
+  const correctMatches = answerResult?.is_correct
+    ? matches
+    : answerResult?.correct_answer?.matches || {};
 
   return (
     <div className="space-y-6">
@@ -326,6 +340,7 @@ export function MatchingQuestion({
             const isWrongMatch =
               answerResult &&
               matches[item] &&
+              !answerResult.is_correct &&
               correctMatches[item] !== matches[item];
 
             return (
@@ -630,7 +645,10 @@ export function TrueFalseQuestion({
       <div className="flex gap-4 justify-center">
         {[true, false].map((v) => {
           const isSelected = value === v;
-          const isCorrect = answerResult?.correct_answer?.answer === v;
+          // If is_correct is true, correct_answer will be null, so the selected answer is correct
+          const isCorrect = answerResult?.is_correct
+            ? isSelected
+            : answerResult?.correct_answer?.answer === v;
 
           return (
             <Button
@@ -642,7 +660,7 @@ export function TrueFalseQuestion({
                 answerResult
                   ? isCorrect
                     ? "border-green-500 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                    : isSelected
+                    : isSelected && !answerResult.is_correct
                     ? "border-red-500 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
                     : "opacity-50"
                   : isSelected

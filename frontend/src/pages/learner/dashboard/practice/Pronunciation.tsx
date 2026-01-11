@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,9 @@ import {
   Heart,
   MessageCircle,
   Mic,
+  Pause,
   Plane,
+  Play,
   RotateCcw,
   ShoppingCart,
   Sparkles,
@@ -66,6 +68,12 @@ export default function PronunciationPracticePage() {
 
   // Practice states
   const [isRecording, setIsRecording] = useState(false);
+  const [isAssessing, setIsAssessing] = useState(false);
+  const [recordedAudios, setRecordedAudios] = useState<Record<number, string>>(
+    {}
+  );
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const { start, stop } = useRecorder();
 
   const {
@@ -94,21 +102,62 @@ export default function PronunciationPracticePage() {
     reset?.();
   };
 
+  // Cleanup audio URLs on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(recordedAudios).forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [recordedAudios]);
+
   const handleRecord = async () => {
-    if (isRecording || !currentItem || results[currentIndex] !== undefined)
+    if (
+      isRecording ||
+      isAssessing ||
+      !currentItem ||
+      results[currentIndex] !== undefined
+    )
       return;
 
     setIsRecording(true);
-    await start();
-    await new Promise((r) => setTimeout(r, 3000));
-    const audioBlob = await stop();
-    setIsRecording(false);
-
     try {
+      await start();
+      await new Promise((r) => setTimeout(r, 3000));
+      const audioBlob = await stop();
+      setIsRecording(false);
+
+      // Store the recorded audio for playback
+      const audioUrl = URL.createObjectURL(audioBlob);
+      setRecordedAudios((prev) => ({ ...prev, [currentIndex]: audioUrl }));
+
+      // Show assessing state
+      setIsAssessing(true);
       await assess(audioBlob);
     } catch (e) {
+      console.error("Recording/Assessment error:", e);
       alert("Đánh giá phát âm thất bại, thử lại nhé!");
+    } finally {
+      setIsRecording(false);
+      setIsAssessing(false);
     }
+  };
+
+  const handlePlayRecordedAudio = () => {
+    const audioUrl = recordedAudios[currentIndex];
+    if (!audioUrl) return;
+
+    if (isPlayingAudio && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlayingAudio(false);
+      return;
+    }
+
+    const audio = new Audio(audioUrl);
+    audioRef.current = audio;
+    audio.onended = () => setIsPlayingAudio(false);
+    audio.onerror = () => setIsPlayingAudio(false);
+    audio.play();
+    setIsPlayingAudio(true);
   };
 
   const handleNext = () => {
@@ -117,6 +166,16 @@ export default function PronunciationPracticePage() {
   };
 
   const handleRetry = () => {
+    // Revoke old audio URL for this index
+    if (recordedAudios[currentIndex]) {
+      URL.revokeObjectURL(recordedAudios[currentIndex]);
+      setRecordedAudios((prev) => {
+        const newAudios = { ...prev };
+        delete newAudios[currentIndex];
+        return newAudios;
+      });
+    }
+    setIsPlayingAudio(false);
     retry();
   };
 
@@ -150,10 +209,10 @@ export default function PronunciationPracticePage() {
   // Configuration Dialog
   if (showConfigDialog) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-        <Card className="w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+        <Card className="w-full max-w-lg max-h-[90vh] shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col">
           {/* Header */}
-          <div className="bg-gradient-to-r from-primary to-primary/80 p-6 text-white relative">
+          <div className="bg-gradient-to-r from-primary to-primary/80 p-6 text-white relative flex-shrink-0">
             <Button
               variant="ghost"
               size="icon"
@@ -176,7 +235,7 @@ export default function PronunciationPracticePage() {
             </div>
           </div>
 
-          <CardContent className="p-6 space-y-6">
+          <CardContent className="p-6 space-y-6 overflow-y-auto flex-1">
             {/* Mode Selection */}
             <div className="space-y-3">
               <label className="text-sm font-bold text-foreground flex items-center gap-2">
@@ -375,12 +434,29 @@ export default function PronunciationPracticePage() {
 
         {/* 3. RECORDING AREA */}
         <div className="w-full flex flex-col items-center gap-6">
-          {/* Chưa có kết quả -> Hiển thị nút Mic */}
-          {results[currentIndex] === undefined ? (
+          {/* Đang chấm điểm -> Hiển thị Loading */}
+          {isAssessing ? (
+            <div className="flex flex-col items-center gap-4 animate-in fade-in duration-300">
+              <div className="relative w-24 h-24 flex items-center justify-center">
+                <div className="absolute inset-0 border-4 border-primary/20 rounded-full" />
+                <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                <Sparkles className="w-8 h-8 text-primary animate-pulse" />
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-primary mb-1">Đang chấm điểm...</p>
+                <p className="text-sm text-muted-foreground">
+                  AI đang phân tích phát âm của bạn
+                </p>
+              </div>
+            </div>
+          ) : results[currentIndex] === undefined ? (
+            /* Chưa có kết quả -> Hiển thị nút Mic */
             <div
               className="relative group cursor-pointer"
               onClick={
-                results[currentIndex] === undefined ? handleRecord : undefined
+                results[currentIndex] === undefined && !isRecording
+                  ? handleRecord
+                  : undefined
               }
             >
               {/* Hiệu ứng sóng âm khi ghi âm (Dùng màu Primary/Accent) */}
@@ -434,6 +510,21 @@ export default function PronunciationPracticePage() {
               })()}
 
               <div className="flex gap-4 justify-center">
+                {recordedAudios[currentIndex] && (
+                  <Button
+                    variant="outline"
+                    onClick={handlePlayRecordedAudio}
+                    className="font-bold border-2 h-12 px-4 hover:bg-muted"
+                    title="Nghe lại phát âm của bạn"
+                  >
+                    {isPlayingAudio ? (
+                      <Pause className="w-4 h-4" />
+                    ) : (
+                      <Play className="w-4 h-4" />
+                    )}
+                  </Button>
+                )}
+
                 <Button
                   variant="outline"
                   onClick={handleRetry}
