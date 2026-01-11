@@ -21,20 +21,20 @@ export function FriendProfileDialog({
         <Card className="w-full border-2 border-border rounded-3xl overflow-hidden bg-card">
           <div
             className={`h-24 w-full ${
-              getAvatarColor(friend.username).split(" ")[0]
+              getAvatarColor(friend.username || "U").split(" ")[0]
             } opacity-50 relative`}
           ></div>
           <div className="px-6 pb-6 -mt-10 flex flex-col items-center">
             <div
               className={`w-24 h-24 rounded-full border-4 border-card flex items-center justify-center text-3xl font-black shadow-sm ${getAvatarColor(
-                friend.username
+                friend.username || "U"
               )}`}
             >
-              {friend.username.charAt(0)}
+              {friend.username?.charAt(0) || "?"}
             </div>
             <div className="text-center mt-3 mb-4 space-y-1">
               <h2 className="text-2xl font-black text-foreground">
-                {friend.username}
+                {friend.username || "Unknown User"}
               </h2>
               {/* <p className="text-muted-foreground font-medium">
                 {friend.username}

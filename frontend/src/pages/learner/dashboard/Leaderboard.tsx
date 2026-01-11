@@ -100,7 +100,7 @@ export default function LeaderboardPage() {
               user.avatarColor || "bg-gray-100"
             }`}
           >
-            {user.name.charAt(0)}
+            {user.name?.charAt(0) || "?"}
           </div>
 
           {/* Info */}

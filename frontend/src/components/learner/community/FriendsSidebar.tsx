@@ -35,14 +35,14 @@ FriendsSidebarProps) {
             >
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-secondary-foreground border border-border ${getAvatarColor(
-                  friend.username
+                  friend.username || "U"
                 )}`}
               >
-                {friend.username.charAt(0)}
+                {friend.username?.charAt(0) || "?"}
               </div>
               <div>
                 <p className="font-bold text-sm group-hover:text-primary transition-colors">
-                  {friend.username}
+                  {friend.username || "Unknown User"}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   XP {friend.xp} • 🔥 {friend.streak}

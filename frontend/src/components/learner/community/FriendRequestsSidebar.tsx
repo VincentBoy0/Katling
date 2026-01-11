@@ -37,7 +37,7 @@ export function FriendRequestsSidebar({
                       name
                     )}`}
                   >
-                    {name.charAt(0)}
+                    {name?.charAt(0) || "?"}
                   </div>
                   <span className="font-bold text-sm">{name}</span>
                 </div>

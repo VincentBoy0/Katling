@@ -1,0 +1,374 @@
+{
+  "topics": [
+    {
+      "id": 1,
+      "name": "Basic Greetings",
+      "description": "Learn how to greet people in English",
+      "order_index": 1,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": 2,
+      "name": "Daily Routines",
+      "description": "Vocabulary and grammar for talking about daily activities",
+      "order_index": 2,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": 3,
+      "name": "Food & Dining",
+      "description": "Learn vocabulary related to food, restaurants, and cooking",
+      "order_index": 3,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": 4,
+      "name": "Travel & Transportation",
+      "description": "Essential English for traveling and using transportation",
+      "order_index": 4,
+      "status": "DRAFT"
+    }
+  ],
+  "lessons": [
+    {
+      "id": 1,
+      "topic_id": 1,
+      "type": "VOCABULARY",
+      "title": "Hello and Goodbye",
+      "description": "Common greetings and farewells in English",
+      "order_index": 1,
+      "status": "PUBLISHED",
+      "content": {
+        "introduction": "Learn the most common ways to greet people and say goodbye in English.",
+        "examples": [
+          {"phrase": "Hello", "usage": "Formal and informal greeting"},
+          {"phrase": "Hi", "usage": "Informal greeting"},
+          {"phrase": "Good morning", "usage": "Morning greeting"},
+          {"phrase": "Goodbye", "usage": "Formal farewell"},
+          {"phrase": "Bye", "usage": "Informal farewell"}
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "topic_id": 1,
+      "type": "GRAMMAR",
+      "title": "Introducing Yourself",
+      "description": "How to introduce yourself to others",
+      "order_index": 2,
+      "status": "PUBLISHED",
+      "content": {
+        "introduction": "Learn how to tell people your name and where you're from.",
+        "grammar_points": [
+          "My name is...",
+          "I'm from...",
+          "Nice to meet you"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "topic_id": 2,
+      "type": "VOCABULARY",
+      "title": "Daily Activities",
+      "description": "Common verbs for daily routines",
+      "order_index": 1,
+      "status": "PUBLISHED",
+      "content": {
+        "introduction": "Essential verbs to describe your daily activities.",
+        "vocabulary": [
+          "wake up",
+          "get up",
+          "have breakfast",
+          "go to work",
+          "come home",
+          "go to bed"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "topic_id": 2,
+      "type": "READING",
+      "title": "A Day in the Life",
+      "description": "Read about someone's typical day",
+      "order_index": 2,
+      "status": "PUBLISHED",
+      "content": {
+        "text": "I wake up at 7 AM every day. I get up and have breakfast with my family. Then I go to work at 8:30 AM. I work until 5 PM. After work, I come home and have dinner. I usually go to bed at 10 PM."
+      }
+    },
+    {
+      "id": 5,
+      "topic_id": 3,
+      "type": "VOCABULARY",
+      "title": "Food Items",
+      "description": "Common food vocabulary",
+      "order_index": 1,
+      "status": "PUBLISHED",
+      "content": {
+        "introduction": "Learn the names of common foods.",
+        "categories": {
+          "Fruits": ["apple", "banana", "orange", "strawberry"],
+          "Vegetables": ["carrot", "tomato", "lettuce", "potato"],
+          "Proteins": ["chicken", "beef", "fish", "eggs"]
+        }
+      }
+    }
+  ],
+  "lesson_sections": [
+    {
+      "id": 1,
+      "lesson_id": 1,
+      "title": "Common Greetings",
+      "order_index": 1,
+      "content": {
+        "text": "The most common greeting in English is 'Hello'. You can use it in any situation.",
+        "vocabulary": ["Hello", "Hi", "Hey"]
+      }
+    },
+    {
+      "id": 2,
+      "lesson_id": 1,
+      "title": "Saying Goodbye",
+      "order_index": 2,
+      "content": {
+        "text": "When leaving, you can say 'Goodbye', 'Bye', or 'See you later'.",
+        "vocabulary": ["Goodbye", "Bye", "See you"]
+      }
+    },
+    {
+      "id": 3,
+      "lesson_id": 2,
+      "title": "Your Name",
+      "order_index": 1,
+      "content": {
+        "text": "To introduce yourself, say 'My name is...' or 'I'm...'",
+        "examples": ["My name is John.", "I'm Sarah."]
+      }
+    },
+    {
+      "id": 4,
+      "lesson_id": 3,
+      "title": "Morning Routine",
+      "order_index": 1,
+      "content": {
+        "text": "What do you do in the morning?",
+        "vocabulary": ["wake up", "get up", "brush teeth", "have breakfast"]
+      }
+    },
+    {
+      "id": 5,
+      "lesson_id": 5,
+      "title": "Fruits and Vegetables",
+      "order_index": 1,
+      "content": {
+        "text": "Learn the names of healthy foods.",
+        "vocabulary": ["apple", "banana", "carrot", "tomato"]
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "section_id": 1,
+      "type": "MCQ",
+      "order_index": 1,
+      "status": "PUBLISHED",
+      "content": {
+        "question": "Which word is a formal greeting?",
+        "options": ["Hey", "Hello", "Yo", "What's up"]
+      },
+      "correct_answer": {"answer": "Hello"},
+      "explanation": "'Hello' can be used in both formal and informal situations."
+    },
+    {
+      "id": 2,
+      "section_id": 1,
+      "type": "MULTIPLE_SELECT",
+      "order_index": 2,
+      "status": "PUBLISHED",
+      "content": {
+        "question": "Select all informal greetings:",
+        "options": ["Hi", "Good evening", "Hey", "What's up"]
+      },
+      "correct_answer": {"answers": ["Hi", "Hey", "What's up"]},
+      "explanation": "Hi, Hey, and What's up are all informal greetings."
+    },
+    {
+      "id": 3,
+      "section_id": 2,
+      "type": "TRUE_FALSE",
+      "order_index": 1,
+      "status": "PUBLISHED",
+      "content": {
+        "question": "'Goodbye' is only used in formal situations.",
+        "statement": "'Goodbye' is only used in formal situations."
+      },
+      "correct_answer": {"answer": false},
+      "explanation": "'Goodbye' can be used in both formal and informal situations, though 'Bye' is more common informally."
+    },
+    {
+      "id": 4,
+      "section_id": 3,
+      "type": "FILL_IN_THE_BLANK",
+      "order_index": 1,
+      "status": "PUBLISHED",
+      "content": {
+        "sentence": "My name ___ Sarah.",
+        "blanks": [{"position": 1, "answer": "is"}]
+      },
+      "correct_answer": {"blanks": [{"position": 1, "answer": "is"}]},
+      "explanation": "We use 'is' after 'My name' to complete the sentence."
+    },
+    {
+      "id": 5,
+      "section_id": 4,
+      "type": "MATCHING",
+      "order_index": 1,
+      "status": "PUBLISHED",
+      "content": {
+        "question": "Match the activities with the time of day:",
+        "left": ["wake up", "have lunch", "go to bed"],
+        "right": ["morning", "afternoon", "night"]
+      },
+      "correct_answer": {
+        "matches": {
+          "wake up": "morning",
+          "have lunch": "afternoon",
+          "go to bed": "night"
+        }
+      },
+      "explanation": "These activities typically happen at these times of day."
+    },
+    {
+      "id": 6,
+      "section_id": 5,
+      "type": "MCQ",
+      "order_index": 1,
+      "status": "PUBLISHED",
+      "content": {
+        "question": "Which of these is a fruit?",
+        "options": ["Carrot", "Apple", "Lettuce", "Potato"]
+      },
+      "correct_answer": {"answer": "Apple"},
+      "explanation": "An apple is a fruit. The others are vegetables."
+    }
+  ],
+  "vocabs": [
+    {
+      "id": 1,
+      "word": "hello",
+      "phonetic": "/həˈloʊ/",
+      "definition": {
+        "meaning": "Used as a greeting or to begin a phone conversation",
+        "part_of_speech": "interjection",
+        "example": "Hello! How are you today?"
+      }
+    },
+    {
+      "id": 2,
+      "word": "goodbye",
+      "phonetic": "/ˌɡʊdˈbaɪ/",
+      "definition": {
+        "meaning": "Used to express good wishes when parting or at the end of a conversation",
+        "part_of_speech": "exclamation",
+        "example": "Goodbye! See you tomorrow."
+      }
+    },
+    {
+      "id": 3,
+      "word": "breakfast",
+      "phonetic": "/ˈbrekfəst/",
+      "definition": {
+        "meaning": "The first meal of the day, usually eaten in the morning",
+        "part_of_speech": "noun",
+        "example": "I have breakfast at 7 AM every day."
+      }
+    },
+    {
+      "id": 4,
+      "word": "apple",
+      "phonetic": "/ˈæpəl/",
+      "definition": {
+        "meaning": "A round fruit with red, green, or yellow skin and white flesh",
+        "part_of_speech": "noun",
+        "example": "I eat an apple every day."
+      }
+    },
+    {
+      "id": 5,
+      "word": "beautiful",
+      "phonetic": "/ˈbjuːtɪfəl/",
+      "definition": {
+        "meaning": "Pleasing to the senses or mind aesthetically",
+        "part_of_speech": "adjective",
+        "example": "The sunset is beautiful tonight."
+      }
+    }
+  ],
+  "posts": [
+    {
+      "id": 1,
+      "content": {
+        "title": "My First Week Learning English",
+        "body": "Hi everyone! I just completed my first week of learning English. I learned so many new words about greetings and daily routines. The lessons are really helpful. Does anyone have tips for improving pronunciation?"
+      },
+      "status": "ACCEPTED"
+    },
+    {
+      "id": 2,
+      "content": {
+        "title": "Favorite Food Vocabulary",
+        "body": "I love the food vocabulary lesson! I can now order food in English at restaurants. My favorite new word is 'delicious'. What are your favorite food-related words?"
+      },
+      "status": "ACCEPTED"
+    },
+    {
+      "id": 3,
+      "content": {
+        "title": "Question About Greetings",
+        "body": "When should I use 'Good morning' vs 'Hello'? Is there a specific time when 'Good morning' is more appropriate?"
+      },
+      "status": "ACCEPTED"
+    }
+  ],
+  "daily_missions": [
+    {
+      "id": 1,
+      "type": "COMPLETE_SECTION",
+      "description": "Complete a lesson section",
+      "target_value": 1,
+      "xp_reward": 50
+    },
+    {
+      "id": 2,
+      "type": "COMPLETE_SECTION_SCORE_80",
+      "description": "Complete a section with 80% or higher score",
+      "target_value": 1,
+      "xp_reward": 75
+    },
+    {
+      "id": 3,
+      "type": "SAVE_WORD",
+      "description": "Save 3 new words to your vocabulary",
+      "target_value": 3,
+      "xp_reward": 40
+    },
+    {
+      "id": 4,
+      "type": "REVIEW_FLASHCARD",
+      "description": "Review 5 flashcards",
+      "target_value": 5,
+      "xp_reward": 30
+    },
+    {
+      "id": 5,
+      "type": "COMPLETE_VOCABULARY",
+      "description": "Complete a vocabulary lesson",
+      "target_value": 1,
+      "xp_reward": 60,
+      "lesson_type": "VOCABULARY"
+    }
+  ]
+}
