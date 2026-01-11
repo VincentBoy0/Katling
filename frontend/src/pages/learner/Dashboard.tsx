@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Flame, Target, Zap } from "lucide-react";
+import { Battery, Flame, Target, Zap } from "lucide-react";
 
 import WelcomeHeader from "@/components/learner/dashboard/WelcomeHeader";
 import ContinueLearningCard from "@/components/learner/dashboard/ContinueLearningCard";
@@ -8,12 +8,12 @@ import StatCard from "@/components/learner/dashboard/StatCard";
 import DailyMissionsSection from "@/components/learner/dashboard/DailyMissionsSection";
 
 import { useUserInfo } from "@/hooks/useUserInfo";
-import { useUserPoints } from "@/hooks/useUserPoints";
+import { useSummary } from "@/hooks/useSummary";
 import { useDailyMissions } from "@/hooks/useDailyMissions";
 
 export default function Dashboard() {
   const { userInfo } = useUserInfo();
-  const { userPoints, refetchUserPoints } = useUserPoints();
+  const { summary, refetchSummary } = useSummary();
   const navigate = useNavigate();
 
   const {
@@ -24,7 +24,7 @@ export default function Dashboard() {
     claimMission,
   } = useDailyMissions(() => {
     setTimeout(() => {
-      refetchUserPoints();
+      refetchSummary();
     }, 0);
   });
 
@@ -59,15 +59,21 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           icon={Flame}
-          value={userPoints?.streak || 0}
+          value={summary?.streak || 0}
           label="Streak"
           colorScheme="orange"
         />
         <StatCard
           icon={Zap}
-          value={userPoints?.xp || 0}
+          value={summary?.xp || 0}
           label="Tổng XP"
           colorScheme="emerald"
+        />
+        <StatCard
+          icon={Battery}
+          value={`${summary?.energy || 0}/${summary?.max_energy || 30}`}
+          label="Năng lượng"
+          colorScheme="yellow"
         />
         <StatCard
           icon={Target}

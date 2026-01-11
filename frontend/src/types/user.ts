@@ -97,3 +97,11 @@ export interface UserRoleCheck {
   role_type: RoleType;
   has_role: boolean;
 }
+
+export interface UserSummary {
+  streak: number;
+  is_streak_active_today: boolean;
+  xp: number;
+  energy: number;
+  max_energy: number;
+}
