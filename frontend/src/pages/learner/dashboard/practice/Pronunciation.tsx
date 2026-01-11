@@ -2,25 +2,69 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { usePronunciation } from "@/hooks/usePronunciation";
+import { useRecorder } from "@/hooks/useRecorder";
 import {
   Award,
+  BookOpen,
+  Briefcase,
   CheckCircle2,
   ChevronRight,
+  Coffee,
+  Globe,
+  Heart,
+  MessageCircle,
   Mic,
+  Plane,
   RotateCcw,
+  ShoppingCart,
   Sparkles,
+  Type,
+  Volume2,
   X,
 } from "lucide-react";
-import { useRecorder } from "@/hooks/useRecorder";
-import { usePronunciation } from "@/hooks/usePronunciation";
 
+// Các topic có sẵn
+const TOPICS = [
+  { value: "daily", label: "Hàng ngày", icon: Coffee, color: "bg-orange-500" },
+  { value: "travel", label: "Du lịch", icon: Plane, color: "bg-blue-500" },
+  {
+    value: "business",
+    label: "Công việc",
+    icon: Briefcase,
+    color: "bg-slate-600",
+  },
+  {
+    value: "shopping",
+    label: "Mua sắm",
+    icon: ShoppingCart,
+    color: "bg-pink-500",
+  },
+  { value: "health", label: "Sức khỏe", icon: Heart, color: "bg-red-500" },
+  { value: "general", label: "Tổng hợp", icon: Globe, color: "bg-purple-500" },
+];
+
+const COUNT_OPTIONS = [5, 7, 10] as const;
+
+type PracticeConfig = {
+  mode: "word" | "sentence";
+  total: 5 | 7 | 10;
+  topic: string;
+};
 
 export default function PronunciationPracticePage() {
   const navigate = useNavigate();
 
-  const [mode, setMode] = useState<"word" | "sentence">("word");
-  const [total, setTotal] = useState<5 | 7 | 10>(5);
+  // State for configuration dialog
+  const [showConfigDialog, setShowConfigDialog] = useState(true);
+  const [config, setConfig] = useState<PracticeConfig>({
+    mode: "word",
+    total: 5,
+    topic: "daily",
+  });
+
+  // Practice states
   const [isRecording, setIsRecording] = useState(false);
   const { start, stop } = useRecorder();
 
@@ -36,16 +80,22 @@ export default function PronunciationPracticePage() {
     next,
     retry,
     loading,
-  } = usePronunciation(total, mode);
+    reset,
+  } = usePronunciation(config.total, config.mode, config.topic);
 
   const displayText = currentItem?.text || "";
 
+  const handleStartPractice = () => {
+    setShowConfigDialog(false);
+  };
+
+  const handleBackToConfig = () => {
+    setShowConfigDialog(true);
+    reset?.();
+  };
+
   const handleRecord = async () => {
-    if (
-      isRecording ||
-      !currentItem ||
-      results[currentIndex] !== undefined
-    )
+    if (isRecording || !currentItem || results[currentIndex] !== undefined)
       return;
 
     setIsRecording(true);
@@ -62,7 +112,7 @@ export default function PronunciationPracticePage() {
   };
 
   const handleNext = () => {
-    if (currentIndex < total - 1) next();
+    if (currentIndex < config.total - 1) next();
     else navigate("/dashboard/practice");
   };
 
@@ -95,16 +145,162 @@ export default function PronunciationPracticePage() {
     };
   };
 
-  const progressPercent = ((currentIndex + 1) / total) * 100;
+  const progressPercent = ((currentIndex + 1) / config.total) * 100;
 
-  if (loading || !currentItem) {
+  // Configuration Dialog
+  if (showConfigDialog) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        Đang tải bài luyện...
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <Card className="w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-primary to-primary/80 p-6 text-white relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/dashboard/practice")}
+              className="absolute top-4 right-4 text-white/80 hover:text-white hover:bg-white/20"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/20 rounded-xl">
+                <Mic className="w-8 h-8" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">Luyện phát âm</h2>
+                <p className="text-white/80 text-sm mt-1">
+                  Chọn chủ đề và số lượng bạn muốn luyện
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <CardContent className="p-6 space-y-6">
+            {/* Mode Selection */}
+            <div className="space-y-3">
+              <label className="text-sm font-bold text-foreground flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-primary" />
+                Loại luyện tập
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setConfig((c) => ({ ...c, mode: "word" }))}
+                  className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                    config.mode === "word"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border hover:border-primary/50 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Type className="w-6 h-6" />
+                  <span className="font-bold">Từ đơn</span>
+                  <span className="text-xs opacity-70">Luyện từng từ</span>
+                </button>
+                <button
+                  onClick={() => setConfig((c) => ({ ...c, mode: "sentence" }))}
+                  className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                    config.mode === "sentence"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border hover:border-primary/50 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <MessageCircle className="w-6 h-6" />
+                  <span className="font-bold">Câu</span>
+                  <span className="text-xs opacity-70">Luyện cả câu</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Topic Selection */}
+            <div className="space-y-3">
+              <label className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Volume2 className="w-4 h-4 text-primary" />
+                Chủ đề
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {TOPICS.map((topic) => {
+                  const Icon = topic.icon;
+                  return (
+                    <button
+                      key={topic.value}
+                      onClick={() =>
+                        setConfig((c) => ({ ...c, topic: topic.value }))
+                      }
+                      className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${
+                        config.topic === topic.value
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-lg ${topic.color} flex items-center justify-center`}
+                      >
+                        <Icon className="w-4 h-4 text-white" />
+                      </div>
+                      <span
+                        className={`text-xs font-bold ${
+                          config.topic === topic.value
+                            ? "text-primary"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {topic.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Count Selection */}
+            <div className="space-y-3">
+              <label className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Award className="w-4 h-4 text-primary" />
+                Số lượng
+              </label>
+              <div className="flex gap-3">
+                {COUNT_OPTIONS.map((count) => (
+                  <button
+                    key={count}
+                    onClick={() => setConfig((c) => ({ ...c, total: count }))}
+                    className={`flex-1 py-3 rounded-xl border-2 font-bold transition-all ${
+                      config.total === count
+                        ? "border-primary bg-primary text-white"
+                        : "border-border hover:border-primary/50 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {count} {config.mode === "word" ? "từ" : "câu"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Start Button */}
+            <Button
+              onClick={handleStartPractice}
+              className="w-full h-12 text-lg font-bold mt-4"
+            >
+              <Mic className="w-5 h-5 mr-2" />
+              Bắt đầu luyện tập
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
+  if (loading || !currentItem) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-muted-foreground font-medium">
+            Đang tải bài luyện...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center p-4 md:p-8">
@@ -114,7 +310,7 @@ export default function PronunciationPracticePage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={handleBackToConfig}
             className="text-muted-foreground hover:bg-muted"
           >
             <X className="w-6 h-6" />
@@ -129,32 +325,27 @@ export default function PronunciationPracticePage() {
           </div>
 
           <div className="font-bold text-primary text-sm">
-            {currentIndex + 1}/{total}
+            {currentIndex + 1}/{config.total}
+          </div>
+        </div>
+
+        {/* Topic badge */}
+        <div className="flex justify-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full text-sm font-medium text-muted-foreground">
+            {(() => {
+              const topic = TOPICS.find((t) => t.value === config.topic);
+              const Icon = topic?.icon || Globe;
+              return (
+                <>
+                  <Icon className="w-4 h-4" />
+                  {topic?.label || "Tổng hợp"} •{" "}
+                  {config.mode === "word" ? "Từ đơn" : "Câu"}
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
-
-      <div className="flex gap-4 mb-6">
-        <select
-          value={mode}
-          onChange={(e) => setMode(e.target.value as any)}
-          className="border rounded-lg px-3 py-2"
-        >
-          <option value="word">Từ đơn</option>
-          <option value="sentence">Câu</option>
-        </select>
-
-        <select
-          value={total}
-          onChange={(e) => setTotal(Number(e.target.value) as any)}
-          className="border rounded-lg px-3 py-2"
-        >
-          <option value={5}>5</option>
-          <option value={7}>7</option>
-          <option value={10}>10</option>
-        </select>
-      </div>
-
 
       {/* 2. MAIN CARD */}
       <Card className="w-full max-w-2xl p-8 md:p-12 border-2 border-border rounded-3xl shadow-sm flex flex-col items-center text-center bg-card relative overflow-hidden">
@@ -164,16 +355,17 @@ export default function PronunciationPracticePage() {
         <div className="space-y-6 mb-10 w-full relative z-10">
           <div>
             <p className="text-sm font-bold text-primary/70 uppercase tracking-widest mb-2">
-              {mode === "word" ? "Đọc to từ này" : "Đọc to câu sau"}
+              {config.mode === "word" ? "Đọc to từ này" : "Đọc to câu sau"}
             </p>
             <h1 className="text-5xl md:text-6xl font-black text-primary mb-4 tracking-tight">
-              {mode === "sentence" &&
-                results[currentIndex] !== undefined &&
-                errorsMap[currentIndex]?.length ? (
-                  renderHighlightedSentence(displayText, errorsMap[currentIndex])
-                ) : (
-                  displayText
-                )}
+              {config.mode === "sentence" &&
+              results[currentIndex] !== undefined &&
+              errorsMap[currentIndex]?.length
+                ? renderHighlightedSentence(
+                    displayText,
+                    errorsMap[currentIndex]
+                  )
+                : displayText}
             </h1>
             <div className="text-sm text-muted-foreground">
               Phát âm rõ ràng và tự nhiên
@@ -187,7 +379,9 @@ export default function PronunciationPracticePage() {
           {results[currentIndex] === undefined ? (
             <div
               className="relative group cursor-pointer"
-              onClick={results[currentIndex] === undefined ? handleRecord : undefined}
+              onClick={
+                results[currentIndex] === undefined ? handleRecord : undefined
+              }
             >
               {/* Hiệu ứng sóng âm khi ghi âm (Dùng màu Primary/Accent) */}
               {isRecording && (
@@ -267,7 +461,6 @@ export default function PronunciationPracticePage() {
               {feedbacks[currentIndex]}
             </div>
           )}
-
         </div>
       </Card>
 
@@ -310,7 +503,6 @@ export default function PronunciationPracticePage() {
     </div>
   );
 }
-
 
 function renderHighlightedSentence(
   sentence: string,

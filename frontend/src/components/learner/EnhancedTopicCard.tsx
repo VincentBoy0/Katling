@@ -4,6 +4,7 @@ import { useTopicLessons } from "@/hooks/useTopicLessons";
 import { cn } from "@/lib/utils";
 import lessonService from "@/services/lessonService";
 import { LessonInTopicOut, TopicProgressOut } from "@/types/learning";
+import { LessonContentResponse } from "@/types/lesson";
 import {
   BookOpen,
   Check,
@@ -17,6 +18,7 @@ import {
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LessonCard from "./LessonCard";
+import LessonContentModal from "./LessonContentModal";
 
 interface EnhancedTopicCardProps {
   topic: TopicProgressOut;
@@ -30,6 +32,11 @@ export default function EnhancedTopicCard({
   autoExpand = false,
 }: EnhancedTopicCardProps) {
   const [isExpanded, setIsExpanded] = useState(autoExpand);
+  const [contentModal, setContentModal] = useState<{
+    lessonId: number | null;
+    content: LessonContentResponse | null;
+    loading: boolean;
+  }>({ lessonId: null, content: null, loading: false });
   const navigate = useNavigate();
 
   const isLocked = topic.status === "locked";
@@ -46,6 +53,21 @@ export default function EnhancedTopicCard({
 
   const handleToggle = () => {
     if (!isLocked) setIsExpanded((prev) => !prev);
+  };
+
+  const handleViewContent = async (lessonId: number) => {
+    setContentModal({ lessonId, content: null, loading: true });
+    try {
+      const content = await lessonService.getLessonContent(lessonId);
+      setContentModal({ lessonId, content, loading: false });
+    } catch (error) {
+      console.error("Failed to load lesson content:", error);
+      setContentModal({ lessonId: null, content: null, loading: false });
+    }
+  };
+
+  const handleCloseContentModal = () => {
+    setContentModal({ lessonId: null, content: null, loading: false });
   };
 
   const handleOpenLesson = (lesson: LessonInTopicOut) => {
@@ -197,6 +219,7 @@ export default function EnhancedTopicCard({
 
               {lessons.map((lesson, lessonIndex) => (
                 <LessonCard
+                  key={lesson.id}
                   lesson={lesson}
                   lessonNumber={lessonIndex + 1}
                   onOpenLesson={() => handleOpenLesson(lesson)}
@@ -211,11 +234,41 @@ export default function EnhancedTopicCard({
                       navigate("/dashboard/learn");
                     }
                   }}
+                  onViewContent={handleViewContent}
                 />
               ))}
             </div>
           )}
         </div>
+      )}
+
+      {/* Lesson Content Modal */}
+      {(contentModal.loading || contentModal.content) && (
+        <LessonContentModal
+          content={contentModal.content}
+          loading={contentModal.loading}
+          onClose={handleCloseContentModal}
+          onStartLesson={async () => {
+            if (!contentModal.lessonId) return;
+            handleCloseContentModal();
+            const res = await lessonService.getNextSection(contentModal.lessonId);
+            if ("section" in res) {
+              navigate(
+                `/dashboard/lessons/${contentModal.lessonId}/sections/${res.section.id}`
+              );
+            } else {
+              navigate("/dashboard/learn");
+            }
+          }}
+          onViewSections={() => {
+            if (!contentModal.lessonId) return;
+            handleCloseContentModal();
+            const lesson = lessons.find((l) => l.id === contentModal.lessonId);
+            if (lesson) {
+              handleOpenLesson(lesson);
+            }
+          }}
+        />
       )}
 
       {/* Quick Action for Current Topic (when collapsed) */}

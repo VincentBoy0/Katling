@@ -1,10 +1,14 @@
-import { useEffect, useState } from "react";
-import { generateMaterial, assessPronunciation } from "@/services/pronunciationService";
+import {
+  assessPronunciation,
+  generateMaterial,
+} from "@/services/pronunciationService";
 import { PracticeItem } from "@/types/pronunciation";
+import { useCallback, useEffect, useState } from "react";
 
 export function usePronunciation(
   total: number,
-  mode: "word" | "sentence"
+  mode: "word" | "sentence",
+  topic: string = "daily"
 ) {
   const [items, setItems] = useState<PracticeItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -14,14 +18,13 @@ export function usePronunciation(
   const [feedbacks, setFeedbacks] = useState<Record<number, string>>({});
   const [errorsMap, setErrorsMap] = useState<Record<number, any[]>>({});
 
-
   // Load items
   useEffect(() => {
     async function load() {
       setLoading(true);
       const items = await generateMaterial({
         level: "beginner",
-        topic: "daily",
+        topic,
         count: total,
         mode,
       });
@@ -30,10 +33,21 @@ export function usePronunciation(
       setCurrentIndex(0);
       setResults({});
       setCompleted([]);
+      setFeedbacks({});
+      setErrorsMap({});
       setLoading(false);
     }
     load();
-  }, [total, mode]);
+  }, [total, mode, topic]);
+
+  const reset = useCallback(() => {
+    setItems([]);
+    setCurrentIndex(0);
+    setResults({});
+    setCompleted([]);
+    setFeedbacks({});
+    setErrorsMap({});
+  }, []);
 
   const assess = async (audio: Blob) => {
     const ref = items[currentIndex].text;
@@ -77,6 +91,7 @@ export function usePronunciation(
     assess,
     next,
     retry,
+    reset,
     loading,
   };
 }

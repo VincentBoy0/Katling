@@ -66,3 +66,12 @@ export interface CompleteSectionResponse {
 export interface CompleteSectionRequest {
   score: number;
 }
+
+export interface LessonContentResponse {
+  id: number;
+  title: string;
+  type: string;
+  content?: Record<string, any> | null;
+  audio_url?: string | null;
+  image_url?: string | null;
+}

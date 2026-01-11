@@ -5,6 +5,7 @@ import {
   Book,
   BookOpen,
   Check,
+  Eye,
   FileText,
   Headphones,
   Lock,
@@ -20,6 +21,7 @@ interface LessonCardProps {
   lessonNumber: number;
   onOpenLesson: (lessonId: number) => void;
   onContinueLesson: (lessonId: number) => void;
+  onViewContent?: (lessonId: number) => void;
 }
 
 const getLessonTypeIcon = (type: string) => {
@@ -59,6 +61,7 @@ export default function LessonCard({
   lessonNumber,
   onOpenLesson,
   onContinueLesson,
+  onViewContent,
 }: LessonCardProps) {
   const isCompleted = lesson.status === "completed";
   const isAvailable = lesson.status === "available";
@@ -145,37 +148,56 @@ export default function LessonCard({
         </div>
 
         {/* Action Buttons */}
-        <Button
-          size="sm"
-          variant={isCompleted ? "outline" : "default"}
-          onClick={(e) => {
-            e.stopPropagation();
-            onContinueLesson(lesson.id);
-          }}
-          disabled={isLocked}
-          className={`font-semibold shrink-0 transition-all duration-300 ${
-            isCompleted
-              ? "border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
-              : "hover:scale-105"
-          }`}
-        >
-          {isCompleted ? (
-            <>
-              <Check className="w-4 h-4 mr-1.5" />
-              Ôn tập
-            </>
-          ) : lesson.progress > 0 ? (
-            <>
-              <Play className="w-4 h-4 mr-1.5 fill-current" />
-              Tiếp tục
-            </>
-          ) : (
-            <>
-              <Play className="w-4 h-4 mr-1.5 fill-current" />
-              Bắt đầu
-            </>
+        <div className="flex items-center gap-2 shrink-0">
+          {/* View Content Button */}
+          {onViewContent && !isLocked && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewContent(lesson.id);
+              }}
+              className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+              title="Xem nội dung bài học"
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
           )}
-        </Button>
+
+          {/* Start/Continue Button */}
+          <Button
+            size="sm"
+            variant={isCompleted ? "outline" : "default"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onContinueLesson(lesson.id);
+            }}
+            disabled={isLocked}
+            className={`font-semibold transition-all duration-300 ${
+              isCompleted
+                ? "border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                : "hover:scale-105"
+            }`}
+          >
+            {isCompleted ? (
+              <>
+                <Check className="w-4 h-4 mr-1.5" />
+                Ôn tập
+              </>
+            ) : lesson.progress > 0 ? (
+              <>
+                <Play className="w-4 h-4 mr-1.5 fill-current" />
+                Tiếp tục
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4 mr-1.5 fill-current" />
+                Bắt đầu
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </Card>
   );
