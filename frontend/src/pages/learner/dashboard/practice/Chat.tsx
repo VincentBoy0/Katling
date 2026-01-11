@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 import { Input } from "@/components/learner/input";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,15 @@ import {
   getConversationHistory,
   sendChatMessage,
 } from "@/services/chatService";
-import { Bot, ChevronLeft, Mic, Send, Sparkles, User } from "lucide-react";
+import {
+  Bot,
+  ChevronLeft,
+  Mic,
+  MicOff,
+  Send,
+  Sparkles,
+  User,
+} from "lucide-react";
 
 interface Message {
   id: number;
@@ -32,6 +41,8 @@ export default function ChatPage() {
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   // Tự động cuộn xuống cuối khi có tin nhắn mới
   useEffect(() => {
@@ -100,6 +111,87 @@ export default function ChatPage() {
   const handleQuickReply = (text: string) => {
     setInput(text);
   };
+
+  const handleVoiceClick = () => {
+    // Check browser support
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      toast.error("Trình duyệt không hỗ trợ thu âm giọng nói", {
+        description: "Vui lòng sử dụng Chrome, Edge hoặc Safari.",
+      });
+      return;
+    }
+
+    if (isRecording) {
+      // Stop recording
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    // Start recording
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = "vi-VN"; // Default Vietnamese, also recognizes English
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+      toast.info("Đang lắng nghe... 🎤", {
+        description: "Nói xong hãy nhấn lại nút mic hoặc đợi tự động dừng.",
+      });
+    };
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let transcript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setInput(transcript);
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error("Speech recognition error:", event.error);
+      setIsRecording(false);
+
+      if (event.error === "not-allowed") {
+        toast.error("Không có quyền truy cập microphone", {
+          description:
+            "Vui lòng cho phép truy cập microphone trong cài đặt trình duyệt.",
+        });
+      } else if (event.error === "no-speech") {
+        toast.warning("Không nghe thấy giọng nói", {
+          description: "Vui lòng thử lại và nói to hơn.",
+        });
+      } else {
+        toast.error("Lỗi thu âm", {
+          description: "Vui lòng thử lại.",
+        });
+      }
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    try {
+      recognition.start();
+    } catch (err) {
+      console.error("Failed to start recognition:", err);
+      toast.error("Không thể bắt đầu thu âm");
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
 
   return (
     <div className="h-[calc(100vh-2rem)] md:h-screen bg-background flex flex-col items-center p-4 md:p-6 max-w-4xl mx-auto">
@@ -291,9 +383,23 @@ export default function ChatPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-2 top-1.5 text-muted-foreground hover:text-primary hover:bg-transparent"
+                onClick={handleVoiceClick}
+                className={`absolute right-2 top-1.5 hover:bg-transparent transition-colors ${
+                  isRecording
+                    ? "text-red-500 animate-pulse"
+                    : "text-muted-foreground hover:text-primary"
+                }`}
+                title={
+                  isRecording
+                    ? "Đang thu âm... (Nhấn để dừng)"
+                    : "Thu âm giọng nói"
+                }
               >
-                <Mic className="w-5 h-5" />
+                {isRecording ? (
+                  <MicOff className="w-5 h-5" />
+                ) : (
+                  <Mic className="w-5 h-5" />
+                )}
               </Button>
             </div>
 

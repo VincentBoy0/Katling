@@ -5,47 +5,104 @@ export function useRecorder() {
   const chunksRef = useRef<Blob[]>([]);
 
   const start = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const recorder = new MediaRecorder(stream);
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: 1,
+        sampleRate: 16000,
+        echoCancellation: true,
+        noiseSuppression: true,
+      },
+    });
+
+    // Try to use audio/webm;codecs=opus, fallback to default
+    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+      ? "audio/webm;codecs=opus"
+      : "audio/webm";
+
+    const recorder = new MediaRecorder(stream, { mimeType });
     chunksRef.current = [];
 
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data);
     };
 
-    recorder.start();
+    // Collect data every 100ms for better reliability
+    recorder.start(100);
     mediaRecorderRef.current = recorder;
   };
 
   async function webmToWav(blob: Blob): Promise<Blob> {
     const audioCtx = new AudioContext();
     const arrayBuffer = await blob.arrayBuffer();
+
+    // Check if we have actual audio data
+    if (arrayBuffer.byteLength === 0) {
+      throw new Error("No audio data recorded");
+    }
+
     const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
 
-    const channelData = audioBuffer.getChannelData(0);
-    const wavBuffer = encodeWav(channelData, audioBuffer.sampleRate);
+    // Resample to 16kHz for Wav2Vec compatibility
+    const targetSampleRate = 16000;
+    const offlineCtx = new OfflineAudioContext(
+      1,
+      Math.ceil(audioBuffer.duration * targetSampleRate),
+      targetSampleRate
+    );
+
+    const source = offlineCtx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(offlineCtx.destination);
+    source.start(0);
+
+    const resampledBuffer = await offlineCtx.startRendering();
+    const channelData = resampledBuffer.getChannelData(0);
+
+    const wavBuffer = encodeWav(channelData, targetSampleRate);
 
     return new Blob([wavBuffer], { type: "audio/wav" });
   }
 
   const stop = (): Promise<Blob> =>
-    new Promise((resolve) => {
+    new Promise((resolve, reject) => {
       const recorder = mediaRecorderRef.current;
-      if (!recorder) return;
+      if (!recorder) {
+        reject(new Error("No recorder available"));
+        return;
+      }
 
       recorder.onstop = async () => {
-        const webmBlob = new Blob(chunksRef.current, { type: "audio/webm" });
-        const wavBlob = await webmToWav(webmBlob);
-        resolve(wavBlob);
-      };
-      recorder.stream.getTracks().forEach(track => track.stop());
+        try {
+          if (chunksRef.current.length === 0) {
+            reject(new Error("No audio chunks recorded"));
+            return;
+          }
 
+          const webmBlob = new Blob(chunksRef.current, {
+            type: recorder.mimeType,
+          });
+          console.log("Recorded audio size:", webmBlob.size, "bytes");
+
+          if (webmBlob.size < 100) {
+            reject(new Error("Audio too short or empty"));
+            return;
+          }
+
+          const wavBlob = await webmToWav(webmBlob);
+          console.log("WAV audio size:", wavBlob.size, "bytes");
+          resolve(wavBlob);
+        } catch (err) {
+          console.error("Error converting audio:", err);
+          reject(err);
+        }
+      };
+
+      recorder.stream.getTracks().forEach((track) => track.stop());
       recorder.stop();
     });
 
   return { start, stop };
 }
-
 
 function encodeWav(samples: Float32Array, sampleRate: number): ArrayBuffer {
   const buffer = new ArrayBuffer(44 + samples.length * 2);
@@ -60,23 +117,36 @@ function encodeWav(samples: Float32Array, sampleRate: number): ArrayBuffer {
   let offset = 0;
 
   // RIFF header
-  writeString(offset, "RIFF"); offset += 4;
-  view.setUint32(offset, 36 + samples.length * 2, true); offset += 4;
-  writeString(offset, "WAVE"); offset += 4;
+  writeString(offset, "RIFF");
+  offset += 4;
+  view.setUint32(offset, 36 + samples.length * 2, true);
+  offset += 4;
+  writeString(offset, "WAVE");
+  offset += 4;
 
   // fmt subchunk
-  writeString(offset, "fmt "); offset += 4;
-  view.setUint32(offset, 16, true); offset += 4; // PCM
-  view.setUint16(offset, 1, true); offset += 2;  // Linear PCM
-  view.setUint16(offset, 1, true); offset += 2;  // Mono
-  view.setUint32(offset, sampleRate, true); offset += 4;
-  view.setUint32(offset, sampleRate * 2, true); offset += 4;
-  view.setUint16(offset, 2, true); offset += 2;
-  view.setUint16(offset, 16, true); offset += 2;
+  writeString(offset, "fmt ");
+  offset += 4;
+  view.setUint32(offset, 16, true);
+  offset += 4; // PCM
+  view.setUint16(offset, 1, true);
+  offset += 2; // Linear PCM
+  view.setUint16(offset, 1, true);
+  offset += 2; // Mono
+  view.setUint32(offset, sampleRate, true);
+  offset += 4;
+  view.setUint32(offset, sampleRate * 2, true);
+  offset += 4;
+  view.setUint16(offset, 2, true);
+  offset += 2;
+  view.setUint16(offset, 16, true);
+  offset += 2;
 
   // data subchunk
-  writeString(offset, "data"); offset += 4;
-  view.setUint32(offset, samples.length * 2, true); offset += 4;
+  writeString(offset, "data");
+  offset += 4;
+  view.setUint32(offset, samples.length * 2, true);
+  offset += 4;
 
   // PCM samples
   let pos = offset;
