@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
+from models.lesson import LessonType
+
 
 class LessonSectionOut(BaseModel):
     id: int = Field(..., description="Section ID")
@@ -75,3 +77,15 @@ class LessonSectionsResponse(BaseModel):
 class TopicLessonsResponse(BaseModel):
     topic_id: int = Field(..., description="Topic ID")
     lessons: List[LessonInTopicOut] = Field(default_factory=list, description="Lessons in the topic")
+
+
+class LessonContentResponse(BaseModel):
+    id: int = Field(..., description="Lesson ID")
+    title: str = Field(..., description="Lesson title")
+    type: LessonType = Field(..., description="Lesson type")
+    content: Optional[Dict[str, Any]] = Field(default=None, description="Lesson content as JSON")
+    audio_url: Optional[str] = Field(default=None, description="Audio URL")
+    image_url: Optional[str] = Field(default=None, description="Image URL")
+
+    class Config:
+        from_attributes = True

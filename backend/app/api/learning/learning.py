@@ -10,6 +10,7 @@ from repositories.userRepository import UserRepository
 from schemas.learning import (
 	CompleteSectionRequest,
 	CompleteSectionResponse,
+	LessonContentResponse,
 	LessonSectionsResponse,
 	NextSectionResponse,
 	TopicLessonsResponse,
@@ -142,6 +143,31 @@ async def get_lesson_sections(
 		lesson_id=lesson_id,
 	)
 	return LessonSectionsResponse(lesson_id=lesson_id, sections=sections)
+
+
+@router.get("/lessons/{lesson_id}/content", response_model=LessonContentResponse)
+async def get_lesson_content(
+	lesson_id: int,
+	session: AsyncSession = Depends(get_session),
+	current_user=Depends(get_current_user),
+) -> LessonContentResponse:
+	"""Return lesson-level content fields only.
+
+	- Validates lesson existence and is_deleted = false.
+	- Does not include sections, questions, or progress.
+	"""
+
+	lesson_repo = LessonRepository(session)
+	lesson = await lesson_repo.get_lesson_by_id(lesson_id)
+
+	return LessonContentResponse(
+		id=int(lesson.id),
+		title=lesson.title,
+		type=lesson.type,
+		content=lesson.content,
+		audio_url=lesson.audio_url,
+		image_url=lesson.image_url,
+	)
 
 
 def _canonicalize(value: Any, *, string_casefold: bool, unordered_lists: bool) -> Any:
