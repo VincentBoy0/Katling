@@ -1,17 +1,25 @@
-
-import { Crown, Flame, Medal, Minus, MoveDown, TrendingUp, Zap, } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger, } from "@/components/learner/tabs";
+import {
+  Crown,
+  Flame,
+  Medal,
+  Minus,
+  MoveDown,
+  TrendingUp,
+  Zap,
+} from "lucide-react";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/learner/tabs";
 import { Card } from "@/components/ui/card";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
 
 const getRankVisuals = (rank?: number | null) => {
   if (!rank || rank <= 0) {
     return {
-      icon: (
-        <span className="text-xs font-bold text-muted-foreground">
-          —
-        </span>
-      ),
+      icon: <span className="text-xs font-bold text-muted-foreground">—</span>,
       bg: "bg-card",
       border: "border-border",
       text: "text-muted-foreground",
@@ -60,7 +68,6 @@ const getRankVisuals = (rank?: number | null) => {
 };
 
 export default function LeaderboardPage() {
-
   const {
     xpLeaderboard,
     streakLeaderboard,
@@ -69,7 +76,6 @@ export default function LeaderboardPage() {
     isLoading,
     error,
   } = useLeaderboard();
-
 
   const LeaderboardItem = ({
     user,
@@ -179,15 +185,23 @@ export default function LeaderboardPage() {
             <p className="text-xs font-bold text-orange-500 uppercase tracking-wider mb-1">
               Streak
             </p>
-            <p className="text-2xl font-black text-foreground">#{myStreakRank?.rank ?? "--"}</p>
-            <p className="text-xs text-muted-foreground font-medium">#{myStreakRank?.streak ?? "--"} ngày</p>
+            <p className="text-2xl font-black text-foreground">
+              #{myStreakRank?.rank ?? "--"}
+            </p>
+            <p className="text-xs text-muted-foreground font-medium">
+              #{myStreakRank?.streak ?? "--"} ngày
+            </p>
           </div>
           <div className="bg-background rounded-2xl p-4 border-2 border-emerald-100 dark:border-emerald-900 text-center">
             <p className="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-1">
               Kinh nghiệm
             </p>
-            <p className="text-2xl font-black text-foreground">#{myXpRank?.rank ?? "--"}</p>
-            <p className="text-xs text-muted-foreground font-medium">{myXpRank?.xp ?? "--"} XP</p>
+            <p className="text-2xl font-black text-foreground">
+              #{myXpRank?.rank ?? "--"}
+            </p>
+            <p className="text-xs text-muted-foreground font-medium">
+              {myXpRank?.xp ?? "--"} XP
+            </p>
           </div>
         </div>
       </Card>
@@ -200,16 +214,9 @@ export default function LeaderboardPage() {
           </p>
         )}
 
-        {error && (
-          <p className="text-center text-red-500 font-bold">
-            {error}
-          </p>
-        )}
+        {error && <p className="text-center text-red-500 font-bold">{error}</p>}
 
-        <Tabs
-          defaultValue="streak"
-          className="w-full"
-        >
+        <Tabs defaultValue="streak" className="w-full">
           <TabsList className="grid w-full grid-cols-2 h-12 p-1 bg-muted/50 rounded-xl mb-6">
             <TabsTrigger
               value="streak"

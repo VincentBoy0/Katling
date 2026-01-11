@@ -8,3 +8,4 @@ export { EditPostDialog } from "./EditPostDialog";
 export { FindFriendsDialog } from "./FindFriendsDialog";
 export { ShareDialog } from "./ShareDialog";
 export { FriendProfileDialog } from "./FriendProfileDialog";
+export { DeleteConfirmDialog } from "./DeleteConfirmDialog";

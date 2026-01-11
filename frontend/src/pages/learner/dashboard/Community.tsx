@@ -8,6 +8,7 @@ import {
   FindFriendsDialog,
   ShareDialog,
   FriendProfileDialog,
+  DeleteConfirmDialog,
 } from "@/components/learner/community";
 import { ReportDialog } from "@/components/learner/management/ReportDialog";
 
@@ -55,6 +56,8 @@ export default function CommunityPage() {
   const [showCreatePostDialog, setShowCreatePostDialog] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [reportPostId, setReportPostId] = useState<number | null>(null);
+  const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
+  const [deletePostId, setDeletePostId] = useState<number | null>(null);
 
   const [showFindFriendsDialog, setShowFindFriendsDialog] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
@@ -89,12 +92,22 @@ export default function CommunityPage() {
     setShowReportDialog(true);
   };
 
-  const handleDeletePost = async (postId: number) => {
+  const handleDeletePost = (postId: number) => {
+    setDeletePostId(postId);
+    setShowDeleteConfirmDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deletePostId === null) return;
+
     try {
-      await deletePost(postId);
+      await deletePost(deletePostId);
       toast.success("Đã xóa bài viết");
     } catch (err: any) {
       toast.error("Có lỗi khi xóa bài viết");
+    } finally {
+      setShowDeleteConfirmDialog(false);
+      setDeletePostId(null);
     }
   };
 
@@ -253,6 +266,12 @@ export default function CommunityPage() {
         onOpenChange={setShowReportDialog}
         onSubmit={handleReport}
         postId={reportPostId}
+      />
+
+      <DeleteConfirmDialog
+        open={showDeleteConfirmDialog}
+        onOpenChange={setShowDeleteConfirmDialog}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );
