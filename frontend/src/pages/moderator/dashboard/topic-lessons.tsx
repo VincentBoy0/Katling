@@ -1,4 +1,12 @@
-import { BookOpen, Plus, Trash2, FileText, Edit, Folder } from "lucide-react";
+import {
+  BookOpen,
+  Plus,
+  Trash2,
+  FileText,
+  Edit,
+  Folder,
+  RotateCcw,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -24,15 +32,18 @@ export default function TopicLessons() {
   const { topicId } = useParams<{ topicId: string }>();
   const [topic, setTopic] = useState<Topic | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [deletedLessons, setDeletedLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRecycleBin, setShowRecycleBin] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const navigate = useNavigate();
 
   const [createFormData, setCreateFormData] = useState<LessonCreateRequest>({
@@ -69,10 +80,18 @@ export default function TopicLessons() {
         }),
       ]);
       setTopic(topicResponse.data);
-      const sortedLessons = lessonsResponse.data.sort(
-        (a, b) => a.order_index - b.order_index
-      );
-      setLessons(sortedLessons);
+
+      // Separate active and deleted lessons
+      const allLessons = lessonsResponse.data;
+      const activeLessons = allLessons
+        .filter((l) => !l.is_deleted)
+        .sort((a, b) => a.order_index - b.order_index);
+      const deleted = allLessons
+        .filter((l) => l.is_deleted)
+        .sort((a, b) => a.order_index - b.order_index);
+
+      setLessons(activeLessons);
+      setDeletedLessons(deleted);
     } catch (err: any) {
       setError(
         err.response?.data?.detail || err.message || "Không thể tải dữ liệu"
@@ -188,6 +207,20 @@ export default function TopicLessons() {
     }
   };
 
+  const handleRestoreLesson = async (lesson: Lesson) => {
+    try {
+      setRestoring(true);
+      await contentService.restoreLesson(lesson.id);
+      toast.success("Khôi phục bài học thành công!");
+      await fetchTopicAndLessons();
+    } catch (err: any) {
+      console.error("Error restoring lesson:", err);
+      toast.error(err.response?.data?.detail || "Không thể khôi phục bài học");
+    } finally {
+      setRestoring(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN", {
       year: "numeric",
@@ -211,16 +244,41 @@ export default function TopicLessons() {
 
       <PageHeader
         icon={<BookOpen className="w-6 h-6 text-primary" />}
-        title={loading ? "Đang tải..." : topic?.name || "Bài học của Topic"}
-        subtitle={topic?.description || "Quản lý các bài học trong topic này"}
+        title={
+          loading
+            ? "Đang tải..."
+            : showRecycleBin
+            ? "Thùng rác - Bài học"
+            : topic?.name || "Bài học của Topic"
+        }
+        subtitle={
+          showRecycleBin
+            ? "Các bài học đã xóa có thể khôi phục"
+            : topic?.description || "Quản lý các bài học trong topic này"
+        }
         actions={
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold"
-          >
-            <Plus className="w-5 h-5" />
-            Tạo bài học mới
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowRecycleBin(!showRecycleBin)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all ${
+                showRecycleBin
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              <Trash2 className="w-5 h-5" />
+              Thùng rác ({deletedLessons.length})
+            </button>
+            {!showRecycleBin && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold"
+              >
+                <Plus className="w-5 h-5" />
+                Tạo bài học mới
+              </button>
+            )}
+          </div>
         }
       />
 
@@ -228,6 +286,43 @@ export default function TopicLessons() {
         <LoadingState message="Đang tải bài học..." />
       ) : error ? (
         <ErrorState message={error} onRetry={fetchTopicAndLessons} />
+      ) : showRecycleBin ? (
+        // Recycle Bin View
+        deletedLessons.length === 0 ? (
+          <EmptyState
+            icon={<Trash2 className="w-full h-full" />}
+            title="Thùng rác trống"
+            description="Không có bài học nào đã xóa"
+          />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {deletedLessons.map((lesson) => (
+              <ContentCard
+                key={lesson.id}
+                type="lesson"
+                icon={<Trash2 className="w-6 h-6" />}
+                title={lesson.title}
+                subtitle={lesson.description}
+                badge={lesson.type}
+                status={lesson.status as any}
+                meta={[
+                  { label: "Thứ tự", value: lesson.order_index },
+                  { label: "Ngày tạo", value: formatDate(lesson.created_at) },
+                ]}
+                actions={
+                  <button
+                    onClick={() => handleRestoreLesson(lesson)}
+                    disabled={restoring}
+                    className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Khôi phục
+                  </button>
+                }
+              />
+            ))}
+          </div>
+        )
       ) : lessons.length === 0 ? (
         <EmptyState
           icon={<FileText className="w-full h-full" />}
@@ -248,13 +343,7 @@ export default function TopicLessons() {
             <ContentCard
               key={lesson.id}
               type="lesson"
-              icon={
-                lesson.is_deleted ? (
-                  <Trash2 className="w-6 h-6" />
-                ) : (
-                  <BookOpen className="w-6 h-6" />
-                )
-              }
+              icon={<BookOpen className="w-6 h-6" />}
               title={lesson.title}
               subtitle={lesson.description}
               badge={lesson.type}
@@ -265,23 +354,21 @@ export default function TopicLessons() {
               ]}
               onClick={() => handleLessonClick(lesson)}
               actions={
-                !lesson.is_deleted && (
-                  <ActionMenu
-                    items={[
-                      {
-                        icon: <Edit className="w-4 h-4" />,
-                        label: "Chỉnh sửa",
-                        onClick: () => handleEditClick(lesson),
-                      },
-                      {
-                        icon: <Trash2 className="w-4 h-4" />,
-                        label: "Xóa",
-                        onClick: () => handleDeleteClick(lesson),
-                        variant: "danger",
-                      },
-                    ]}
-                  />
-                )
+                <ActionMenu
+                  items={[
+                    {
+                      icon: <Edit className="w-4 h-4" />,
+                      label: "Chỉnh sửa",
+                      onClick: () => handleEditClick(lesson),
+                    },
+                    {
+                      icon: <Trash2 className="w-4 h-4" />,
+                      label: "Xóa",
+                      onClick: () => handleDeleteClick(lesson),
+                      variant: "danger",
+                    },
+                  ]}
+                />
               }
             />
           ))}

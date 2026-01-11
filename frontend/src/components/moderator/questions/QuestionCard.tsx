@@ -21,7 +21,17 @@ export function QuestionCard({
   onDelete,
 }: QuestionCardProps) {
   const content = question.content || {};
-  const questionText = content.question || content.text || "";
+  // MATCHING doesn't have a question field, use left items as preview
+  const questionText =
+    question.type === QuestionType.MATCHING
+      ? content.left && content.left.length > 0
+        ? `Match: ${content.left.join(", ")}`
+        : "Matching question"
+      : content.question ||
+        content.text ||
+        content.instruction ||
+        content.sentence ||
+        "";
   const typeColor = getQuestionTypeColor(question.type);
   const typeLabel = getQuestionTypeLabel(question.type);
 

@@ -3,7 +3,6 @@ import { QuestionType } from "@/types/content";
 export interface QuestionFormData {
   type: QuestionType;
   explanation?: string;
-  order_index: number;
   audio_url?: string;
   questionText?: string;
   options?: string[];
@@ -11,18 +10,23 @@ export interface QuestionFormData {
   leftItems?: string[];
   rightItems?: string[];
   correctAnswers?: string[];
+  // For ORDERING: words = display order, arrangedWords = correct order
+  arrangedWords?: string[];
+  // For MATCHING: matches = correct pairs {leftIndex: rightIndex}
+  matchPairs?: Record<number, number>;
 }
 
-export const getInitialFormData = (sectionId?: number): QuestionFormData => ({
+export const getInitialFormData = (): QuestionFormData => ({
   type: QuestionType.MCQ,
   explanation: "",
-  order_index: 0,
   questionText: "",
   options: ["", "", "", ""],
   correctAnswer: "",
   leftItems: ["", ""],
   rightItems: ["", ""],
   correctAnswers: [],
+  arrangedWords: ["", "", "", ""],
+  matchPairs: {},
 });
 
 export const buildQuestionData = (formData: QuestionFormData) => {
@@ -61,38 +65,49 @@ export const buildQuestionData = (formData: QuestionFormData) => {
 
     case QuestionType.FILL_IN_THE_BLANK:
       content = {
-        text: formData.questionText,
+        sentence: formData.questionText,
       };
       correct_answer = {
-        answers: formData.correctAnswer?.split(",").map((a) => a.trim()),
+        answer: formData.correctAnswer,
       };
       break;
 
     case QuestionType.MATCHING:
-      const pairs = (formData.leftItems || [])
-        .map((left, index) => ({
-          left: left.trim(),
-          right: (formData.rightItems?.[index] || "").trim(),
-        }))
-        .filter((pair) => pair.left && pair.right);
+      // leftItems and rightItems are the content columns
+      // matchPairs defines which left index matches which right index
+      const validLeftItems = (formData.leftItems || []).filter(item => item.trim() !== "");
+      const validRightItems = (formData.rightItems || []).filter(item => item.trim() !== "");
+      const matchesObject: Record<string, string> = {};
+      
+      // Build matches from matchPairs
+      const pairs = formData.matchPairs || {};
+      Object.entries(pairs).forEach(([leftIdx, rightIdx]) => {
+        const leftItem = validLeftItems[parseInt(leftIdx)];
+        const rightItem = validRightItems[rightIdx as number];
+        if (leftItem && rightItem) {
+          matchesObject[leftItem.trim()] = rightItem.trim();
+        }
+      });
+      
       content = {
-        question: formData.questionText,
-        pairs: pairs,
+        left: validLeftItems.map(item => item.trim()),
+        right: validRightItems.map(item => item.trim()),
       };
       correct_answer = {
-        pairs: pairs,
+        matches: matchesObject,
       };
       break;
 
     case QuestionType.ORDERING:
-      const validItems = formData.options?.filter((opt) => opt.trim() !== "") || [];
+      // options = words (display order for learner)
+      // arrangedWords = correct order
+      const displayWords = (formData.options || []).filter((opt) => opt.trim() !== "");
+      const correctOrder = (formData.arrangedWords || []).filter((opt) => opt.trim() !== "");
       content = {
-        question: formData.questionText,
-        items: validItems,
+        words: displayWords,
       };
-      // The order is sequential (0, 1, 2, ...) since items are arranged in correct order
       correct_answer = {
-        order: validItems.map((_, index) => index),
+        arranged_words: correctOrder.length > 0 ? correctOrder : displayWords,
       };
       break;
 
@@ -107,10 +122,10 @@ export const buildQuestionData = (formData: QuestionFormData) => {
 
     case QuestionType.TRANSCRIPT:
       content = {
-        text: formData.questionText,
+        instruction: formData.questionText,
       };
       correct_answer = {
-        text: formData.correctAnswer,
+        transcript: formData.correctAnswer,
       };
       break;
 
@@ -129,9 +144,8 @@ export const parseQuestionToFormData = (question: any): QuestionFormData => {
   let editData: QuestionFormData = {
     type: question.type,
     explanation: question.explanation || "",
-    order_index: question.order_index,
     audio_url: question.audio_url || "",
-    questionText: content.question || content.text || "",
+    questionText: content.question || content.text || content.instruction || content.sentence || "",
     options: content.options || ["", "", "", ""],
     correctAnswer: "",
     leftItems: ["", ""],
@@ -145,25 +159,31 @@ export const parseQuestionToFormData = (question: any): QuestionFormData => {
       break;
 
     case QuestionType.MATCHING:
-      const pairs = content.pairs || [];
-      editData.leftItems = pairs.map((p: any) => p.left || "");
-      editData.rightItems = pairs.map((p: any) => p.right || "");
-      if (pairs.length === 0) {
-        editData.leftItems = ["", ""];
-        editData.rightItems = ["", ""];
-      }
+      const leftArray = content.left || [];
+      const rightArray = content.right || [];
+      const matchesObj = correctAnswer.matches || {};
+      
+      // Reconstruct matchPairs from matches object
+      const reconstructedPairs: Record<number, number> = {};
+      Object.entries(matchesObj).forEach(([leftVal, rightVal]) => {
+        const leftIdx = leftArray.findIndex((l: string) => l === leftVal);
+        const rightIdx = rightArray.findIndex((r: string) => r === rightVal);
+        if (leftIdx !== -1 && rightIdx !== -1) {
+          reconstructedPairs[leftIdx] = rightIdx;
+        }
+      });
+      
+      editData.leftItems = leftArray.length > 0 ? leftArray : ["", ""];
+      editData.rightItems = rightArray.length > 0 ? rightArray : ["", ""];
+      editData.matchPairs = reconstructedPairs;
       break;
 
     case QuestionType.ORDERING:
-      // Reorder items based on the stored correct order
-      const storedItems = content.items || [];
-      const storedOrder = correctAnswer.order || [];
-      if (storedOrder.length > 0 && storedItems.length > 0) {
-        // Reconstruct items in correct order for editing
-        editData.options = storedOrder.map((idx: number) => storedItems[idx] || "");
-      } else {
-        editData.options = storedItems.length > 0 ? storedItems : ["", "", "", ""];
-      }
+      // words = display order, arranged_words = correct order
+      const displayWords = content.words || [];
+      const arrangedWords = correctAnswer.arranged_words || [];
+      editData.options = displayWords.length > 0 ? displayWords : ["", "", "", ""];
+      editData.arrangedWords = arrangedWords.length > 0 ? arrangedWords : displayWords;
       break;
 
     case QuestionType.TRUE_FALSE:
@@ -171,11 +191,12 @@ export const parseQuestionToFormData = (question: any): QuestionFormData => {
       break;
 
     case QuestionType.FILL_IN_THE_BLANK:
-      editData.correctAnswer = (correctAnswer.answers || []).join(", ");
+      editData.questionText = content.sentence || "";
+      editData.correctAnswer = correctAnswer.answer || "";
       break;
 
     default:
-      editData.correctAnswer = correctAnswer.answer || correctAnswer.text || "";
+      editData.correctAnswer = correctAnswer.answer || correctAnswer.text || correctAnswer.transcript || "";
   }
 
   return editData;
@@ -190,12 +211,14 @@ export const resetFormDataForType = (
     type: newType,
     questionText: "",
     options:
-      newType === QuestionType.TRUE_FALSE || newType === QuestionType.MATCHING
-        ? []
+      newType === QuestionType.TRUE_FALSE || newType === QuestionType.MATCHING || newType === QuestionType.ORDERING
+        ? ["", "", "", ""]
         : ["", "", "", ""],
     correctAnswer: "",
     leftItems: ["", ""],
     rightItems: ["", ""],
     correctAnswers: [],
+    arrangedWords: ["", "", "", ""],
+    matchPairs: {},
   };
 };

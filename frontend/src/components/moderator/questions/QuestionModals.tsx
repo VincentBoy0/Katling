@@ -123,25 +123,6 @@ export function QuestionModal({
                 />
               </div>
             )}
-
-            {/* Order Index */}
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">
-                Thứ tự hiển thị
-              </label>
-              <input
-                type="number"
-                value={formData.order_index}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    order_index: parseInt(e.target.value) || 0,
-                  })
-                }
-                min="0"
-                className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
-              />
-            </div>
           </div>
 
           {/* Footer */}

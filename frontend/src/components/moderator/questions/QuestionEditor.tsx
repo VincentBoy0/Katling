@@ -1,6 +1,7 @@
 import { Trash2, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
 import { QuestionType } from "@/types/content";
 import { QuestionFormData } from "./QuestionFormUtils";
+import { useEffect } from "react";
 
 interface QuestionEditorProps {
   formData: QuestionFormData;
@@ -83,25 +84,28 @@ export function QuestionEditor({
       {/* Other question types */}
       {formData.type !== QuestionType.TRANSCRIPT && (
         <>
-          {/* Question Text */}
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              {formData.type === QuestionType.PRONUNCIATION
-                ? "Văn bản"
-                : "Nội dung câu hỏi"}{" "}
-              <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={formData.questionText}
-              onChange={(e) =>
-                setFormData({ ...formData, questionText: e.target.value })
-              }
-              placeholder={getQuestionTextPlaceholder(formData.type)}
-              className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors resize-none"
-              rows={3}
-              required
-            />
-          </div>
+          {/* Question Text - hide for MATCHING since it doesn't need question field */}
+          {formData.type !== QuestionType.MATCHING &&
+            formData.type !== QuestionType.ORDERING && (
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  {formData.type === QuestionType.PRONUNCIATION
+                    ? "Văn bản"
+                    : "Nội dung câu hỏi"}{" "}
+                  <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={formData.questionText}
+                  onChange={(e) =>
+                    setFormData({ ...formData, questionText: e.target.value })
+                  }
+                  placeholder={getQuestionTextPlaceholder(formData.type)}
+                  className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors resize-none"
+                  rows={3}
+                  required
+                />
+              </div>
+            )}
 
           {/* Options for MCQ, Multiple Select */}
           {[QuestionType.MCQ, QuestionType.MULTIPLE_SELECT].includes(
@@ -118,6 +122,8 @@ export function QuestionEditor({
           {/* Ordering with drag-drop style */}
           {formData.type === QuestionType.ORDERING && (
             <OrderingEditor
+              formData={formData}
+              setFormData={setFormData}
               options={formData.options || []}
               updateOption={updateOption}
               addOption={addOption}
@@ -129,6 +135,8 @@ export function QuestionEditor({
           {/* Matching Pairs */}
           {formData.type === QuestionType.MATCHING && (
             <MatchingPairsEditor
+              formData={formData}
+              setFormData={setFormData}
               leftItems={formData.leftItems || []}
               rightItems={formData.rightItems || []}
               updateLeftItem={updateLeftItem}
@@ -224,6 +232,8 @@ function OptionsEditor({
 
 // Ordering Editor - with move up/down buttons for user-friendly ordering
 interface OrderingEditorProps {
+  formData: QuestionFormData;
+  setFormData: (data: QuestionFormData) => void;
   options: string[];
   updateOption: (index: number, value: string) => void;
   addOption: () => void;
@@ -232,26 +242,71 @@ interface OrderingEditorProps {
 }
 
 function OrderingEditor({
+  formData,
+  setFormData,
   options,
   updateOption,
   addOption,
   removeOption,
   moveOption,
 }: OrderingEditorProps) {
+  // Sync arrangedWords with options when options change
+  useEffect(() => {
+    const validOptions = options.filter((opt) => opt.trim() !== "");
+    const currentArranged = formData.arrangedWords || [];
+
+    // Build a map of current arranged words for tracking
+    const arrangedMap = new Map(
+      currentArranged.map((word, idx) => [word, idx])
+    );
+
+    // If there are new valid options that aren't in arrangedWords, add them
+    const newArrangedWords = [...currentArranged];
+
+    validOptions.forEach((opt) => {
+      if (!arrangedMap.has(opt)) {
+        // New word - add to arranged list
+        newArrangedWords.push(opt);
+      }
+    });
+
+    // Remove words from arranged that no longer exist in validOptions
+    const validOptionsSet = new Set(validOptions);
+    const filteredArranged = newArrangedWords.filter((word) =>
+      validOptionsSet.has(word)
+    );
+
+    // Update if there's a difference
+    if (JSON.stringify(filteredArranged) !== JSON.stringify(currentArranged)) {
+      setFormData({ ...formData, arrangedWords: filteredArranged });
+    }
+  }, [options]);
+
+  // Move arranged word up/down
+  const moveArrangedWord = (index: number, direction: "up" | "down") => {
+    const newArranged = [...(formData.arrangedWords || [])];
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= newArranged.length) return;
+    [newArranged[index], newArranged[newIndex]] = [
+      newArranged[newIndex],
+      newArranged[index],
+    ];
+    setFormData({ ...formData, arrangedWords: newArranged });
+  };
+
+  const arrangedWords = formData.arrangedWords || [];
+  const validOptions = options.filter((opt) => opt.trim() !== "");
+
   return (
     <div className="space-y-4">
-      {/* Content Section - Items to order */}
+      {/* Section 1: Input words - what learner sees */}
       <div className="p-4 bg-muted/30 rounded-lg border border-border">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-2 h-2 rounded-full bg-blue-500" />
           <label className="text-sm font-semibold text-foreground">
-            Các mục cần sắp xếp
+            Các từ/mục cần sắp xếp
           </label>
         </div>
-        <p className="text-xs text-muted-foreground mb-3">
-          Nhập các mục theo thứ tự đúng. Người học sẽ thấy các mục bị xáo trộn
-          và cần sắp xếp lại.
-        </p>
 
         <div className="space-y-2">
           {options.map((option, index) => (
@@ -259,52 +314,22 @@ function OrderingEditor({
               key={index}
               className="flex gap-2 items-center p-2 bg-muted/50 rounded-lg border border-border hover:border-primary/30 transition-colors"
             >
-              {/* Position indicator */}
-              <span className="flex items-center justify-center w-8 h-8 bg-primary/10 text-primary rounded-lg text-sm font-bold shrink-0">
+              <span className="flex items-center justify-center w-8 h-8 bg-blue-500/10 text-blue-600 rounded-lg text-sm font-bold shrink-0">
                 {index + 1}
               </span>
-
-              {/* Move buttons */}
-              <div className="flex flex-col gap-0.5">
-                <button
-                  type="button"
-                  onClick={() => moveOption(index, "up")}
-                  disabled={index === 0}
-                  className="p-1 hover:bg-muted rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="Di chuyển lên"
-                >
-                  <ArrowUp className="w-3 h-3" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => moveOption(index, "down")}
-                  disabled={index === options.length - 1}
-                  className="p-1 hover:bg-muted rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="Di chuyển xuống"
-                >
-                  <ArrowDown className="w-3 h-3" />
-                </button>
-              </div>
-
-              {/* Drag handle indicator */}
-              <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" />
-
-              {/* Input */}
               <input
                 type="text"
                 value={option}
                 onChange={(e) => updateOption(index, e.target.value)}
-                placeholder={`Mục ${index + 1}`}
+                placeholder={`Từ ${index + 1}`}
                 className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-primary transition-colors text-sm"
               />
-
-              {/* Remove button */}
               {options.length > 2 && (
                 <button
                   type="button"
                   onClick={() => removeOption(index)}
                   className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"
-                  title="Xóa mục"
+                  title="Xóa"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -312,42 +337,64 @@ function OrderingEditor({
             </div>
           ))}
         </div>
-
         <button
           type="button"
           onClick={addOption}
           className="mt-3 text-sm text-primary hover:underline"
         >
-          + Thêm mục
+          + Thêm từ
         </button>
       </div>
 
-      {/* Answer Preview */}
-      {options.filter((o) => o.trim()).length > 0 && (
+      {/* Section 2: Correct order - arrange the words */}
+      {validOptions.length > 0 && (
         <div className="p-4 bg-green-500/5 rounded-lg border border-green-500/20">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 rounded-full bg-green-500" />
             <label className="text-sm font-semibold text-foreground">
-              Đáp án đúng - Thứ tự hiện tại
+              Sắp xếp thứ tự đúng
             </label>
           </div>
-          <p className="text-xs text-muted-foreground mb-3">
-            Người học cần sắp xếp các mục theo đúng thứ tự này:
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {options
-              .filter((o) => o.trim())
-              .map((option, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/50 dark:bg-black/20 rounded-lg border border-green-500/30"
-                >
-                  <span className="w-5 h-5 flex items-center justify-center bg-green-500 text-white rounded text-xs font-bold">
-                    {idx + 1}
-                  </span>
-                  <span className="text-sm font-medium">{option}</span>
+
+          <div className="space-y-2">
+            {arrangedWords.map((word, index) => (
+              <div
+                key={`${word}-${index}`}
+                className="flex gap-2 items-center p-2 bg-white/50 dark:bg-black/20 rounded-lg border border-green-500/30 hover:border-green-500/50 transition-colors"
+              >
+                <span className="flex items-center justify-center w-8 h-8 bg-green-500 text-white rounded-lg text-sm font-bold shrink-0">
+                  {index + 1}
+                </span>
+
+                {/* Move buttons */}
+                <div className="flex flex-col gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => moveArrangedWord(index, "up")}
+                    disabled={index === 0}
+                    className="p-1 hover:bg-muted rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Di chuyển lên"
+                  >
+                    <ArrowUp className="w-3 h-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveArrangedWord(index, "down")}
+                    disabled={index === arrangedWords.length - 1}
+                    className="p-1 hover:bg-muted rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Di chuyển xuống"
+                  >
+                    <ArrowDown className="w-3 h-3" />
+                  </button>
                 </div>
-              ))}
+
+                <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" />
+
+                <div className="flex-1 bg-background border border-green-300 rounded-lg px-3 py-2 text-foreground text-sm font-medium">
+                  {word || "(trống)"}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -382,23 +429,19 @@ function TranscriptEditor({
   return (
     <div className="space-y-4">
       {/* Audio URL - Required */}
-      <div className="p-4 bg-orange-500/5 rounded-lg border border-orange-500/20">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-2 h-2 rounded-full bg-orange-500" />
-          <label className="text-sm font-semibold text-foreground">
-            Audio <span className="text-red-500">*</span>
-          </label>
-        </div>
-        <p className="text-xs text-muted-foreground mb-3">
-          URL của file audio mà người học cần nghe và chép lại. Bắt buộc cho
-          dạng Transcript.
+      <div>
+        <label className="block text-sm font-semibold text-foreground mb-2">
+          URL Audio <span className="text-red-500">*</span>
+        </label>
+        <p className="text-xs text-muted-foreground mb-2">
+          URL của file audio mà người học cần nghe và chép lại
         </p>
         <input
           type="url"
           value={currentAudio}
           onChange={(e) => handleAudioChange(e.target.value)}
           placeholder="https://example.com/audio.mp3"
-          className="w-full bg-muted border border-orange-300 rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-orange-500 transition-colors"
+          className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
           required
         />
         {currentAudio && (
@@ -413,14 +456,11 @@ function TranscriptEditor({
       </div>
 
       {/* Instruction/Question Text */}
-      <div className="p-4 bg-blue-500/5 rounded-lg border border-blue-500/20">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-2 h-2 rounded-full bg-blue-500" />
-          <label className="text-sm font-semibold text-foreground">
-            Hướng dẫn <span className="text-red-500">*</span>
-          </label>
-        </div>
-        <p className="text-xs text-muted-foreground mb-3">
+      <div>
+        <label className="block text-sm font-semibold text-foreground mb-2">
+          Hướng dẫn <span className="text-red-500">*</span>
+        </label>
+        <p className="text-xs text-muted-foreground mb-2">
           Câu hướng dẫn cho người học (VD: "Nghe audio và chép lại nội dung")
         </p>
         <textarea
@@ -429,22 +469,19 @@ function TranscriptEditor({
             setFormData({ ...formData, questionText: e.target.value })
           }
           placeholder="VD: Nghe đoạn audio sau và chép lại chính xác những gì bạn nghe được"
-          className="w-full bg-muted border border-blue-300 rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-blue-500 transition-colors resize-none"
+          className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors resize-none"
           rows={2}
           required
         />
       </div>
 
       {/* Correct Transcript */}
-      <div className="p-4 bg-green-500/5 rounded-lg border border-green-500/20">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-2 h-2 rounded-full bg-green-500" />
-          <label className="text-sm font-semibold text-foreground">
-            Nội dung chính xác (Transcript){" "}
-            <span className="text-red-500">*</span>
-          </label>
-        </div>
-        <p className="text-xs text-muted-foreground mb-3">
+      <div>
+        <label className="block text-sm font-semibold text-foreground mb-2">
+          Nội dung chính xác (Transcript){" "}
+          <span className="text-red-500">*</span>
+        </label>
+        <p className="text-xs text-muted-foreground mb-2">
           Văn bản chính xác của audio. Hệ thống sẽ so sánh với câu trả lời của
           người học.
         </p>
@@ -454,7 +491,7 @@ function TranscriptEditor({
             setFormData({ ...formData, correctAnswer: e.target.value })
           }
           placeholder="Nhập nội dung chính xác của audio..."
-          className="w-full bg-muted border border-green-300 rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-green-500 transition-colors resize-none"
+          className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors resize-none"
           rows={4}
           required
         />
@@ -464,6 +501,8 @@ function TranscriptEditor({
 }
 
 interface MatchingPairsEditorProps {
+  formData: QuestionFormData;
+  setFormData: (data: QuestionFormData) => void;
   leftItems: string[];
   rightItems: string[];
   updateLeftItem: (index: number, value: string) => void;
@@ -473,6 +512,8 @@ interface MatchingPairsEditorProps {
 }
 
 function MatchingPairsEditor({
+  formData,
+  setFormData,
   leftItems,
   rightItems,
   updateLeftItem,
@@ -480,110 +521,189 @@ function MatchingPairsEditor({
   addPair,
   removePair,
 }: MatchingPairsEditorProps) {
-  // Calculate valid pairs for preview
-  const validPairs = leftItems
-    .map((left, index) => ({
-      left: left.trim(),
-      right: (rightItems[index] || "").trim(),
-      index,
+  const matchPairs = formData.matchPairs || {};
+
+  // Toggle a match between left index and right index
+  const toggleMatch = (leftIdx: number, rightIdx: number) => {
+    const newPairs = { ...matchPairs };
+    if (newPairs[leftIdx] === rightIdx) {
+      // Remove the match
+      delete newPairs[leftIdx];
+    } else {
+      // Add/update the match
+      newPairs[leftIdx] = rightIdx;
+    }
+    setFormData({ ...formData, matchPairs: newPairs });
+  };
+
+  // Get valid items for matching
+  const validLeftItems = leftItems
+    .map((item, idx) => ({ item: item.trim(), idx }))
+    .filter((x) => x.item);
+  const validRightItems = rightItems
+    .map((item, idx) => ({ item: item.trim(), idx }))
+    .filter((x) => x.item);
+
+  // Get matched pairs for preview
+  const matchedPairs = Object.entries(matchPairs)
+    .map(([leftIdx, rightIdx]) => ({
+      left: leftItems[parseInt(leftIdx)]?.trim(),
+      right: rightItems[rightIdx]?.trim(),
     }))
     .filter((pair) => pair.left && pair.right);
 
   return (
     <div className="space-y-4">
-      {/* Content Section - Input pairs */}
+      {/* Section 1: Input left and right columns */}
       <div className="p-4 bg-muted/30 rounded-lg border border-border">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-2 h-2 rounded-full bg-blue-500" />
           <label className="text-sm font-semibold text-foreground">
-            Nội dung câu hỏi - Nhập các cặp ghép đôi
+            Nội dung 2 cột
           </label>
         </div>
-        <p className="text-xs text-muted-foreground mb-3">
-          Người học sẽ thấy 2 cột riêng biệt và cần nối đúng từng cặp. Nhập các
-          cặp theo thứ tự đúng.
-        </p>
 
-        {/* Column headers */}
-        <div className="grid grid-cols-[1fr,auto,1fr,auto] gap-2 items-center mb-2 px-1">
-          <span className="text-xs font-medium text-blue-600">Cột trái</span>
-          <span></span>
-          <span className="text-xs font-medium text-green-600">
-            Cột phải (đáp án đúng)
-          </span>
-          <span></span>
-        </div>
-
-        <div className="space-y-2">
-          {leftItems.map((_, index) => (
-            <div key={index} className="flex gap-2 items-center">
-              <span className="flex items-center justify-center w-6 h-8 bg-blue-500/10 text-blue-600 rounded text-xs font-semibold shrink-0">
-                {index + 1}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Left column */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-medium text-blue-600">
+                Cột trái (left)
               </span>
-              <input
-                type="text"
-                value={leftItems[index] || ""}
-                onChange={(e) => updateLeftItem(index, e.target.value)}
-                placeholder={`Mục ${index + 1}`}
-                className="flex-1 bg-muted border border-blue-200 rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-blue-500 transition-colors text-sm"
-              />
-              <span className="text-primary font-bold text-lg">↔</span>
-              <input
-                type="text"
-                value={rightItems[index] || ""}
-                onChange={(e) => updateRightItem(index, e.target.value)}
-                placeholder={`Ghép với ${index + 1}`}
-                className="flex-1 bg-muted border border-green-200 rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-green-500 transition-colors text-sm"
-              />
-              {leftItems.length > 2 && (
-                <button
-                  type="button"
-                  onClick={() => removePair(index)}
-                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
             </div>
-          ))}
+            <div className="space-y-2">
+              {leftItems.map((item, index) => (
+                <div key={index} className="flex gap-2 items-center">
+                  <span className="flex items-center justify-center w-6 h-8 bg-blue-500/10 text-blue-600 rounded text-xs font-semibold shrink-0">
+                    {index + 1}
+                  </span>
+                  <input
+                    type="text"
+                    value={item}
+                    onChange={(e) => updateLeftItem(index, e.target.value)}
+                    placeholder={`Mục trái ${index + 1}`}
+                    className="flex-1 bg-muted border border-blue-200 rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-blue-500 transition-colors text-sm"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right column */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-medium text-green-600">
+                Cột phải (right)
+              </span>
+            </div>
+            <div className="space-y-2">
+              {rightItems.map((item, index) => (
+                <div key={index} className="flex gap-2 items-center">
+                  <span className="flex items-center justify-center w-6 h-8 bg-green-500/10 text-green-600 rounded text-xs font-semibold shrink-0">
+                    {index + 1}
+                  </span>
+                  <input
+                    type="text"
+                    value={item}
+                    onChange={(e) => updateRightItem(index, e.target.value)}
+                    placeholder={`Mục phải ${index + 1}`}
+                    className="flex-1 bg-muted border border-green-200 rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-green-500 transition-colors text-sm"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={addPair}
-          className="mt-3 text-sm text-primary hover:underline"
-        >
-          + Thêm cặp
-        </button>
+
+        <div className="flex gap-4 mt-3">
+          <button
+            type="button"
+            onClick={addPair}
+            className="text-sm text-primary hover:underline"
+          >
+            + Thêm mục
+          </button>
+          {leftItems.length > 2 && (
+            <button
+              type="button"
+              onClick={() => removePair(leftItems.length - 1)}
+              className="text-sm text-red-500 hover:underline"
+            >
+              - Xóa mục
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Answer Preview Section */}
-      {validPairs.length > 0 && (
+      {/* Section 2: Define correct matches */}
+      {validLeftItems.length > 0 && validRightItems.length > 0 && (
         <div className="p-4 bg-green-500/5 rounded-lg border border-green-500/20">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 rounded-full bg-green-500" />
             <label className="text-sm font-semibold text-foreground">
-              Đáp án đúng - Xem trước
+              Chỉ định các cặp đúng
             </label>
           </div>
-          <p className="text-xs text-muted-foreground mb-3">
-            Các cặp ghép đôi chính xác mà người học cần tìm ra:
-          </p>
+
           <div className="space-y-2">
-            {validPairs.map((pair, idx) => (
-              <div
-                key={idx}
-                className="flex items-center gap-2 p-2 bg-white/50 dark:bg-black/20 rounded-lg"
-              >
-                <span className="flex-1 text-sm font-medium text-blue-600 text-right">
-                  {pair.left}
+            {validLeftItems.map(({ item: leftItem, idx: leftIdx }) => (
+              <div key={leftIdx} className="flex items-center gap-3">
+                <span className="shrink-0 px-3 py-2 bg-blue-500/10 text-blue-600 rounded-lg text-sm font-medium min-w-30">
+                  {leftItem}
                 </span>
-                <span className="text-green-500 font-bold">→</span>
-                <span className="flex-1 text-sm font-medium text-green-600">
-                  {pair.right}
-                </span>
+                <span className="text-muted-foreground">→</span>
+                <select
+                  value={matchPairs[leftIdx] ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "") {
+                      const newPairs = { ...matchPairs };
+                      delete newPairs[leftIdx];
+                      setFormData({ ...formData, matchPairs: newPairs });
+                    } else {
+                      setFormData({
+                        ...formData,
+                        matchPairs: { ...matchPairs, [leftIdx]: parseInt(val) },
+                      });
+                    }
+                  }}
+                  className="flex-1 bg-muted border border-green-200 rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-green-500 transition-colors text-sm"
+                >
+                  <option value="">-- Chọn mục phải --</option>
+                  {validRightItems.map(({ item: rightItem, idx: rightIdx }) => (
+                    <option key={rightIdx} value={rightIdx}>
+                      {rightItem}
+                    </option>
+                  ))}
+                </select>
               </div>
             ))}
           </div>
+
+          {/* Preview matched pairs */}
+          {matchedPairs.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-green-500/20">
+              <p className="text-xs text-muted-foreground mb-2">
+                Đáp án đã chọn:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {matchedPairs.map((pair, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-white/50 dark:bg-black/20 rounded-lg border border-green-500/30"
+                  >
+                    <span className="text-sm text-blue-600 font-medium">
+                      {pair.left}
+                    </span>
+                    <span className="text-green-500">→</span>
+                    <span className="text-sm text-green-600 font-medium">
+                      {pair.right}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

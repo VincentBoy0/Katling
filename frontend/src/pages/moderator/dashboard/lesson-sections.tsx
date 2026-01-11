@@ -6,6 +6,7 @@ import {
   BookOpen,
   Folder,
   FileText,
+  RotateCcw,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -32,17 +33,20 @@ export default function LessonSections() {
   const { lessonId } = useParams<{ lessonId: string }>();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [sections, setSections] = useState<LessonSection[]>([]);
+  const [deletedSections, setDeletedSections] = useState<LessonSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRecycleBin, setShowRecycleBin] = useState(false);
   const [selectedSection, setSelectedSection] = useState<LessonSection | null>(
     null
   );
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const navigate = useNavigate();
 
   const [createFormData, setCreateFormData] =
@@ -76,10 +80,18 @@ export default function LessonSections() {
         }),
       ]);
       setLesson(lessonResponse.data);
-      const sortedSections = sectionsResponse.data.sort(
-        (a, b) => a.order_index - b.order_index
-      );
-      setSections(sortedSections);
+
+      // Separate active and deleted sections
+      const allSections = sectionsResponse.data;
+      const activeSections = allSections
+        .filter((s) => !s.is_deleted)
+        .sort((a, b) => a.order_index - b.order_index);
+      const deleted = allSections
+        .filter((s) => s.is_deleted)
+        .sort((a, b) => a.order_index - b.order_index);
+
+      setSections(activeSections);
+      setDeletedSections(deleted);
     } catch (err: any) {
       setError(
         err.response?.data?.detail || err.message || "Không thể tải dữ liệu"
@@ -182,6 +194,22 @@ export default function LessonSections() {
     }
   };
 
+  const handleRestoreSection = async (section: LessonSection) => {
+    if (!section.id) return;
+
+    try {
+      setRestoring(true);
+      await contentService.restoreSection(section.id);
+      toast.success("Khôi phục section thành công!");
+      await fetchLessonAndSections();
+    } catch (err: any) {
+      console.error("Error restoring section:", err);
+      toast.error(err.response?.data?.detail || "Không thể khôi phục section");
+    } finally {
+      setRestoring(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN", {
       year: "numeric",
@@ -200,28 +228,56 @@ export default function LessonSections() {
             icon: <Folder className="w-4 h-4" />,
           },
           {
-            label: lesson?.topic_id ? `Topic ${lesson.topic_id}` : "Lessons",
-            href: `/moderator/topics/${lesson?.topic_id}/lessons`,
+            label: lesson?.topic_id ? `Topic ${lesson.topic_id}` : "Topic",
+            href: lesson?.topic_id
+              ? `/moderator/topics/${lesson.topic_id}/lessons`
+              : "/moderator/topics",
             icon: <BookOpen className="w-4 h-4" />,
           },
-          { label: lesson?.title || "Sections" },
+          {
+            label: lesson?.title || "Sections",
+            icon: <FileText className="w-4 h-4" />,
+          },
         ]}
       />
 
       <PageHeader
         icon={<FileText className="w-6 h-6 text-primary" />}
         title={
-          loading ? "Đang tải..." : lesson?.title || "Các phần của bài học"
+          loading
+            ? "Đang tải..."
+            : showRecycleBin
+            ? "Thùng rác - Sections"
+            : lesson?.title || "Các phần của bài học"
         }
-        subtitle={lesson?.description || "Quản lý các phần trong bài học này"}
+        subtitle={
+          showRecycleBin
+            ? "Các section đã xóa có thể khôi phục"
+            : lesson?.description || "Quản lý các phần trong bài học này"
+        }
         actions={
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold"
-          >
-            <Plus className="w-5 h-5" />
-            Tạo Section mới
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowRecycleBin(!showRecycleBin)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all ${
+                showRecycleBin
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              <Trash2 className="w-5 h-5" />
+              Thùng rác ({deletedSections.length})
+            </button>
+            {!showRecycleBin && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-semibold"
+              >
+                <Plus className="w-5 h-5" />
+                Tạo Section mới
+              </button>
+            )}
+          </div>
         }
       />
 
@@ -229,6 +285,41 @@ export default function LessonSections() {
         <LoadingState message="Đang tải sections..." />
       ) : error ? (
         <ErrorState message={error} onRetry={fetchLessonAndSections} />
+      ) : showRecycleBin ? (
+        // Recycle Bin View
+        deletedSections.length === 0 ? (
+          <EmptyState
+            icon={<Trash2 className="w-full h-full" />}
+            title="Thùng rác trống"
+            description="Không có section nào đã xóa"
+          />
+        ) : (
+          <div className="space-y-4">
+            {deletedSections.map((section, index) => (
+              <ContentCard
+                key={section.id}
+                type="section"
+                icon={<Trash2 className="w-6 h-6" />}
+                title={section.title}
+                badge="Đã xóa"
+                meta={[
+                  { label: "Thứ tự", value: section.order_index },
+                  { label: "Ngày tạo", value: formatDate(section.created_at) },
+                ]}
+                actions={
+                  <button
+                    onClick={() => handleRestoreSection(section)}
+                    disabled={restoring}
+                    className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Khôi phục
+                  </button>
+                }
+              />
+            ))}
+          </div>
+        )
       ) : sections.length === 0 ? (
         <EmptyState
           icon={<List className="w-full h-full" />}
@@ -250,23 +341,17 @@ export default function LessonSections() {
               key={section.id}
               type="section"
               icon={
-                section.is_deleted ? (
-                  <Trash2 className="w-6 h-6" />
-                ) : (
-                  <div className="w-6 h-6 flex items-center justify-center font-bold text-sm">
-                    {index + 1}
-                  </div>
-                )
+                <div className="w-6 h-6 flex items-center justify-center font-bold text-sm">
+                  {index + 1}
+                </div>
               }
               title={section.title}
-              badge={section.is_deleted ? "Đã xóa" : undefined}
               meta={[
                 { label: "Thứ tự", value: section.order_index },
                 { label: "Ngày tạo", value: formatDate(section.created_at) },
               ]}
               onClick={() => handleSectionClick(section)}
               actions={
-                !section.is_deleted &&
                 section.id && (
                   <ActionMenu
                     items={[
