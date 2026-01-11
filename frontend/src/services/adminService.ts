@@ -10,6 +10,7 @@ import {
     UserRoleList,
     UserUpdate
 } from "@/types/user"
+import { Topic, Lesson, LessonSection, Question, LessonStatus } from "@/types/content"
 
 export const adminService = {
     // GET /admin/users
@@ -66,5 +67,27 @@ export const adminService = {
 
     checkUserRole(userId: number, roleType: RoleType) {
         return api.get<UserRoleCheck>(`/admin/users/${userId}/roles/${roleType}`)
+    },
+
+    // ============ Content Status Management ============
+    
+    // PATCH /admin/topic/{topicId}
+    updateTopicStatus(topicId: number, status: LessonStatus) {
+        return api.patch<Topic>(`/admin/topic/${topicId}`, null, { params: { status } })
+    },
+
+    // PATCH /admin/lesson/{lessonId}
+    updateLessonStatus(lessonId: number, status: LessonStatus) {
+        return api.patch<Lesson>(`/admin/lesson/${lessonId}`, null, { params: { status } })
+    },
+
+    // PATCH /admin/section/{sectionId}
+    updateSectionStatus(sectionId: number, status: LessonStatus) {
+        return api.patch<LessonSection>(`/admin/section/${sectionId}`, null, { params: { status } })
+    },
+
+    // PATCH /admin/question/{questionId}
+    updateQuestionStatus(questionId: number, status: LessonStatus) {
+        return api.patch<Question>(`/admin/question/${questionId}`, null, { params: { status } })
     },
 }

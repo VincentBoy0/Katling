@@ -33,6 +33,7 @@ export interface Topic {
     name: string;
     description?: string;
     order_index: number;
+    status?: LessonStatus;
     created_at: string;
     is_deleted: boolean;
 }
@@ -60,6 +61,7 @@ export interface LessonSection {
     title: string;
     order_index: number;
     content?: Record<string, any>
+    status?: LessonStatus;
     created_at: string;
     is_deleted: boolean;
 }
@@ -74,6 +76,7 @@ export interface Question {
     audio_url?: string;
     explanation?: string;
     order_index: number;
+    status?: LessonStatus;
     created_at: string;
     is_deleted: boolean;
 }

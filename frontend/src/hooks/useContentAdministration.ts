@@ -1,6 +1,7 @@
-import { Topic, Lesson, LessonSection, Question } from "@/types/content";
+import { Topic, Lesson, LessonSection, Question, LessonStatus } from "@/types/content";
 import { useState, useEffect } from "react";
 import { contentService } from "@/services/contentService";
+import { adminService } from "@/services/adminService";
 
 export function useContentAdministraion() {
     const [loading, setLoading] = useState(false);
@@ -20,7 +21,7 @@ export function useContentAdministraion() {
         setLoading(true);
         setError(null);
         try {
-            const { data } = await contentService.getAllTopics();
+            const { data } = await contentService.getAllTopics({ include_deleted: true });
             setTopics(data);
         } catch (err) {
             setError("Failed to load topics");
@@ -92,6 +93,59 @@ export function useContentAdministraion() {
         });
     };
 
+    // Status update functions using admin API
+    const updateTopicStatus = async (topicId: number, status: LessonStatus) => {
+        const { data } = await adminService.updateTopicStatus(topicId, status);
+        // Update local state
+        setTopics(prev => prev.map(t => t.id === topicId ? { ...t, status } : t));
+        return data;
+    };
+
+    const updateLessonStatus = async (lessonId: number, status: LessonStatus) => {
+        const { data } = await adminService.updateLessonStatus(lessonId, status);
+        // Update local state
+        setLessons(prev => {
+            const updated = { ...prev };
+            Object.keys(updated).forEach(topicId => {
+                updated[Number(topicId)] = updated[Number(topicId)].map(l =>
+                    l.id === lessonId ? { ...l, status } : l
+                );
+            });
+            return updated;
+        });
+        return data;
+    };
+
+    const updateSectionStatus = async (sectionId: number, status: LessonStatus) => {
+        const { data } = await adminService.updateSectionStatus(sectionId, status);
+        // Update local state
+        setSections(prev => {
+            const updated = { ...prev };
+            Object.keys(updated).forEach(lessonId => {
+                updated[Number(lessonId)] = updated[Number(lessonId)].map(s =>
+                    s.id === sectionId ? { ...s, status } : s
+                );
+            });
+            return updated;
+        });
+        return data;
+    };
+
+    const updateQuestionStatus = async (questionId: number, status: LessonStatus) => {
+        const { data } = await adminService.updateQuestionStatus(questionId, status);
+        // Update local state
+        setQuestions(prev => {
+            const updated = { ...prev };
+            Object.keys(updated).forEach(sectionId => {
+                updated[Number(sectionId)] = updated[Number(sectionId)].map(q =>
+                    q.id === questionId ? { ...q, status } : q
+                );
+            });
+            return updated;
+        });
+        return data;
+    };
+
     // Auto-load nested data when parent is expanded
     useEffect(() => {
         topics.forEach(topic => {
@@ -114,5 +168,9 @@ export function useContentAdministraion() {
         getQuestionsBySection,
         deleteQuestion,
         restoreQuestion,
+        updateTopicStatus,
+        updateLessonStatus,
+        updateSectionStatus,
+        updateQuestionStatus,
     };
 }
