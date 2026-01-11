@@ -1,70 +1,76 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useTopicLessons } from "@/hooks/useTopicLessons";
+import { cn } from "@/lib/utils";
+import lessonService from "@/services/lessonService";
+import { LessonInTopicOut, TopicProgressOut } from "@/types/learning";
 import {
+  BookOpen,
   Check,
-  Lock,
   ChevronDown,
   ChevronUp,
-  Star,
+  Loader2,
   Play,
+  Star,
   Trophy,
-  Loader2
 } from "lucide-react";
-import { useTopicLessons } from "@/hooks/useTopicLessons";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import LessonCard from "./LessonCard";
 
 interface EnhancedTopicCardProps {
-  topic: {
-    id: number;
-    name: string;
-    description: string;
-    status: "completed" | "current" | "locked";
-    progress: number;
-  };
+  topic: TopicProgressOut;
   index: number;
-  onStartLesson: (lessonId: number, sectionId?: number) => void;
   autoExpand?: boolean;
 }
 
 export default function EnhancedTopicCard({
   topic,
   index,
-  onStartLesson,
   autoExpand = false,
 }: EnhancedTopicCardProps) {
   const [isExpanded, setIsExpanded] = useState(autoExpand);
+  const navigate = useNavigate();
+
+  const isLocked = topic.status === "locked";
   const isCurrent = topic.status === "current";
   const isCompleted = topic.status === "completed";
 
-  const { lessons, loading } = useTopicLessons(topic.id);
+  const { lessons = [], loading } = useTopicLessons(
+    topic.status === "locked" ? -1 : topic.id
+  );
 
-  const completedLessons = lessons.filter((l) => l.status === "completed").length;
-  const totalLessons = lessons.length;
+  const completedLessons = lessons.filter(
+    (l) => l.status === "completed"
+  ).length;
 
   const handleToggle = () => {
-    setIsExpanded(!isExpanded);
+    if (!isLocked) setIsExpanded((prev) => !prev);
   };
 
-  const handleLessonClick = (lessonId: number) => {
-    onStartLesson(lessonId);
+  const handleOpenLesson = (lesson: LessonInTopicOut) => {
+    navigate(`/dashboard/lessons/${lesson.id}`, {
+      state: { lesson },
+    });
   };
 
   return (
     <Card
-      className={`overflow-hidden transition-all duration-300 ${
+      className={`overflow-hidden transition-all duration-300 hover:shadow-lg ${
         isCompleted
-          ? "border-2 border-green-200 dark:border-green-900/50 shadow-md"
+          ? "border-2 border-green-200 dark:border-green-900/50 bg-gradient-to-r from-green-50/50 to-transparent dark:from-green-900/10"
           : isCurrent
-          ? "border-2 border-primary shadow-lg"
-          : "border-2 border-border"
+          ? "border-2 border-primary shadow-lg ring-2 ring-primary/20"
+          : "border-2 border-border hover:border-muted-foreground/30"
       }`}
     >
       {/* Progress Bar */}
-      <div className="h-2 w-full bg-secondary/30">
+      <div className="h-1.5 w-full bg-secondary/30">
         <div
-          className={`h-full transition-all duration-500 ${
-            isCompleted ? "bg-green-500" : "bg-primary"
+          className={`h-full transition-all duration-700 ease-out ${
+            isCompleted
+              ? "bg-gradient-to-r from-green-400 to-green-500"
+              : "bg-gradient-to-r from-primary/80 to-primary"
           }`}
           style={{ width: `${topic.progress}%` }}
         />
@@ -72,22 +78,27 @@ export default function EnhancedTopicCard({
 
       {/* Topic Header - Clickable */}
       <div
-        onClick={handleToggle}
-        className="p-5 md:p-6 cursor-pointer hover:bg-muted/30 transition-colors"
+        onClick={isLocked ? undefined : handleToggle}
+        className={cn(
+          "p-5 md:p-6 transition-colors",
+          isLocked
+            ? "cursor-not-allowed opacity-60"
+            : "cursor-pointer hover:bg-muted/30"
+        )}
       >
         <div className="flex items-center gap-4">
           {/* Topic Badge */}
           <div
-            className={`w-16 h-16 shrink-0 rounded-2xl flex items-center justify-center font-extrabold text-2xl border-2 shadow-md ${
+            className={`w-14 h-14 md:w-16 md:h-16 shrink-0 rounded-2xl flex items-center justify-center font-extrabold text-xl md:text-2xl shadow-md transition-transform duration-300 group-hover:scale-105 ${
               isCompleted
-                ? "bg-green-500 text-white border-green-600"
+                ? "bg-gradient-to-br from-green-400 to-green-600 text-white"
                 : isCurrent
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-secondary text-foreground border-border"
+                ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground ring-4 ring-primary/20"
+                : "bg-secondary text-muted-foreground"
             }`}
           >
             {isCompleted ? (
-              <Trophy className="w-8 h-8" strokeWidth={2.5} />
+              <Trophy className="w-7 h-7 md:w-8 md:h-8" strokeWidth={2.5} />
             ) : (
               index + 1
             )}
@@ -97,50 +108,59 @@ export default function EnhancedTopicCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-1 truncate">
+                <h2 className="text-xl md:text-2xl font-bold text-foreground mb-1 truncate">
                   {topic.name}
                 </h2>
-                <p className="text-sm text-muted-foreground font-medium line-clamp-2 mb-2">
-                  {topic.description}
-                </p>
-
-                {totalLessons > 0 && (
-                  <div className="flex items-center gap-4 text-sm font-medium">
-                    <span className="text-muted-foreground">
-                      📚 {completedLessons}/{totalLessons} bài học
-                    </span>
-                    {!isCompleted && (
-                      <span className="text-primary flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-primary" />
-                        {Math.round(topic.progress)}%
-                      </span>
-                    )}
-                    {isCompleted && (
-                      <span className="text-green-600 flex items-center gap-1">
-                        <Check className="w-4 h-4" />
-                        Hoàn thành
-                      </span>
-                    )}
-                  </div>
+                {topic.description && (
+                  <p className="text-sm text-muted-foreground font-medium line-clamp-1 mb-2">
+                    {topic.description}
+                  </p>
                 )}
+
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium">
+                  <span className="text-muted-foreground flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4" />
+                    {completedLessons}/{lessons.length} bài học
+                  </span>
+                  {!isCompleted && topic.progress > 0 && (
+                    <span className="text-primary flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-primary" />
+                      {Math.round(topic.progress)}%
+                    </span>
+                  )}
+                  {isCompleted && (
+                    <span className="text-green-600 dark:text-green-400 flex items-center gap-1 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full text-xs">
+                      <Check className="w-3.5 h-3.5" />
+                      Hoàn thành
+                    </span>
+                  )}
+                  {isCurrent && (
+                    <span className="text-primary flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-full text-xs animate-pulse">
+                      <Play className="w-3.5 h-3.5 fill-primary" />
+                      Đang học
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Expand Button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleToggle();
-                }}
-                className="shrink-0"
-              >
-                {isExpanded ? (
-                  <ChevronUp className="w-6 h-6" />
-                ) : (
-                  <ChevronDown className="w-6 h-6" />
-                )}
-              </Button>
+              {!isLocked && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggle();
+                  }}
+                  className="shrink-0"
+                >
+                  {isExpanded ? (
+                    <ChevronUp className="w-6 h-6" />
+                  ) : (
+                    <ChevronDown className="w-6 h-6" />
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -177,11 +197,20 @@ export default function EnhancedTopicCard({
 
               {lessons.map((lesson, lessonIndex) => (
                 <LessonCard
-                  key={lesson.id}
                   lesson={lesson}
                   lessonNumber={lessonIndex + 1}
-                  onStartLesson={handleLessonClick}
-                  showSections={false}
+                  onOpenLesson={() => handleOpenLesson(lesson)}
+                  onContinueLesson={async (lessonId) => {
+                    const res = await lessonService.getNextSection(lessonId);
+
+                    if ("section" in res) {
+                      navigate(
+                        `/dashboard/lessons/${lessonId}/sections/${res.section.id}`
+                      );
+                    } else {
+                      navigate("/dashboard/learn");
+                    }
+                  }}
                 />
               ))}
             </div>
@@ -196,8 +225,11 @@ export default function EnhancedTopicCard({
             size="lg"
             onClick={(e) => {
               e.stopPropagation();
-              const nextLesson = lessons.find((l) => l.status === "available") || lessons[0];
-              handleLessonClick(nextLesson.id);
+              const nextLesson = lessons.find((l) => l.status === "available");
+
+              if (nextLesson) {
+                handleOpenLesson(nextLesson);
+              }
             }}
             className="w-full font-bold shadow-sm"
           >

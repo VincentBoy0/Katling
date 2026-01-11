@@ -10,6 +10,7 @@ from repositories.userRepository import UserRepository
 from schemas.learning import (
 	CompleteSectionRequest,
 	CompleteSectionResponse,
+	LessonSectionsResponse,
 	NextSectionResponse,
 	TopicLessonsResponse,
 )
@@ -98,7 +99,6 @@ async def get_topic_lessons(
 	lessons_raw = await lesson_repo.get_lessons_progress_by_topic(user_id=current_user.id, topic_id=topic_id)
 
 	lessons_out = []
-	previous_completed = True  # First lesson is always available
 	
 	for l in lessons_raw:
 		total = int(l["total_sections"])
@@ -106,20 +106,9 @@ async def get_topic_lessons(
 		progress = int((completed * 100) / total) if total > 0 else 0
 		progress = max(0, min(100, progress))
 		
-		# Determine lesson status based on previous lesson completion
+		# Lessons in a topic are learnable in parallel: no prerequisites, no locking.
 		is_completed = total > 0 and completed >= total
-		if is_completed:
-			status = "completed"
-		elif previous_completed:
-			status = "available"
-		else:
-			status = "locked"
-		
-		# Get sections for this lesson
-		sections = await lesson_repo.get_sections_with_progress(
-			user_id=current_user.id,
-			lesson_id=int(l["id"])
-		)
+		status = "completed" if is_completed else "available"
 		
 		lessons_out.append(
 			{
@@ -130,14 +119,29 @@ async def get_topic_lessons(
 				"progress": progress,
 				"status": status,
 				"order_index": int(l["order_index"]),
-				"sections": sections,
 			}
 		)
-		
-		# Update previous_completed for next iteration
-		previous_completed = is_completed
 
 	return TopicLessonsResponse(topic_id=topic_id, lessons=lessons_out)
+
+
+@router.get("/lessons/{lesson_id}/sections", response_model=LessonSectionsResponse)
+async def get_lesson_sections(
+	lesson_id: int,
+	session: AsyncSession = Depends(get_session),
+	current_user=Depends(get_current_user),
+) -> LessonSectionsResponse:
+	"""Return sections of a lesson with per-user progress."""
+
+	lesson_repo = LessonRepository(session)
+	# Validate lesson exists (raises 404 if not)
+	await lesson_repo.get_lesson_by_id(lesson_id)
+
+	sections = await lesson_repo.get_sections_with_progress(
+		user_id=current_user.id,
+		lesson_id=lesson_id,
+	)
+	return LessonSectionsResponse(lesson_id=lesson_id, sections=sections)
 
 
 def _canonicalize(value: Any, *, string_casefold: bool, unordered_lists: bool) -> Any:

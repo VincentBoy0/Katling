@@ -1,12 +1,30 @@
 import { Card } from "@/components/ui/card";
-import { useUserPoints } from "@/hooks/useUserPoints";
+import { useSummary } from "@/hooks/useSummary";
+import { leaderboardService } from "@/services/leaderboardService";
 import { Flame, Target, Trophy, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function DetailedStats() {
-  const { userPoints, loading } = useUserPoints();
+  const { summary, loading } = useSummary();
+  const [rank, setRank] = useState<number | null>(null);
+  const [rankLoading, setRankLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRank = async () => {
+      try {
+        const res = await leaderboardService.getMyRank("xp", "all");
+        setRank(res.rank);
+      } catch {
+        setRank(null);
+      } finally {
+        setRankLoading(false);
+      }
+    };
+    fetchRank();
+  }, []);
 
   if (loading) return <p>Đang tải...</p>;
-  if (!userPoints) return null;
+  if (!summary) return null;
 
   return (
     <>
@@ -22,7 +40,7 @@ export default function DetailedStats() {
           </div>
           <div>
             <p className="text-2xl font-black text-orange-700 dark:text-orange-500">
-              {userPoints.streak} ngày
+              {summary.streak} ngày
             </p>
           </div>
         </Card>
@@ -33,7 +51,7 @@ export default function DetailedStats() {
           </div>
           <div>
             <p className="text-2xl font-black text-emerald-700 dark:text-emerald-500">
-              {userPoints.xp} XP
+              {summary.xp} XP
             </p>
           </div>
         </Card>
@@ -44,7 +62,7 @@ export default function DetailedStats() {
           </div>
           <div>
             <p className="text-2xl font-black text-yellow-700 dark:text-yellow-500">
-              Top 10
+              {rankLoading ? "..." : rank ? `Top ${rank}` : "Chưa xếp hạng"}
             </p>
           </div>
         </Card>

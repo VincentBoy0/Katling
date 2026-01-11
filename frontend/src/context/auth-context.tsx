@@ -28,19 +28,38 @@ export interface AuthUser extends User {
   authProvider?: "email" | "google" | "facebook";
 }
 
+// Portal types for login navigation
+export type LoginPortal = "admin" | "moderator" | "learner";
+
+// Custom error for banned users
+export class BannedUserError extends Error {
+  constructor(message: string = "Tài khoản của bạn đã bị khóa.") {
+    super(message);
+    this.name = "BannedUserError";
+  }
+}
+
+// Custom error for permission denied
+export class PermissionDeniedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PermissionDeniedError";
+  }
+}
+
 interface AuthContextType {
   user: AuthUser | null;
   roles: RoleType[];
   isAuthenticated: boolean;
   isLoading: boolean;
   isEmailVerified: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, portal?: LoginPortal) => Promise<void>;
   signup: (
     email: string,
     password: string,
     displayName: string
   ) => Promise<void>;
-  loginWithOAuth: (provider: "google" | "facebook") => Promise<void>;
+  loginWithOAuth: (provider: "google" | "facebook", portal?: LoginPortal) => Promise<void>;
   logout: () => void;
   updateUser: (updates: Partial<AuthUser>) => void;
   resendVerificationEmail: () => Promise<void>;
@@ -87,15 +106,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   /**
-   * Navigate user to appropriate page based on their primary role
+   * Navigate user based on the portal they logged in from
+   * Only navigates if user has the required role for that portal
    */
-  const navigateByRole = (userRoles: RoleType[]) => {
-    if (userRoles.includes(RoleType.ADMIN)) {
-      window.location.href = "/admin";
-    } else if (userRoles.includes(RoleType.MODERATOR)) {
-      window.location.href = "/moderator";
+  const navigateByPortal = (userRoles: RoleType[], portal?: LoginPortal) => {
+    if (portal === "admin") {
+      if (userRoles.includes(RoleType.ADMIN)) {
+        window.location.href = "/admin";
+      } else {
+        // User doesn't have admin role
+        throw new PermissionDeniedError(
+          "Bạn không có quyền truy cập trang Admin. Vui lòng liên hệ quản trị viên nếu bạn cần quyền truy cập."
+        );
+      }
+    } else if (portal === "moderator") {
+      if (userRoles.includes(RoleType.MODERATOR)) {
+        window.location.href = "/moderator";
+      } else {
+        throw new PermissionDeniedError(
+          "Bạn không có quyền truy cập trang Moderator. Vui lòng liên hệ quản trị viên nếu bạn cần quyền truy cập."
+        );
+      }
     } else {
+      // Default learner portal - anyone can access dashboard
       window.location.href = "/dashboard";
+    }
+  };
+
+  /**
+   * Check if user is banned and throw error if so
+   */
+  const checkBannedStatus = (userData: User) => {
+    if (userData.is_banned) {
+      throw new BannedUserError();
     }
   };
 
@@ -114,7 +157,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (savedUser && savedToken) {
           // We have saved data, restore it
           try {
-            setUser(JSON.parse(savedUser));
+            const parsedUser = JSON.parse(savedUser) as AuthUser;
+            
+            // Check if user is banned
+            if (parsedUser.is_banned) {
+              // User is banned, logout
+              await firebaseSignOut(auth);
+              setUser(null);
+              setRoles([]);
+              localStorage.removeItem("katling_user");
+              localStorage.removeItem("firebase_token");
+              localStorage.removeItem("katling_roles");
+              setIsLoading(false);
+              return;
+            }
+            
+            setUser(parsedUser);
 
             // Restore roles from localStorage or fetch from backend
             if (savedRoles) {
@@ -155,6 +213,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const firebaseToken = await firebaseUser.getIdToken();
       const backendData = await loginWithBackend(firebaseToken);
 
+      // Check if user is banned
+      if (backendData.user.is_banned) {
+        console.warn("User is banned, logging out");
+        await firebaseSignOut(auth);
+        setUser(null);
+        setRoles([]);
+        localStorage.removeItem("katling_user");
+        localStorage.removeItem("firebase_token");
+        localStorage.removeItem("katling_roles");
+        return;
+      }
+
       const enrichedUser: AuthUser = {
         ...backendData.user,
         displayName:
@@ -187,9 +257,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /**
    * Login with Email & Password
-   * Flow: Firebase Auth → Get Token → Backend Verification → Save User
+   * Flow: Firebase Auth → Get Token → Backend Verification → Check Banned → Save User
    */
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, portal?: LoginPortal) => {
     // Step 1: Firebase authentication
     const userCredential = await signInWithEmailAndPassword(
       auth,
@@ -204,7 +274,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Step 3: Verify with backend
     const backendData = await loginWithBackend(firebaseToken);
 
-    // Step 4: Enrich user data with Firebase info
+    // Step 4: Check if user is banned
+    checkBannedStatus(backendData.user);
+
+    // Step 5: Enrich user data with Firebase info
     const enrichedUser: AuthUser = {
       ...backendData.user,
       displayName:
@@ -214,19 +287,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authProvider: "email",
     };
 
-    // Step 5: Save to localStorage & state
+    // Step 6: Save to localStorage & state
     localStorage.setItem("firebase_token", firebaseToken);
     localStorage.setItem("katling_user", JSON.stringify(enrichedUser));
     setUser(enrichedUser);
 
-    // Step 6: Fetch roles and navigate
+    // Step 7: Fetch roles and navigate based on portal
     const userRoles = await fetchUserRoles();
-    navigateByRole(userRoles);
+    navigateByPortal(userRoles, portal);
   };
 
   /**
    * Signup with Email & Password
    * Flow: Create Firebase User → Update Profile → Backend Registration → Save User
+   * Note: Does NOT auto-navigate - caller should redirect to verify page
    */
   const signup = async (
     email: string,
@@ -267,9 +341,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(enrichedUser);
     setIsEmailVerified(false);
 
-    // Step 8: Fetch roles and navigate (new users default to learner)
-    const userRoles = await fetchUserRoles();
-    navigateByRole(userRoles);
+    // Step 8: Fetch roles (but don't navigate - let caller handle redirect to verify page)
+    await fetchUserRoles();
+    // Navigation to /verify is handled by the signup form
   };
 
   /**
@@ -284,9 +358,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /**
    * Login with OAuth (Google/Facebook)
-   * Flow: Firebase OAuth Popup → Get Token → Backend Verification → Save User
+   * Flow: Firebase OAuth Popup → Get Token → Backend Verification → Check Banned → Save User
    */
-  const loginWithOAuth = async (provider: "google" | "facebook") => {
+  const loginWithOAuth = async (provider: "google" | "facebook", portal?: LoginPortal) => {
     // Step 1: Get OAuth provider
     let authProvider;
     if (provider === "google") {
@@ -307,7 +381,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Step 4: Verify with backend
     const backendData = await loginWithBackend(firebaseToken);
 
-    // Step 5: Enrich user data with Firebase info
+    // Step 5: Check if user is banned
+    checkBannedStatus(backendData.user);
+
+    // Step 6: Enrich user data with Firebase info
     const enrichedUser: AuthUser = {
       ...backendData.user,
       displayName:
@@ -317,14 +394,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authProvider: provider,
     };
 
-    // Step 6: Save to localStorage & state
+    // Step 7: Save to localStorage & state
     localStorage.setItem("firebase_token", firebaseToken);
     localStorage.setItem("katling_user", JSON.stringify(enrichedUser));
     setUser(enrichedUser);
 
-    // Step 7: Fetch roles and navigate (OAuth only for learners)
+    // Step 8: Fetch roles and navigate based on portal
     const userRoles = await fetchUserRoles();
-    navigateByRole(userRoles);
+    navigateByPortal(userRoles, portal);
   };
 
   /**

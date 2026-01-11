@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { AlertCircle, CheckCircle, Loader2, Volume2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Checkbox } from "@/components/learner/checkbox";
 import { Input } from "@/components/learner/input";
@@ -9,7 +9,6 @@ import type {
   QuestionAnswerSubmitResponse,
   QuestionInfo,
 } from "@/types/lesson";
-
 
 interface BaseQuestionProps {
   question: QuestionInfo;
@@ -58,14 +57,16 @@ export function MultipleChoiceQuestion({
           return (
             <Button
               key={index}
-              variant={isSelected ? "default" : "outline"}
+              variant="outline"
               className={`w-full h-auto py-4 px-6 text-left justify-start text-base transition-all ${
                 showResult
                   ? isCorrectAnswer
-                    ? "border-green-500 bg-green-50 dark:bg-green-900/20 hover:bg-green-50"
-                    : isSelected
-                    ? "border-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-50"
-                    : ""
+                    ? "border-2 border-green-500 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-100"
+                    : isSelected && !isCorrectAnswer
+                    ? "border-2 border-red-500 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-100"
+                    : "opacity-40"
+                  : isSelected
+                  ? "border-2 border-primary bg-primary/10"
                   : ""
               }`}
               onClick={() => !answerResult && setSelectedAnswer(option)}
@@ -73,10 +74,10 @@ export function MultipleChoiceQuestion({
             >
               <span className="flex-1">{option}</span>
               {showResult && isCorrectAnswer && (
-                <CheckCircle className="w-5 h-5 text-green-600 ml-2" />
+                <CheckCircle className="w-5 h-5 text-green-500 ml-2 flex-shrink-0" />
               )}
               {showResult && isSelected && !isCorrectAnswer && (
-                <AlertCircle className="w-5 h-5 text-red-600 ml-2" />
+                <AlertCircle className="w-5 h-5 text-red-500 ml-2 flex-shrink-0" />
               )}
             </Button>
           );
@@ -148,12 +149,12 @@ export function MultipleSelectQuestion({
               className={`p-4 cursor-pointer transition-all border-2 ${
                 showResult
                   ? isCorrect
-                    ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                    ? "border-green-500 bg-green-100 dark:bg-green-900/30"
                     : isSelected && !isCorrect
-                    ? "border-red-500 bg-red-50 dark:bg-red-900/20"
-                    : ""
+                    ? "border-red-500 bg-red-100 dark:bg-red-900/30"
+                    : "opacity-50"
                   : isSelected && !showResult
-                  ? "border-primary bg-primary/5"
+                  ? "border-primary bg-primary/10"
                   : "border-border hover:border-primary/30"
               }`}
               onClick={() => handleToggle(option)}
@@ -188,7 +189,6 @@ export function MultipleSelectQuestion({
     </div>
   );
 }
-
 
 export function FillInTheBlankQuestion({
   question,
@@ -253,7 +253,6 @@ export function FillInTheBlankQuestion({
     </div>
   );
 }
-
 
 export function MatchingQuestion({
   question,
@@ -542,7 +541,15 @@ export function ArrangeWordsQuestion({
       </p>
 
       {/* Arranged sentence area */}
-      <Card className="p-6 min-h-[100px] bg-secondary/10">
+      <Card
+        className={`p-6 min-h-[100px] ${
+          answerResult
+            ? answerResult.is_correct
+              ? "bg-green-50 border-green-500 dark:bg-green-900/20"
+              : "bg-red-50 border-red-500 dark:bg-red-900/20"
+            : "bg-secondary/10"
+        }`}
+      >
         <div className="flex flex-wrap gap-2 justify-center items-center min-h-[60px]">
           {arrangedWords.length === 0 ? (
             <span className="text-muted-foreground italic">
@@ -556,13 +563,7 @@ export function ArrangeWordsQuestion({
                 size="lg"
                 onClick={() => handleWordClick(word, true)}
                 disabled={!!answerResult}
-                className={`font-medium ${
-                  answerResult
-                    ? answerResult.is_correct
-                      ? "bg-green-500 hover:bg-green-600"
-                      : "bg-red-500 hover:bg-red-600"
-                    : ""
-                }`}
+                className="font-medium"
               >
                 {word}
               </Button>
@@ -634,24 +635,20 @@ export function TrueFalseQuestion({
           return (
             <Button
               key={String(v)}
-              variant={
-                answerResult
-                  ? "outline"
-                  : isSelected
-                  ? "default"
-                  : "outline"
-              }
+              variant="outline"
               disabled={!!answerResult}
               onClick={() => setValue(v)}
-              className={
+              className={`px-8 ${
                 answerResult
                   ? isCorrect
-                    ? "border-green-500 bg-green-50"
+                    ? "border-green-500 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
                     : isSelected
-                    ? "border-red-500 bg-red-50"
-                    : ""
+                    ? "border-red-500 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                    : "opacity-50"
+                  : isSelected
+                  ? "border-primary bg-primary/10"
                   : ""
-              }
+              }`}
             >
               {v ? "Đúng" : "Sai"}
             </Button>
@@ -669,7 +666,6 @@ export function TrueFalseQuestion({
     </div>
   );
 }
-
 
 function QuestionHeader({ question }: { question: QuestionInfo }) {
   return (

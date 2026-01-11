@@ -1,45 +1,25 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { LessonInTopicOut } from "@/types/learning";
 import {
+  Book,
   BookOpen,
   Check,
-  Play,
-  ChevronDown,
-  ChevronUp,
   FileText,
   Headphones,
-  Mic,
+  Lock,
   MessageSquare,
-  Book,
-  Zap,
+  Mic,
+  Play,
   Star,
-  ListOrdered,
-  Lock
+  Zap,
 } from "lucide-react";
 
-interface LessonSection {
-  id: number;
-  title: string;
-  order_index: number;
-  question_count?: number;
-  completed?: boolean;
-}
-
 interface LessonCardProps {
-  lesson: {
-    id: number;
-    type: string;
-    title: string;
-    description?: string;
-    progress: number;
-    status: "available" | "completed" | "locked";
-    order_index: number;
-    sections?: LessonSection[];
-  };
+  lesson: LessonInTopicOut;
   lessonNumber: number;
-  onStartLesson: (lessonId: number) => void;
-  showSections?: boolean;
+  onOpenLesson: (lessonId: number) => void;
+  onContinueLesson: (lessonId: number) => void;
 }
 
 const getLessonTypeIcon = (type: string) => {
@@ -57,12 +37,18 @@ const getLessonTypeIcon = (type: string) => {
 
 const getLessonTypeColor = (type: string) => {
   const colors: Record<string, string> = {
-    READING: "text-blue-600 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-900/50",
-    LISTENING: "text-purple-600 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-900/50",
-    SPEAKING: "text-orange-600 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-900/50",
-    WRITING: "text-green-600 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/50",
-    VOCABULARY: "text-pink-600 bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-900/50",
-    GRAMMAR: "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-900/50",
+    READING:
+      "text-blue-600 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-900/50",
+    LISTENING:
+      "text-purple-600 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-900/50",
+    SPEAKING:
+      "text-orange-600 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-900/50",
+    WRITING:
+      "text-green-600 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/50",
+    VOCABULARY:
+      "text-pink-600 bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-900/50",
+    GRAMMAR:
+      "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-900/50",
     TEST: "text-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/50",
   };
   return colors[type] || "text-muted-foreground bg-muted border-border";
@@ -71,10 +57,9 @@ const getLessonTypeColor = (type: string) => {
 export default function LessonCard({
   lesson,
   lessonNumber,
-  onStartLesson,
-  showSections = false,
+  onOpenLesson,
+  onContinueLesson,
 }: LessonCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const isCompleted = lesson.status === "completed";
   const isAvailable = lesson.status === "available";
   const isLocked = lesson.status === "locked";
@@ -82,196 +67,116 @@ export default function LessonCard({
   const LessonIcon = getLessonTypeIcon(lesson.type);
   const lessonColorClass = getLessonTypeColor(lesson.type);
 
-  const hasSections = lesson.sections && lesson.sections.length > 0;
-  const completedSections = lesson.sections?.filter(s => s.completed).length || 0;
-  const totalSections = lesson.sections?.length || 0;
-
-  const handleToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (hasSections && !isLocked && showSections) {
-      setIsExpanded(!isExpanded);
-    }
-  };
-
   return (
     <Card
-      className={`transition-all border-2 ${
+      className={`transition-all duration-300 overflow-hidden group ${
         isAvailable
-          ? "shadow-md hover:shadow-lg bg-card border-primary/30"
+          ? "cursor-pointer hover:shadow-lg hover:scale-[1.01] border-2 border-primary/30 hover:border-primary"
           : isCompleted
-          ? "bg-card/50 border-green-200 dark:border-green-900/50"
-          : "bg-card/30 border-border opacity-70"
+          ? "bg-gradient-to-r from-green-50/50 to-transparent dark:from-green-900/10 border-2 border-green-200 dark:border-green-900/50"
+          : "bg-muted/30 border-2 border-border opacity-60"
       }`}
+      onClick={() => {
+        if (isAvailable) onOpenLesson(lesson.id);
+      }}
     >
-      {/* Lesson Header */}
-      <div
-        className={`p-4 ${!isLocked ? "cursor-pointer hover:bg-muted/30" : ""}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (!isLocked) {
-            onStartLesson(lesson.id);
-          }
-        }}
-      >
-        <div className="flex items-center gap-4">
-          {/* Lesson Number Badge */}
+      {/* Progress Bar at top */}
+      {lesson.progress > 0 && (
+        <div className="h-1 w-full bg-secondary/30">
           <div
-            className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg border-2 shrink-0 ${
+            className={`h-full transition-all duration-500 ${
               isCompleted
-                ? "bg-green-500 text-white border-green-600"
-                : isAvailable
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-muted text-muted-foreground border-muted"
+                ? "bg-gradient-to-r from-green-400 to-green-500"
+                : "bg-gradient-to-r from-primary/80 to-primary"
             }`}
-          >
-            {isCompleted ? (
-              <Check className="w-6 h-6" strokeWidth={3} />
-            ) : isLocked ? (
-              <Lock className="w-5 h-5" />
-            ) : (
-              lessonNumber
-            )}
-          </div>
-
-          {/* Lesson Type Icon */}
-          <div className={`p-3 rounded-xl ${lessonColorClass}`}>
-            <LessonIcon className="w-6 h-6" />
-          </div>
-
-          {/* Lesson Info */}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-foreground text-lg mb-1 truncate">
-              {lesson.title}
-            </h3>
-            {lesson.description && (
-              <p className="text-sm text-muted-foreground line-clamp-1">
-                {lesson.description}
-              </p>
-            )}
-            <div className="flex items-center gap-3 mt-2 text-xs font-medium">
-              <span className={`px-2 py-1 rounded-md ${lessonColorClass}`}>
-                {lesson.type}
-              </span>
-              {lesson.progress > 0 && !isCompleted && (
-                <span className="text-primary">• {Math.round(lesson.progress)}%</span>
-              )}
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              size="sm"
-              variant={isCompleted ? "outline" : "default"}
-              onClick={(e) => {
-                e.stopPropagation();
-                onStartLesson(lesson.id);
-              }}
-              disabled={isLocked}
-              className="font-semibold"
-            >
-              {isCompleted ? (
-                <>
-                  <Check className="w-4 h-4 mr-1.5" />
-                  Ôn tập
-                </>
-              ) : isAvailable && lesson.progress > 0 ? (
-                <>
-                  <Play className="w-4 h-4 mr-1.5" />
-                  Tiếp tục
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 mr-1.5" />
-                  Bắt đầu
-                </>
-              )}
-            </Button>
-
-            {hasSections && !isLocked && showSections && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleToggle}
-                className="shrink-0"
-              >
-                {isExpanded ? (
-                  <ChevronUp className="w-5 h-5" />
-                ) : (
-                  <ChevronDown className="w-5 h-5" />
-                )}
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Progress Bar */}
-        {lesson.progress > 0 && !isCompleted && (
-          <div className="mt-3 h-1.5 w-full bg-secondary/30 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary transition-all duration-500"
-              style={{ width: `${lesson.progress}%` }}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Sections List */}
-      {isExpanded && hasSections && showSections && (
-        <div className="border-t border-border bg-muted/20 p-4">
-          <div className="space-y-2">
-            {lesson.sections!.map((section, idx) => (
-              <Card
-                key={section.id}
-                className={`p-3 border transition-all hover:shadow-sm ${
-                  section.completed
-                    ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-900/50"
-                    : "bg-card border-border"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 ${
-                        section.completed
-                          ? "bg-green-500 text-white"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {section.completed ? (
-                        <Check className="w-4 h-4" strokeWidth={3} />
-                      ) : (
-                        idx + 1
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-sm truncate">
-                        {section.title}
-                      </h4>
-                      {section.question_count !== undefined && (
-                        <p className="text-xs text-muted-foreground">
-                          {section.question_count} câu hỏi
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant={section.completed ? "outline" : "default"}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onStartLesson(lesson.id);
-                    }}
-                    className="shrink-0"
-                  >
-                    {section.completed ? "Xem lại" : "Học"}
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
+            style={{ width: `${isCompleted ? 100 : lesson.progress}%` }}
+          />
         </div>
       )}
+
+      {/* Lesson Header */}
+      <div className="p-4 flex items-center gap-3">
+        {/* Lesson Number Badge */}
+        <div
+          className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center font-bold text-base md:text-lg shrink-0 transition-transform duration-300 group-hover:scale-105 ${
+            isCompleted
+              ? "bg-gradient-to-br from-green-400 to-green-600 text-white shadow-md"
+              : isAvailable
+              ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md"
+              : "bg-muted text-muted-foreground"
+          }`}
+        >
+          {isCompleted ? (
+            <Check className="w-5 h-5 md:w-6 md:h-6" strokeWidth={3} />
+          ) : isLocked ? (
+            <Lock className="w-4 h-4 md:w-5 md:h-5" />
+          ) : (
+            lessonNumber
+          )}
+        </div>
+
+        {/* Lesson Type Icon */}
+        <div
+          className={`p-2.5 rounded-xl transition-transform duration-300 group-hover:scale-105 ${lessonColorClass}`}
+        >
+          <LessonIcon className="w-5 h-5 md:w-6 md:h-6" />
+        </div>
+
+        {/* Lesson Info */}
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-foreground text-base md:text-lg mb-0.5 truncate">
+            {lesson.title}
+          </h3>
+          {lesson.description && (
+            <p className="text-xs md:text-sm text-muted-foreground line-clamp-1">
+              {lesson.description}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs font-medium">
+            <span className={`px-2 py-0.5 rounded-md ${lessonColorClass}`}>
+              {lesson.type}
+            </span>
+            {lesson.progress > 0 && !isCompleted && (
+              <span className="text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                {Math.round(lesson.progress)}%
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <Button
+          size="sm"
+          variant={isCompleted ? "outline" : "default"}
+          onClick={(e) => {
+            e.stopPropagation();
+            onContinueLesson(lesson.id);
+          }}
+          disabled={isLocked}
+          className={`font-semibold shrink-0 transition-all duration-300 ${
+            isCompleted
+              ? "border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+              : "hover:scale-105"
+          }`}
+        >
+          {isCompleted ? (
+            <>
+              <Check className="w-4 h-4 mr-1.5" />
+              Ôn tập
+            </>
+          ) : lesson.progress > 0 ? (
+            <>
+              <Play className="w-4 h-4 mr-1.5 fill-current" />
+              Tiếp tục
+            </>
+          ) : (
+            <>
+              <Play className="w-4 h-4 mr-1.5 fill-current" />
+              Bắt đầu
+            </>
+          )}
+        </Button>
+      </div>
     </Card>
   );
 }

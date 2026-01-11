@@ -105,7 +105,7 @@ export default function VerifyPage() {
         {/* Back to login */}
         <p className="mt-8 text-sm text-muted-foreground">
           Đã xác minh?{" "}
-          <Link to="/signin" className="text-primary font-bold hover:underline">
+          <Link to="/login" className="text-primary font-bold hover:underline">
             Đăng nhập
           </Link>
         </p>

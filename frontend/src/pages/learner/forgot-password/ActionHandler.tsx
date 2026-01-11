@@ -28,7 +28,7 @@ export default function ActionHandler() {
         break;
 
       case "verifyEmail":
-        // Handle email verification (nếu cần)
+        // Redirect to verify email page to handle verification
         navigate(`/verify-email?oobCode=${oobCode}`);
         break;
 
