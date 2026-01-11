@@ -9,7 +9,7 @@ class GeminiClient:
 
     def generate(self, prompt: str) -> str:
         resp = self.client.models.generate_content(
-            model="models/gemini-2.5-flash",
+            model="models/gemini-2.5-flash-lite",
             contents=prompt
         )
         return resp.text
