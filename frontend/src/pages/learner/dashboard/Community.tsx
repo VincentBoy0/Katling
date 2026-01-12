@@ -17,7 +17,7 @@ import { FriendRequestsSidebar } from "@/components/learner/community/FriendRequ
 import { usePost } from "@/hooks/usePost";
 import { useUserInfo } from "@/hooks/useUserInfo";
 import { useReport } from "@/hooks/useReport";
-import { ReportCreate } from "@/types/report";
+import { ReportCreate, ReportCategory } from "@/types/report";
 import { useFriend } from "@/hooks/useFriend";
 
 import { Friend } from "@/types/friend";
@@ -266,6 +266,7 @@ export default function CommunityPage() {
         onOpenChange={setShowReportDialog}
         onSubmit={handleReport}
         postId={reportPostId}
+        fixedCategory={ReportCategory.POST}
       />
 
       <DeleteConfirmDialog
