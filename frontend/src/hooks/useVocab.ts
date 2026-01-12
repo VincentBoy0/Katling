@@ -1,15 +1,20 @@
+import vocabService from "@/services/vocabService";
+import {
+  ReviewStatus,
+  UserWordWithVocabOut,
+  VocabSearchResponse,
+} from "@/types/vocab";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import vocabService from "@/services/vocabService";
-import { ReviewStatus, UserWordWithVocabOut, VocabSearchResponse } from "@/types/vocab";
-
 
 export function useVocab() {
   const [activeTab, setActiveTab] = useState<"dictionary" | "library">(
     "dictionary"
   );
 
-  const [dictResult, setDictResult] = useState<VocabSearchResponse | null>(null);
+  const [dictResult, setDictResult] = useState<VocabSearchResponse | null>(
+    null
+  );
   const [savedWords, setSavedWords] = useState<UserWordWithVocabOut[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState<"all" | ReviewStatus>("all");
@@ -36,25 +41,45 @@ export function useVocab() {
   const saveWord = async (category?: string) => {
     if (!dictResult) return;
 
-    await vocabService.saveUserWord({
-      word: dictResult.word,
-      definition: dictResult.definition,
-      phonetic: dictResult.phonetic,
-      audio_url: dictResult.audio_url,
-      category,
-    });
+    try {
+      await vocabService.saveUserWord({
+        word: dictResult.word,
+        definition: dictResult.definition,
+        phonetic: dictResult.phonetic,
+        audio_url: dictResult.audio_url,
+        category,
+      });
 
-    toast.success("Đã lưu từ vựng");
+      toast.success("Đã lưu từ vựng", {
+        description: `"${dictResult.word}" đã được thêm vào kho từ vựng của bạn`,
+      });
 
-    if (activeTab === "library") {
+      // Always refresh savedWords to update folders list
       const res = await vocabService.listUserWords();
       setSavedWords(res);
+    } catch (e: any) {
+      toast.error("Không thể lưu từ vựng", {
+        description: e.response?.data?.detail ?? "Vui lòng thử lại",
+      });
     }
   };
 
   const deleteWord = async (userWordId: number) => {
-    await vocabService.deleteUserWord(userWordId);
-    setSavedWords((prev) => prev.filter((w) => w.id !== userWordId));
+    try {
+      const wordToDelete = savedWords.find((w) => w.id === userWordId);
+      await vocabService.deleteUserWord(userWordId);
+      setSavedWords((prev) => prev.filter((w) => w.id !== userWordId));
+
+      toast.success("Đã xóa từ vựng", {
+        description: wordToDelete
+          ? `"${wordToDelete?.word}" đã được xóa khỏi thư viện`
+          : undefined,
+      });
+    } catch (e: any) {
+      toast.error("Không thể xóa từ vựng", {
+        description: e.response?.data?.detail ?? "Vui lòng thử lại",
+      });
+    }
   };
 
   const promote = async (userWordId: number) => {

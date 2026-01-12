@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 
 import { Sidebar } from "@/components/learner/sidebar";
-import { TopBar } from "@/components/learner/top-bar";
+import { Toaster } from "@/components/learner/sonner";
 import { useAuth } from "@/context/auth-context";
 
 export default function LearnerLayout() {
@@ -41,6 +41,7 @@ export default function LearnerLayout() {
           <Outlet />
         </main>
       </div>
+      <Toaster richColors position="top-right" />
     </div>
   );
 }
