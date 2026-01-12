@@ -7,7 +7,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from fastapi import HTTPException, status
 
-from models.lesson import Lesson, LessonSection, Topic
+from models.lesson import Lesson, LessonSection, Topic, LessonStatus
 from models.progress import ProgressStatus, UserProgress
 from schemas.topic import TopicCreate, TopicUpdate
 
@@ -18,12 +18,28 @@ class TopicRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_topics_progress(self, *, user_id: int) -> List[Dict[str, Any]]:
+    async def get_topics_progress(
+        self,
+        *,
+        user_id: int,
+        include_deleted: bool = True,
+        published_only: bool = False,
+    ) -> List[Dict[str, Any]]:
         """Return topics with aggregated section counts for a user.
 
         Each item contains: id, name, description, total_sections, completed_sections, progress.
         Ordered by topic.order_index then id.
         """
+
+        lesson_on = Lesson.topic_id == Topic.id
+        if not include_deleted:
+            lesson_on = lesson_on & (Lesson.is_deleted == False)
+        if published_only:
+            lesson_on = lesson_on & (Lesson.status == LessonStatus.PUBLISHED)
+
+        section_on = LessonSection.lesson_id == Lesson.id
+        if not include_deleted:
+            section_on = section_on & (LessonSection.is_deleted == False)
 
         statement = (
             select(
@@ -35,8 +51,8 @@ class TopicRepository:
                 func.count(func.distinct(UserProgress.section_id)).label("completed_sections"),
             )
             .select_from(Topic)
-            .join(Lesson, Lesson.topic_id == Topic.id, isouter=True)
-            .join(LessonSection, LessonSection.lesson_id == Lesson.id, isouter=True)
+            .join(Lesson, lesson_on, isouter=True)
+            .join(LessonSection, section_on, isouter=True)
             .join(
                 UserProgress,
                 (UserProgress.section_id == LessonSection.id)
@@ -47,6 +63,11 @@ class TopicRepository:
             .group_by(Topic.id, Topic.name, Topic.description, Topic.order_index)
             .order_by(Topic.order_index, Topic.id)
         )
+
+        if not include_deleted:
+            statement = statement.where(Topic.is_deleted == False)
+        if published_only:
+            statement = statement.where(Topic.status == LessonStatus.PUBLISHED)
 
         result = await self.session.exec(statement)
         rows = result.all()
@@ -92,7 +113,13 @@ class TopicRepository:
         await self.session.refresh(topic)
         return topic
 
-    async def get_topic_by_id(self, topic_id: int) -> Topic:
+    async def get_topic_by_id(
+        self,
+        topic_id: int,
+        *,
+        include_deleted: bool = True,
+        published_only: bool = False,
+    ) -> Topic:
         """Get topic by ID.
         
         Args:
@@ -105,6 +132,10 @@ class TopicRepository:
             HTTPException: If topic not found
         """
         stmt = select(Topic).where(Topic.id == topic_id)
+        if not include_deleted:
+            stmt = stmt.where(Topic.is_deleted == False)
+        if published_only:
+            stmt = stmt.where(Topic.status == LessonStatus.PUBLISHED)
         result = await self.session.exec(stmt)
         topic = result.first()
         

@@ -3,31 +3,96 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from fastapi import HTTPException, status
 
 from schemas.question import QuestionCreate, QuestionUpdate
-from models.lesson import LessonSection, Question
+from models.lesson import Lesson, LessonSection, Topic, Question, LessonStatus
 
 
 class QuestionRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_question_by_id(self, question_id: int) -> Question | None:
+    async def get_question_by_id(
+        self,
+        question_id: int,
+        *,
+        include_deleted: bool = True,
+        published_only: bool = False,
+    ) -> Question | None:
         statement = select(Question).where(Question.id == question_id)
+
+        if not include_deleted or published_only:
+            statement = statement.where(Question.is_deleted == False)
+
+        if published_only:
+            statement = (
+                statement.where(Question.status == LessonStatus.PUBLISHED)
+                .join(LessonSection, LessonSection.id == Question.section_id)
+                .join(Lesson, Lesson.id == LessonSection.lesson_id)
+                .join(Topic, Topic.id == Lesson.topic_id)
+                .where(LessonSection.is_deleted == False)
+                .where(Lesson.status == LessonStatus.PUBLISHED)
+                .where(Lesson.is_deleted == False)
+                .where(Topic.status == LessonStatus.PUBLISHED)
+                .where(Topic.is_deleted == False)
+            )
         result = await self.session.exec(statement)
         if not result:
             return None
         return result.first()
 
-    async def section_exists(self, section_id: int) -> bool:
-        statement = select(LessonSection.id).where(LessonSection.id == section_id)
+    async def section_exists(
+        self,
+        section_id: int,
+        *,
+        include_deleted: bool = True,
+        published_only: bool = False,
+    ) -> bool:
+        statement = (
+            select(LessonSection.id)
+            .select_from(LessonSection)
+            .where(LessonSection.id == section_id)
+        )
+
+        if not include_deleted or published_only:
+            statement = statement.where(LessonSection.is_deleted == False)
+
+        if published_only:
+            statement = (
+                statement.join(Lesson, Lesson.id == LessonSection.lesson_id)
+                .join(Topic, Topic.id == Lesson.topic_id)
+                .where(Lesson.status == LessonStatus.PUBLISHED)
+                .where(Lesson.is_deleted == False)
+                .where(Topic.status == LessonStatus.PUBLISHED)
+                .where(Topic.is_deleted == False)
+            )
         result = await self.session.exec(statement)
         return result.first() is not None
 
-    async def get_questions_by_section(self, section_id: int) -> list[Question]:
-        statement = (
-            select(Question)
-            .where(Question.section_id == section_id)
-            .order_by(Question.order_index, Question.id)
-        )
+    async def get_questions_by_section(
+        self,
+        section_id: int,
+        *,
+        include_deleted: bool = True,
+        published_only: bool = False,
+    ) -> list[Question]:
+        statement = select(Question).where(Question.section_id == section_id)
+
+        if not include_deleted or published_only:
+            statement = statement.where(Question.is_deleted == False)
+
+        if published_only:
+            statement = (
+                statement.where(Question.status == LessonStatus.PUBLISHED)
+                .join(LessonSection, LessonSection.id == Question.section_id)
+                .join(Lesson, Lesson.id == LessonSection.lesson_id)
+                .join(Topic, Topic.id == Lesson.topic_id)
+                .where(LessonSection.is_deleted == False)
+                .where(Lesson.status == LessonStatus.PUBLISHED)
+                .where(Lesson.is_deleted == False)
+                .where(Topic.status == LessonStatus.PUBLISHED)
+                .where(Topic.is_deleted == False)
+            )
+
+        statement = statement.order_by(Question.order_index, Question.id)
         result = await self.session.exec(statement)
         return result.all()
 

@@ -43,7 +43,11 @@ async def get_topics(
 	"""Return topics with derived status and progress for current user."""
 
 	topic_repo = TopicRepository(session)
-	topics_raw = await topic_repo.get_topics_progress(user_id=current_user.id)
+	topics_raw = await topic_repo.get_topics_progress(
+		user_id=current_user.id,
+		include_deleted=False,
+		published_only=True,
+	)
 
 	if not topics_raw:
 		return TopicsResponse(topics=[])
@@ -93,11 +97,16 @@ async def get_topic_lessons(
 
 	topic_repo = TopicRepository(session)
 	# 404 if topic not exist
-	await topic_repo.get_topic_by_id(topic_id)
+	await topic_repo.get_topic_by_id(topic_id, include_deleted=False, published_only=True)
 
 	# No topic locking - all topics are accessible
 	lesson_repo = LessonRepository(session)
-	lessons_raw = await lesson_repo.get_lessons_progress_by_topic(user_id=current_user.id, topic_id=topic_id)
+	lessons_raw = await lesson_repo.get_lessons_progress_by_topic(
+		user_id=current_user.id,
+		topic_id=topic_id,
+		include_deleted=False,
+		published_only=True,
+	)
 
 	lessons_out = []
 	
@@ -136,11 +145,13 @@ async def get_lesson_sections(
 
 	lesson_repo = LessonRepository(session)
 	# Validate lesson exists (raises 404 if not)
-	await lesson_repo.get_lesson_by_id(lesson_id)
+	await lesson_repo.get_lesson_by_id(lesson_id, include_deleted=False, published_only=True)
 
 	sections = await lesson_repo.get_sections_with_progress(
 		user_id=current_user.id,
 		lesson_id=lesson_id,
+		include_deleted=False,
+		published_only=True,
 	)
 	return LessonSectionsResponse(lesson_id=lesson_id, sections=sections)
 
@@ -158,7 +169,7 @@ async def get_lesson_content(
 	"""
 
 	lesson_repo = LessonRepository(session)
-	lesson = await lesson_repo.get_lesson_by_id(lesson_id)
+	lesson = await lesson_repo.get_lesson_by_id(lesson_id, include_deleted=False, published_only=True)
 
 	return LessonContentResponse(
 		id=int(lesson.id),
@@ -197,10 +208,10 @@ async def get_section_questions(
 	session: AsyncSession = Depends(get_session),
 ) -> SectionQuestionsResponse:
 	question_repo = QuestionRepository(session)
-	if not await question_repo.section_exists(section_id):
+	if not await question_repo.section_exists(section_id, include_deleted=False, published_only=True):
 		raise HTTPException(status_code=404, detail="Section not found")
 
-	questions = await question_repo.get_questions_by_section(section_id)
+	questions = await question_repo.get_questions_by_section(section_id, include_deleted=False, published_only=True)
 	return SectionQuestionsResponse(section_id=section_id, questions=questions)
 
 
@@ -215,7 +226,7 @@ async def submit_question_answer(
 	remaining_energy = await user_repo.consume_learning_energy(current_user.id, cost=1)
 
 	question_repo = QuestionRepository(session)
-	question = await question_repo.get_question_by_id(question_id)
+	question = await question_repo.get_question_by_id(question_id, include_deleted=False, published_only=True)
 	if not question:
 		raise HTTPException(status_code=404, detail="Question not found")
 
@@ -235,38 +246,36 @@ async def submit_question_answer(
 
 @router.get("/lessons/{lesson_id}/next-section", response_model=NextSectionResponse)
 async def get_next_section(
-    lesson_id: int,
-    session: AsyncSession = Depends(get_session),
-    current_user=Depends(get_current_user),
+	lesson_id: int,
+	session: AsyncSession = Depends(get_session),
+	current_user=Depends(get_current_user),
 ):
-    """
-    Return the next section that the user has not completed in the given lesson.
-    """
+	"""Return the next section the user has not completed in the lesson."""
 
-    lesson_repo = LessonRepository(session)
-    progress_repo = UserProgressRepository(session)
+	lesson_repo = LessonRepository(session)
+	progress_repo = UserProgressRepository(session)
 
-    # 1. Check lesson exists
-    lesson = await lesson_repo.get_lesson_by_id(lesson_id)
-    if not lesson:
-        raise HTTPException(status_code=404, detail="Lesson not found")
+	# 1. Check lesson exists
+	lesson = await lesson_repo.get_lesson_by_id(lesson_id, include_deleted=False, published_only=True)
 
-    # 2. Get next uncompleted section
-    section = await progress_repo.get_next_section(
-        user_id=current_user.id,
-        lesson_id=lesson_id,
-    )
+	# 2. Get next uncompleted section
+	section = await progress_repo.get_next_section(
+		user_id=current_user.id,
+		lesson_id=lesson_id,
+		include_deleted=False,
+		published_only=True,
+	)
 
-    if not section:
-        return {
-            "status": "completed",
-            "message": "All sections in this lesson have been completed"
-        }
+	if not section:
+		return {
+			"status": "completed",
+			"message": "All sections in this lesson have been completed",
+		}
 
-    return {
-        "lesson_id": lesson_id,
-        "section": section
-    }
+	return {
+		"lesson_id": lesson_id,
+		"section": section,
+	}
 
 
 @router.post(
@@ -285,11 +294,11 @@ async def complete_section(
 	lesson_repo = LessonRepository(session)
 	progress_repo = UserProgressRepository(session)
 
-	lesson = await lesson_repo.get_lesson_by_id(lesson_id)
+	lesson = await lesson_repo.get_lesson_by_id(lesson_id, include_deleted=False, published_only=True)
 	if not lesson:
 		raise HTTPException(status_code=404, detail="Lesson not found")
 
-	section = await progress_repo.get_section_by_id(section_id)
+	section = await progress_repo.get_section_by_id(section_id, include_deleted=False, published_only=True)
 	if not section:
 		raise HTTPException(status_code=404, detail="Section not found")
 
@@ -297,7 +306,12 @@ async def complete_section(
 		raise HTTPException(status_code=400, detail="Section does not belong to lesson")
 
 	# Section must be the next uncompleted section
-	next_section = await progress_repo.get_next_section(user_id=current_user.id, lesson_id=lesson_id)
+	next_section = await progress_repo.get_next_section(
+		user_id=current_user.id,
+		lesson_id=lesson_id,
+		include_deleted=False,
+		published_only=True,
+	)
 
 	# Reject re-submitting completed section
 	progress = await progress_repo.get_user_progress_by_section(user_id=current_user.id, section_id=section_id)
