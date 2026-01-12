@@ -122,16 +122,17 @@ export default function PronunciationPracticePage() {
     try {
       await start();
       await new Promise((r) => setTimeout(r, 3000));
-      const audioBlob = await stop();
+      const { wavBlob, webmBlob } = await stop();
       setIsRecording(false);
 
-      // Store the recorded audio for playback
-      const audioUrl = URL.createObjectURL(audioBlob);
+      // Store the original WebM audio for playback (better speaker compatibility)
+      const audioUrl = URL.createObjectURL(webmBlob);
       setRecordedAudios((prev) => ({ ...prev, [currentIndex]: audioUrl }));
 
       // Show assessing state
       setIsAssessing(true);
-      await assess(audioBlob);
+      // Send WAV to server for processing
+      await assess(wavBlob);
     } catch (e) {
       console.error("Recording/Assessment error:", e);
       alert("Đánh giá phát âm thất bại, thử lại nhé!");

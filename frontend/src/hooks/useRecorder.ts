@@ -1,34 +1,57 @@
 import { useRef } from "react";
 
+export interface RecordingResult {
+  /** WAV blob at 16kHz for server processing (Wav2Vec) */
+  wavBlob: Blob;
+  /** Original WebM blob for playback (better compatibility with speakers) */
+  webmBlob: Blob;
+}
+
 export function useRecorder() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
   const start = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        channelCount: 1,
-        sampleRate: 16000,
-        echoCancellation: true,
-        noiseSuppression: true,
-      },
-    });
+    try {
+      console.log("🎤 Requesting microphone access...");
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          sampleRate: 16000,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      });
+      console.log("✅ Microphone access granted");
 
-    // Try to use audio/webm;codecs=opus, fallback to default
-    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-      ? "audio/webm;codecs=opus"
-      : "audio/webm";
+      // Try to use audio/webm;codecs=opus, fallback to default
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm";
+      console.log("📼 Using mimeType:", mimeType);
 
-    const recorder = new MediaRecorder(stream, { mimeType });
-    chunksRef.current = [];
+      const recorder = new MediaRecorder(stream, { mimeType });
+      chunksRef.current = [];
 
-    recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunksRef.current.push(e.data);
-    };
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+          console.log("🔊 Audio chunk received:", e.data.size, "bytes");
+        }
+      };
 
-    // Collect data every 100ms for better reliability
-    recorder.start(100);
-    mediaRecorderRef.current = recorder;
+      recorder.onerror = (e) => {
+        console.error("❌ MediaRecorder error:", e);
+      };
+
+      // Collect data every 100ms for better reliability
+      recorder.start(100);
+      console.log("🔴 Recording started");
+      mediaRecorderRef.current = recorder;
+    } catch (err) {
+      console.error("❌ Failed to start recording:", err);
+      throw err;
+    }
   };
 
   async function webmToWav(blob: Blob): Promise<Blob> {
@@ -63,7 +86,7 @@ export function useRecorder() {
     return new Blob([wavBuffer], { type: "audio/wav" });
   }
 
-  const stop = (): Promise<Blob> =>
+  const stop = (): Promise<RecordingResult> =>
     new Promise((resolve, reject) => {
       const recorder = mediaRecorderRef.current;
       if (!recorder) {
@@ -90,7 +113,9 @@ export function useRecorder() {
 
           const wavBlob = await webmToWav(webmBlob);
           console.log("WAV audio size:", wavBlob.size, "bytes");
-          resolve(wavBlob);
+
+          // Return both formats
+          resolve({ wavBlob, webmBlob });
         } catch (err) {
           console.error("Error converting audio:", err);
           reject(err);
