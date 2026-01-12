@@ -1,194 +1,256 @@
-# Backend — Cấu trúc và hướng dẫn ngắn
+<a id="readme-top"></a>
 
-**Mô tả ngắn**
+<p align="center">
 
-Thư mục `backend/` chứa phần API và logic server của ứng dụng (models, database, schemas, repository, cấu hình, và tích hợp Firebase).
+</p>
 
----
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![Unlicense License][license-shield]][license-url]
 
-## 📁 Cấu trúc thư mục (tóm tắt)
+<!-- PROJECT LOGO -->
+<br />
+<div align="center">
+  <a href="https://github.com/your-username/katling">
+    <img src="frontend/public/img/logo_with_name_dark.png" alt="Katling Logo" height="100">
+  </a>
 
-- `envStyle.txt` — mẫu khai báo biến môi trường (dùng để tạo `.env`).
-- `requirements.txt` — danh sách phụ thuộc Python.
-- `serviceAccountKey.json` — khóa service account cho Firebase (KHÔNG commit vào VCS nếu chứa bí mật).
+  <p align="center">
+    <strong>An AI-powered English learning platform that makes language learning fun and effective!</strong>
+    <br />
+    <br />
+    <a href="#-features">Features</a>
+    ·
+    <a href="#-getting-started">Getting Started</a>
+    ·
+    <a href="#-tech-stack">Tech Stack</a>
+    ·
+    <a href="#-contributing">Contributing</a>
+  </p>
 
-- `app/`
-  - `__init__.py`
-  - `main.py` — entrypoint của ứng dụng
-  - `api/` — các endpoint API
-    - `login.py` — login endpoints
-    - `role.py` — role endpoints
-    - `test.py` — test/example endpoints
-    - `user.py` — user-related endpoints
-  - `core/` — cấu hình & helpers
-    - `config.py` — đọc biến môi trường / cấu hình ứng dụng
-    - `firebase.py` — helper kết nối Firebase
-    - `security.py` — hàm bảo mật (hash token...)
-  - `database/` — cấu trúc DB
-    - `base.py`
-    - `session.py`
-  - `models/` — ORM models (ví dụ: `user.py`)
-  - `repositories/` — logic truy cập dữ liệu (ví dụ: `userRepository.py`)
-  - `schemas/` — Pydantic schemas (ví dụ: `user.py`)
+</div>
 
----
-
-## 🔧 Hướng dẫn tạo file `.env`
-
-Vui lòng **tạo file `.env` trong thư mục `backend/`** có cấu trúc giống `envStyle.txt` và điền các giá trị thật (host, username, password, secret key, v.v.).
-
-- Nội dung mẫu (`envStyle.txt`):
-
-```
-DATABASE_HOSTNAME=
-DATABASE_PORT=
-DATABASE_PASSWORD=
-DATABASE_NAME=
-DATABASE_USERNAME=
-SECRET_KEY=
-ALGORITHM=
-ACCESS_TOKEN_EXPIRE_MINUTES=
-API_V1_STR=
-
-# --- Daily 20:00 reminder job ---
-# Timezone used by the app (IANA tz database name)
-APP_TIMEZONE=Asia/Ho_Chi_Minh
-
-# Enable/disable APScheduler background jobs
-SCHEDULER_ENABLED=true
-
-# SMTP config for reminder emails
-SMTP_HOST=
-SMTP_PORT=587
-SMTP_USERNAME= <email name>
-SMTP_PASSWORD= <Google Account -> 2FA Auth -> App Password -> Create -> 16-char password>
-SMTP_FROM_EMAIL=
-SMTP_USE_TLS=true
-```
-
-- Trên Windows (cmd):
-```
-copy envStyle.txt .env
-```
-- Trên macOS/Linux:
-```
-cp envStyle.txt .env
-```
-
-> **Lưu ý:** KHÔNG commit file `.env` chứa secrets lên Git. Nếu chưa có, hãy thêm `.env` vào `.gitignore` hoặc tạo `.env.example` (không chứa giá trị thực).
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
+  </ol>
+</details>
 
 ---
 
-## ⏰ Cron job nhắc học 20:00 mỗi ngày
+## 📖 About The Project
 
-- Job được khởi động tự động khi app chạy (FastAPI `startup`).
-- Scheduler dùng APScheduler và chạy theo `APP_TIMEZONE`.
-- Job sẽ lấy danh sách user trong DB và gửi email cho user **chưa học hôm nay** (theo `last_active_date`).
+This repository contains the code and documentation for the Final Project of  Introduction to Software Engineering Course (CSC13002). The project focuses on developing Katling - a English learning system.
 
-Điểm bắt đầu:
-- Scheduler được cấu hình ở [backend/app/main.py](backend/app/main.py)
-- Logic job ở [backend/app/services/daily_study_reminder_job.py](backend/app/services/daily_study_reminder_job.py)
-- SMTP email service ở [backend/app/services/email_service.py](backend/app/services/email_service.py)
+**Katling** is a comprehensive English learning platform designed to help learners improve their language skills through interactive lessons, AI-powered conversations, pronunciation practice, and gamification elements. Whether you're a beginner or looking to polish your English skills, Katling provides a personalized and engaging learning experience.
 
-Ghi chú triển khai:
-- Nên chạy API với **1 worker** để tránh gửi trùng email nếu deploy nhiều process.
+### 🎯 Why Katling?
+
+- **Interactive Learning**: Structured lessons with topics, sections, and various question types
+- **AI Conversation Partner**: Practice real conversations with our AI-powered chat system
+- **Pronunciation Feedback**: Get instant feedback on your pronunciation using ML models
+- **Gamification**: Daily missions, XP rewards, streaks, and leaderboards to keep you motivated
+- **Vocabulary Building**: Flashcards with spaced repetition for effective memorization
+- **Community Features**: Connect with friends, share posts, and learn together
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+<p align="center">
+  <a href="https://react.dev/" target="_blank" rel="noreferrer"><img src="https://img.shields.io/badge/React-%2320232a.svg?logo=react&logoColor=%2361DAFB)" width="" height="36" alt="React" /></a>
+  <a href="https://react.dev/" target="_blank" rel="noreferrer"><img src="https://img.shields.io/badge/React%20Hook%20Form-EC5990?logo=reacthookform&logoColor=fff" width="" height="36" alt="React" /></a>
+  <a href="https://react.dev/" target="_blank" rel="noreferrer"><img src="https://img.shields.io/badge/React_Native-%2320232a.svg?logo=react&logoColor=%2361DAFB" width="" height="36" alt="React" /></a>
+  <a href="https://react.dev/" target="_blank" rel="noreferrer"><img src="https://img.shields.io/badge/React_Router-CA4245?logo=react-router&logoColor=white" width="" height="36" alt="React" /></a>
+  <a href="https://www.typescriptlang.org/" target="_blank" rel="noreferrer"><img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=fff" width="" height="36" alt="TypeScript" /></a>
+  <a href="https://vite.dev/" target="_blank" rel="noreferrer"><img src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=fff" width="" height="36" alt="Vite" /></a>
+  <a href="https://tailwindcss.com/" target="_blank" rel="noreferrer"><img src="https://img.shields.io/badge/Tailwind%20CSS-%2338B2AC.svg?logo=tailwind-css&logoColor=white" width="" height="36" alt="TailwindCSS" /></a>
+  <a href="https://firebase.google.com/" target="_blank" rel="noreferrer"><img src="https://img.shields.io/badge/Firebase-039BE5?logo=Firebase&logoColor=white" width="" height="36" alt="Firebase" /></a>
+</p>
+
+### Backend
+
+<p align="center">
+  <a href="https://fastapi.tiangolo.com/" target="_blank" rel="noreferrer"><img src="https://img.shields.io/badge/FastAPI-009485.svg?logo=fastapi&logoColor=white" width="" height="36" alt="FastAPI" /></a>
+  <a href="https://www.postgresql.org/docs/" target="_blank" rel="noreferrer"><img src="https://img.shields.io/badge/Postgres-%23316192.svg?logo=postgresql&logoColor=white" width="" height="36" alt="PostgreSQL" /></a>
+  <a href="https://dev.mysql.com/doc/" target="_blank" rel="noreferrer"><img src="https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=fff" width="" height="36" alt="MySQL" /></a>
+  <a href="https://dev.mysql.com/doc/" target="_blank" rel="noreferrer"><img src="https://img.shields.io/badge/Pydantic-E92063?logo=Pydantic&logoColor=white" width="" height="36" alt="MySQL" /></a>
+</p>
+
+### AI / ML
+
+<p align="center">
+  <a href="https://fastapi.tiangolo.com/" target="_blank" rel="noreferrer"><img src="https://img.shields.io/badge/Google%20Gemini-886FBF?logo=googlegemini&logoColor=fff" width="" height="36" alt="FastAPI" /></a>
+</p>
 
 ---
 
-## 🔁 Git workflow (tóm tắt)
+## 🚀 Getting Started
 
-**Luồng làm việc đề xuất:**
+> 📖 **For detailed setup instructions, see [SETUP.md](docs/SETUP.md)**
 
-1. **Tạo branch mới từ `main` (hoặc `develop`)**:
-```bash
-git checkout main
-git pull origin main
-git checkout -b feature/your-feature
+### Quick Start with Docker
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/VincentBoy0/Katling.git
+   cd katling
+   ```
+
+2. Set up environment variables (copy from `.env.example` files)
+
+3. Start the application:
+   ```bash
+   docker-compose up --build
+   ```
+
+4. Access the application:
+   - **Frontend**: http://localhost:5173
+   - **Backend API**: http://localhost:8000
+   - **API Docs**: http://localhost:8000/docs
+
+---
+
+## 📁 Project Structure
+
+```
+katling/
+├── 🐳 docker-compose.yml      # Docker orchestration
+├── 📖 README.md
+├── 📚 docs/                   # Documentation
+│
+├── 🔧 backend/
+│   ├── app/
+│   │   ├── api/               # API route handlers
+│   │   │   ├── community/     # Friends, posts endpoints
+│   │   │   ├── general/       # Auth, user, reports
+│   │   │   ├── learning/      # Lessons, vocab, flashcards, pronunciation
+│   │   │   └── management/    # Admin, moderator endpoints
+│   │   ├── core/              # Config, security, Firebase setup
+│   │   ├── database/          # Database session management
+│   │   ├── ml_models/         # Machine learning models
+│   │   ├── models/            # SQLModel database models
+│   │   ├── repositories/      # Data access layer
+│   │   ├── schemas/           # Pydantic request/response schemas
+│   │   └── services/          # Business logic services
+│   ├── alembic/               # Database migrations
+│   ├── scripts/               # Utility scripts (seed, reset)
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+└── 🎨 frontend/
+    ├── src/
+    │   ├── app/               # App configuration
+    │   ├── components/        # Reusable UI components
+    │   ├── context/           # React context providers
+    │   ├── hooks/             # Custom React hooks
+    │   ├── layouts/           # Page layouts
+    │   ├── pages/             # Page components
+    │   │   ├── admin/         # Admin dashboard pages
+    │   │   ├── learner/       # Learner pages (dashboard, lessons, etc.)
+    │   │   └── moderator/     # Moderator pages
+    │   ├── services/          # API service functions
+    │   └── types/             # TypeScript type definitions
+    ├── public/                # Static assets
+    ├── package.json
+    └── Dockerfile
 ```
 
-2. **Làm việc & commit** — commit nhỏ, message rõ ràng.
+---
 
-3. **Cập nhật branch trước khi push (rebase)**:
-```bash
-git fetch origin
-git rebase origin/main
-# hoặc
-git pull --rebase origin main
-```
+## 📚 Documentation
 
-4. **Push branch lên remote**:
-```bash
-git push -u origin feature/your-feature
-```
+- [Setup Guide](/docs/SETUP.md)
+- [API Documentation](/docs/API.md)
 
-5. **Tạo Pull Request (PR)** — chọn base `main`, mô tả thay đổi, thêm reviewers, chờ CI pass.
+---
 
-6. **Nếu cần cập nhật PR** — rebase trên `main`, giải xung đột, sau đó force-push an toàn:
-```bash
-git fetch origin
-git rebase origin/main
-# resolve conflicts if any
-git push --force-with-lease
-```
+## 🤝 Contributing
 
-7. **Sau khi PR được merge** — xóa branch remote & local:
-```bash
-git push origin --delete feature/your-feature
-git branch -d feature/your-feature
-```
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-**Tips:**
-- Dùng tiền tố branch rõ ràng: `feature/`, `fix/`, `chore/`.
-- Rebase giữ lịch sử sạch; chọn merge nếu muốn giữ lịch sử non-linear.
-- Dùng `--force-with-lease` để an toàn khi force-push.
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement". Don't forget to give the project a star! Thanks again!
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Follow existing code style and conventions
+- Write meaningful commit messages
+- Add tests for new features
+- Update documentation as needed
+
+---
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+## 👨‍💻 Authors
+
+Made with ❤️ by the Group 3:
+
+<a href="https://github.com/VincentBoy0/Katling/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=VincentBoy0/Katling" alt="contrib.rocks image" />
+</a>
 
 
 ---
-## Cách setup Docker
 
-### Yêu cầu
-Cài đặt [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+## 🙏 Acknowledgments
 
-### Môi trường
-Tạo các file `frontend/.env` và `backend/.env` như hướng dẫn phía trên
+- [FastAPI](https://fastapi.tiangolo.com/) - Modern Python web framework
+- [React](https://react.dev/) - JavaScript library for building user interfaces
+- [Radix UI](https://www.radix-ui.com/) - Accessible component primitives
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
+- [Google Gemini](https://ai.google.dev/) - Generative AI capabilities
+- [Hugging Face](https://huggingface.co/) - ML models for pronunciation
 
-### Build containers
+---
 
-Lần đầu tiên, thực hiện build bằng lệnh:
-```bash
-# Build all containers and start
-docker-compose up --build
-```
+<div align="center">
+  <p>⭐ Star this repo if you find it helpful! ⭐</p>
+  <a href="#readme-top">Back to Top ↑</a>
+</div>
 
-Lệnh này sẽ thực hiện:
-- Cài đặt images (Python, Node, PostgreSQL)
-- Cài đặt phụ thuộc
-- Khởi tạo các dịch vụ
 
-Sau đó đợi tất cả các dịch vụ sẵn sàng:
-- ✅ `katling_db` - Database
-- ✅ `katling_backend` - Backend API
-- ✅ `katling_frontend` - Frontend dev server
-
-### Truy cập application
-- **Frontend:** http://localhost:5173
-- **Backend API:** http://localhost:8000
-- **API Documentation:** http://localhost:8000/docs
-- **Database:** `localhost:5432`
-
-Sau khi build xong, những lần sau thực hiện start các dịch vụ bằng lệnh:
-```bash
-# Start all services (backend, frontend, database)
-docker-compose up
-```
-
-hoặc:
-```bash
-docker-compose up -d
-```
-
-Kết thúc các dịch vụ bằng lệnh:
-```bash
-# Stop all services (keeps data)
-docker-compose down
-```
+[contributors-shield]: https://img.shields.io/github/contributors/VincentBoy0/Katling.svg?style=for-the-badge
+[contributors-url]: https://github.com/VincentBoy0/Katling/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/VincentBoy0/Katling.svg?style=for-the-badge
+[forks-url]: https://github.com/VincentBoy0/Katling/network/members
+[stars-shield]: https://img.shields.io/github/stars/VincentBoy0/Katling.svg?style=for-the-badge
+[stars-url]: https://github.com/VincentBoy0/Katling/stargazers
+[issues-shield]: https://img.shields.io/github/issues/VincentBoy0/Katling.svg?style=for-the-badge
+[issues-url]: https://github.com/VincentBoy0/Katling/issues
+[license-shield]: https://img.shields.io/github/license/VincentBoy0/Katling.svg?style=for-the-badge
+[license-url]: https://github.com/VincentBoy0/Katling/blob/master/LICENSE.txt
