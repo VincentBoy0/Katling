@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from sqlalchemy import func, case
 
-from models.lesson import Lesson, Topic
+from models.lesson import Lesson, Topic, LessonStatus
 from models.lesson import LessonSection
 from models.progress import ProgressStatus, UserProgress
 from schemas.lesson import LessonCreate, LessonUpdate
@@ -47,7 +47,13 @@ class LessonRepository:
         return lesson
 
     # --- Read ---
-    async def get_lesson_by_id(self, lesson_id: int, include_deleted: bool = False) -> Lesson:
+    async def get_lesson_by_id(
+        self,
+        lesson_id: int,
+        include_deleted: bool = False,
+        *,
+        published_only: bool = False,
+    ) -> Lesson:
         """Get lesson by ID.
 
         Args:
@@ -63,6 +69,15 @@ class LessonRepository:
         stmt = select(Lesson).where(Lesson.id == lesson_id)
         if not include_deleted:
             stmt = stmt.where(Lesson.is_deleted == False)
+
+        if published_only:
+            stmt = (
+                stmt.join(Topic, Topic.id == Lesson.topic_id)
+                .where(Lesson.status == LessonStatus.PUBLISHED)
+                .where(Lesson.is_deleted == False)
+                .where(Topic.status == LessonStatus.PUBLISHED)
+                .where(Topic.is_deleted == False)
+            )
         
         result = await self.session.exec(stmt)
         lesson = result.first()
@@ -111,6 +126,7 @@ class LessonRepository:
         user_id: int,
         topic_id: int,
         include_deleted: bool = False,
+        published_only: bool = False,
     ) -> list[dict]:
         """Return lessons in a topic with per-user progress.
 
@@ -145,7 +161,10 @@ class LessonRepository:
             .order_by(Lesson.order_index, Lesson.id)
         )
 
-        if not include_deleted:
+        if published_only:
+            statement = statement.where(Lesson.status == LessonStatus.PUBLISHED)
+
+        if not include_deleted or published_only:
             statement = statement.where(Lesson.is_deleted == False)
 
         result = await self.session.exec(statement)
@@ -295,6 +314,7 @@ class LessonRepository:
         user_id: int,
         lesson_id: int,
         include_deleted: bool = False,
+        published_only: bool = False,
     ) -> list[dict]:
         """Return sections for a lesson with question counts and completion status.
         
@@ -316,6 +336,8 @@ class LessonRepository:
                 ).label("is_completed"),
             )
             .select_from(LessonSection)
+            .join(Lesson, Lesson.id == LessonSection.lesson_id)
+            .join(Topic, Topic.id == Lesson.topic_id)
             .join(
                 Question,
                 (Question.section_id == LessonSection.id) & (Question.is_deleted == False),
@@ -331,7 +353,15 @@ class LessonRepository:
             .order_by(LessonSection.order_index, LessonSection.id)
         )
 
-        if not include_deleted:
+        if published_only:
+            statement = (
+                statement.where(Lesson.status == LessonStatus.PUBLISHED)
+                .where(Lesson.is_deleted == False)
+                .where(Topic.status == LessonStatus.PUBLISHED)
+                .where(Topic.is_deleted == False)
+            )
+
+        if not include_deleted or published_only:
             statement = statement.where(LessonSection.is_deleted == False)
 
         result = await self.session.exec(statement)

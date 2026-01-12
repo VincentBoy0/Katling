@@ -2,7 +2,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models.progress import ProgressStatus, UserProgress, utc_now
-from models.lesson import LessonSection
+from models.lesson import Lesson, LessonSection, Topic, LessonStatus
 
 
 class UserProgressRepository:
@@ -16,6 +16,9 @@ class UserProgressRepository:
         self,
         user_id: int,
         lesson_id: int,
+        *,
+        include_deleted: bool = True,
+        published_only: bool = False,
     ) -> LessonSection | None:
         """
         Get the next section that the user has not completed in a lesson.
@@ -44,11 +47,43 @@ class UserProgressRepository:
             .order_by(LessonSection.order_index)
         )
 
+        if not include_deleted or published_only:
+            statement = statement.where(LessonSection.is_deleted == False)
+
+        if published_only:
+            statement = (
+                statement.join(Lesson, Lesson.id == LessonSection.lesson_id)
+                .join(Topic, Topic.id == Lesson.topic_id)
+                .where(Lesson.status == LessonStatus.PUBLISHED)
+                .where(Lesson.is_deleted == False)
+                .where(Topic.status == LessonStatus.PUBLISHED)
+                .where(Topic.is_deleted == False)
+            )
+
         result = await self.session.exec(statement)
         return result.first()
 
-    async def get_section_by_id(self, section_id: int) -> LessonSection | None:
+    async def get_section_by_id(
+        self,
+        section_id: int,
+        *,
+        include_deleted: bool = True,
+        published_only: bool = False,
+    ) -> LessonSection | None:
         statement = select(LessonSection).where(LessonSection.id == section_id)
+
+        if not include_deleted or published_only:
+            statement = statement.where(LessonSection.is_deleted == False)
+
+        if published_only:
+            statement = (
+                statement.join(Lesson, Lesson.id == LessonSection.lesson_id)
+                .join(Topic, Topic.id == Lesson.topic_id)
+                .where(Lesson.status == LessonStatus.PUBLISHED)
+                .where(Lesson.is_deleted == False)
+                .where(Topic.status == LessonStatus.PUBLISHED)
+                .where(Topic.is_deleted == False)
+            )
         result = await self.session.exec(statement)
         return result.first()
 
