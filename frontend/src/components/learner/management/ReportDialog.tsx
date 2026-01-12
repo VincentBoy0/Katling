@@ -21,6 +21,7 @@ interface ReportDialogProps {
     category: ReportCategory;
   }) => void;
   postId?: number | null;
+  fixedCategory?: ReportCategory;
 }
 
 export function ReportDialog({
@@ -28,13 +29,16 @@ export function ReportDialog({
   onOpenChange,
   onSubmit,
   postId,
+  fixedCategory,
 }: ReportDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [severity, setSeverity] = useState<ReportSeverity>(
     ReportSeverity.MEDIUM
   );
-  const [category, setCategory] = useState<ReportCategory>(ReportCategory.POST);
+  const [category, setCategory] = useState<ReportCategory>(
+    fixedCategory || ReportCategory.POST
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,7 +51,9 @@ export function ReportDialog({
       setTitle("");
       setDescription("");
       setSeverity(ReportSeverity.MEDIUM);
-      setCategory(ReportCategory.POST);
+      if (!fixedCategory) {
+        setCategory(ReportCategory.POST);
+      }
       onOpenChange(false);
     } finally {
       setIsSubmitting(false);
@@ -100,30 +106,32 @@ export function ReportDialog({
           </div>
 
           {/* Category */}
-          <div className="space-y-3">
-            <label className="text-sm font-semibold text-foreground">
-              Phân loại lỗi
-            </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as ReportCategory)}
-              className="mt-1 w-full h-11 border-2 border-border rounded-md px-3 pr-10 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value={ReportCategory.BUG}>Bug</option>
-              <option value={ReportCategory.FEATURE_REQUEST}>
-                Feature Request
-              </option>
-              <option value={ReportCategory.CONTENT_ERROR}>
-                Content Error
-              </option>
-              <option value={ReportCategory.PERFORMANCE}>Performance</option>
-              <option value={ReportCategory.ACCESSIBILITY}>
-                Accessibility
-              </option>
-              <option value={ReportCategory.POST}>Post</option>
-              <option value={ReportCategory.OTHER}>Other</option>
-            </select>
-          </div>
+          {!fixedCategory && (
+            <div className="space-y-3">
+              <label className="text-sm font-semibold text-foreground">
+                Phân loại lỗi
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as ReportCategory)}
+                className="mt-1 w-full h-11 border-2 border-border rounded-md px-3 pr-10 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value={ReportCategory.BUG}>Bug</option>
+                <option value={ReportCategory.FEATURE_REQUEST}>
+                  Feature Request
+                </option>
+                <option value={ReportCategory.CONTENT_ERROR}>
+                  Content Error
+                </option>
+                <option value={ReportCategory.PERFORMANCE}>Performance</option>
+                <option value={ReportCategory.ACCESSIBILITY}>
+                  Accessibility
+                </option>
+                {/* <option value={ReportCategory.POST}>Post</option> */}
+                <option value={ReportCategory.OTHER}>Other</option>
+              </select>
+            </div>
+          )}
 
           <div className="flex gap-2 pt-2">
             <Button
