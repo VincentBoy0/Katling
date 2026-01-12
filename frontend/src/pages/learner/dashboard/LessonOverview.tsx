@@ -174,7 +174,7 @@ export default function LessonOverview() {
                   <span
                     className={`px-2.5 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r ${gradientColor} shadow-sm`}
                   >
-                    {lesson.type}
+                    {String(lesson.type).replace("LessonType.", "")}
                   </span>
                   <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
                     {completedCount}/{sections.length} phần hoàn thành

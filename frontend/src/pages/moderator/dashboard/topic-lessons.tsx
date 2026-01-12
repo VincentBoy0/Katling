@@ -1,32 +1,32 @@
 import {
-  BookOpen,
-  Plus,
-  Trash2,
-  FileText,
-  Edit,
-  Folder,
-  RotateCcw,
-} from "lucide-react";
-import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+  ActionMenu,
+  Breadcrumb,
+  ConfirmModal,
+  ContentCard,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  Modal,
+  PageHeader,
+} from "@/components/shared";
 import {
   contentService,
   LessonCreateRequest,
   LessonUpdateRequest,
 } from "@/services/contentService";
-import { Lesson, Topic, LessonType, LessonStatus } from "@/types/content";
-import { toast } from "sonner";
+import { Lesson, LessonStatus, LessonType, Topic } from "@/types/content";
 import {
-  PageHeader,
-  LoadingState,
-  ErrorState,
-  EmptyState,
-  Breadcrumb,
-  ContentCard,
-  ActionMenu,
-  Modal,
-  ConfirmModal,
-} from "@/components/shared";
+  BookOpen,
+  Edit,
+  FileText,
+  Folder,
+  Plus,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function TopicLessons() {
   const { topicId } = useParams<{ topicId: string }>();
@@ -418,11 +418,13 @@ export default function TopicLessons() {
               className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
               required
             >
-              {Object.values(LessonType).map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
+              {(Object.keys(LessonType) as Array<keyof typeof LessonType>).map(
+                (key) => (
+                  <option key={key} value={LessonType[key]}>
+                    {key}
+                  </option>
+                )
+              )}
             </select>
           </div>
 
@@ -548,11 +550,13 @@ export default function TopicLessons() {
               className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
               required
             >
-              {Object.values(LessonType).map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
+              {(Object.keys(LessonType) as Array<keyof typeof LessonType>).map(
+                (key) => (
+                  <option key={key} value={LessonType[key]}>
+                    {key}
+                  </option>
+                )
+              )}
             </select>
           </div>
 

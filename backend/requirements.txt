@@ -64,3 +64,4 @@ numpy>=1.24.0
 scipy>=1.10.0
 accelerate
 python-multipart
+gTTS>=2.4.0

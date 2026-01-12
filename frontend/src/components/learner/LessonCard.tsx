@@ -137,7 +137,7 @@ export default function LessonCard({
           )}
           <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs font-medium">
             <span className={`px-2 py-0.5 rounded-md ${lessonColorClass}`}>
-              {lesson.type}
+              {String(lesson.type).replace("LessonType.", "")}
             </span>
             {lesson.progress > 0 && !isCompleted && (
               <span className="text-primary bg-primary/10 px-2 py-0.5 rounded-md">
