@@ -6,6 +6,7 @@ import ErrorChecking from "@/pages/admin/dashboard/error-checking";
 import AdminHeader from "@/components/admin/Header";
 import OverviewDashboard from "@/pages/admin/dashboard/overview-dashboard";
 import PostApproval from "@/pages/admin/dashboard/post-approval";
+import PostsManagement from "@/pages/admin/dashboard/posts-management";
 import AdminSettings from "@/pages/admin/dashboard/Settings";
 import AdminSidebar from "@/components/admin/Sidebar";
 import UserManagement from "@/pages/admin/dashboard/user-management";
@@ -20,6 +21,8 @@ export default function AdminPage() {
       //   return <OverviewDashboard />;
       case "users":
         return <UserManagement />;
+      case "posts":
+        return <PostsManagement />;
       // case "approval":
       //   return <PostApproval />;
       case "library":
