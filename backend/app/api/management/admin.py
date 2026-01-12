@@ -1,5 +1,6 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlmodel import select
+from sqlmodel import select, func, col
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from database.session import get_session
@@ -9,9 +10,21 @@ from repositories.userRepository import UserRepository
 
 from schemas.user import TraditionalSignUp, UserCreate, UserProfileUpdate
 from schemas.role import RoleAssign, RoleRemove, UserRolesListResponse
+from schemas.post import (
+    AdminPostListResponse,
+    AdminPostResponse,
+    AdminUserPostsResponse,
+    PostStatusUpdate,
+    PostBulkDeleteRequest,
+    PostStatsResponse,
+    AdminPostCommentsResponse,
+    AdminPostListItem,
+    AdminCommentItem
+)
 
 from models.lesson import Lesson, LessonStatus, Topic, LessonSection, Question
 from models.user import RoleType, User, UserInfo
+from models.post import Post, PostComment, PostStatus
 
 
 router = APIRouter(
@@ -234,6 +247,8 @@ async def check_user_role(
 		"has_role": has_role,
 	}
 
+# ============ Lesson Management ============
+
 @router.patch("/lesson/{lesson_id:int}", response_model=Lesson)
 async def update_status_lesson(
 	lesson_id: int,
@@ -299,3 +314,459 @@ async def update_status_question(
 	await session.commit()
 	await session.refresh(question)
 	return question 
+
+
+# ============ Post Management ============
+
+@router.get("/posts", response_model=AdminPostListResponse)
+async def list_all_posts(
+	skip: int = Query(0, ge=0),
+	limit: int = Query(50, ge=1, le=100),
+	status: Optional[PostStatus] = None,
+	user_id: Optional[int] = None,
+	session: AsyncSession = Depends(get_session),
+):
+	"""
+	List all posts with pagination and filtering.
+	
+	**Role:** ADMIN only
+	
+	Args:
+		skip: Number of records to skip (pagination)
+		limit: Maximum number of records to return
+		status: Filter by post status (PENDING, ACCEPTED, DECLINED, FLAGGED, ARCHIVED)
+		user_id: Filter by user ID
+		
+	Returns:
+		List of posts with user information and total count
+	"""
+	stmt = (
+		select(
+			Post.id,
+			Post.user_id,
+			Post.content,
+			Post.status,
+			Post.like_count,
+			Post.comment_count,
+			Post.created_at,
+			Post.is_deleted,
+			UserInfo.username,
+			UserInfo.full_name,
+			User.email
+		)
+		.join(User, User.id == Post.user_id)
+		.outerjoin(UserInfo, UserInfo.user_id == User.id)
+		.where(Post.is_deleted == False)
+	)
+	
+	# Apply filters
+	if status:
+		stmt = stmt.where(Post.status == status)
+	if user_id:
+		stmt = stmt.where(Post.user_id == user_id)
+	
+	# Get total count
+	count_stmt = select(func.count()).select_from(Post).where(Post.is_deleted == False)
+	if status:
+		count_stmt = count_stmt.where(Post.status == status)
+	if user_id:
+		count_stmt = count_stmt.where(Post.user_id == user_id)
+	
+	total_result = await session.exec(count_stmt)
+	total = total_result.one()
+	
+	# Get paginated results
+	stmt = stmt.order_by(Post.created_at.desc()).offset(skip).limit(limit)
+	result = await session.exec(stmt)
+	posts = result.all()
+	
+	return AdminPostListResponse(
+		total=total,
+		skip=skip,
+		limit=limit,
+		posts=[
+			AdminPostListItem(
+				id=p.id,
+				user_id=p.user_id,
+				username=p.username,
+				full_name=p.full_name,
+				email=p.email,
+				content=p.content,
+				status=p.status,
+				like_count=p.like_count,
+				comment_count=p.comment_count,
+				created_at=p.created_at,
+			)
+			for p in posts
+		]
+	)
+
+
+@router.get("/posts/{post_id:int}", response_model=AdminPostResponse)
+async def get_post_detail(
+	post_id: int,
+	session: AsyncSession = Depends(get_session),
+):
+	"""
+	Get detailed information about a specific post.
+	
+	**Role:** ADMIN only
+	
+	Args:
+		post_id: Post ID
+		
+	Returns:
+		Post details with user information and comments
+		
+	Raises:
+		HTTPException: If post not found
+	"""
+	stmt = (
+		select(
+			Post.id,
+			Post.user_id,
+			Post.content,
+			Post.status,
+			Post.like_count,
+			Post.comment_count,
+			Post.created_at,
+			Post.is_deleted,
+			UserInfo.username,
+			UserInfo.full_name,
+			User.email
+		)
+		.join(User, User.id == Post.user_id)
+		.outerjoin(UserInfo, UserInfo.user_id == User.id)
+		.where(Post.id == post_id)
+	)
+	
+	result = await session.exec(stmt)
+	post = result.first()
+	
+	if not post:
+		raise HTTPException(status_code=404, detail="Post not found")
+	
+	# Get comments count
+	comment_stmt = select(func.count()).select_from(PostComment).where(
+		PostComment.post_id == post_id,
+		PostComment.is_deleted == False
+	)
+	comment_result = await session.exec(comment_stmt)
+	comment_count = comment_result.one()
+	
+	return AdminPostResponse(
+		id=post.id,
+		user_id=post.user_id,
+		username=post.username,
+		full_name=post.full_name,
+		email=post.email,
+		content=post.content,
+		status=post.status,
+		like_count=post.like_count,
+		comment_count=comment_count,
+		created_at=post.created_at,
+		is_deleted=post.is_deleted,
+	)
+
+
+@router.get("/users/{user_id:int}/posts", response_model=AdminUserPostsResponse)
+async def get_user_posts(
+	user_id: int,
+	skip: int = Query(0, ge=0),
+	limit: int = Query(50, ge=1, le=100),
+	session: AsyncSession = Depends(get_session),
+):
+	"""
+	Get all posts by a specific user.
+	
+	**Role:** ADMIN only
+	
+	Args:
+		user_id: User ID
+		skip: Number of records to skip
+		limit: Maximum number of records to return
+		
+	Returns:
+		List of user's posts with total count
+		
+	Raises:
+		HTTPException: If user not found
+	"""
+	# Check if user exists
+	user = await session.get(User, user_id)
+	if not user:
+		raise HTTPException(status_code=404, detail="User not found")
+	
+	# Get total count
+	count_stmt = select(func.count()).select_from(Post).where(
+		Post.user_id == user_id,
+		Post.is_deleted == False
+	)
+	total_result = await session.exec(count_stmt)
+	total = total_result.one()
+	
+	# Get posts
+	stmt = (
+		select(Post)
+		.where(Post.user_id == user_id, Post.is_deleted == False)
+		.order_by(Post.created_at.desc())
+		.offset(skip)
+		.limit(limit)
+	)
+	
+	result = await session.exec(stmt)
+	posts = result.all()
+	
+	return AdminUserPostsResponse(
+		user_id=user_id,
+		total=total,
+		skip=skip,
+		limit=limit,
+		posts=[post.model_dump() for post in posts]
+	)
+
+
+@router.patch("/posts/{post_id:int}/status", response_model=Post)
+async def update_post_status(
+	post_id: int,
+	data: PostStatusUpdate,
+	session: AsyncSession = Depends(get_session),
+):
+	"""
+	Update the status of a post.
+	
+	**Role:** ADMIN only
+	
+	Args:
+		post_id: Post ID
+		data: PostStatusUpdate with new status
+		
+	Returns:
+		Updated post
+		
+	Raises:
+		HTTPException: If post not found
+	"""
+	post = await session.get(Post, post_id)
+	if not post:
+		raise HTTPException(status_code=404, detail="Post not found")
+	
+	post.status = data.status
+	session.add(post)
+	await session.commit()
+	await session.refresh(post)
+	return post
+
+
+@router.delete("/posts/{post_id:int}", status_code=204)
+async def delete_post(
+	post_id: int,
+	hard_delete: bool = Query(False, description="Permanently delete instead of soft delete"),
+	session: AsyncSession = Depends(get_session),
+):
+	"""
+	Delete a post (soft delete by default, hard delete optional).
+	
+	**Role:** ADMIN only
+	
+	Args:
+		post_id: Post ID
+		hard_delete: If True, permanently delete. If False, soft delete (mark as deleted)
+		
+	Returns:
+		No content (204)
+		
+	Raises:
+		HTTPException: If post not found
+	"""
+	post = await session.get(Post, post_id)
+	if not post:
+		raise HTTPException(status_code=404, detail="Post not found")
+	
+	if hard_delete:
+		# Permanently delete
+		await session.delete(post)
+	else:
+		# Soft delete
+		post.is_deleted = True
+		session.add(post)
+	
+	await session.commit()
+	return None
+
+
+@router.post("/posts/bulk-delete", status_code=204)
+async def bulk_delete_posts(
+	data: PostBulkDeleteRequest,
+	hard_delete: bool = Query(False, description="Permanently delete instead of soft delete"),
+	session: AsyncSession = Depends(get_session),
+):
+	"""
+	Delete multiple posts at once.
+	
+	**Role:** ADMIN only
+	
+	Args:
+		data: PostBulkDeleteRequest with list of post IDs
+		hard_delete: If True, permanently delete. If False, soft delete
+		
+	Returns:
+		No content (204)
+	"""
+	stmt = select(Post).where(Post.id.in_(data.post_ids))
+	result = await session.exec(stmt)
+	posts = result.all()
+	
+	if hard_delete:
+		for post in posts:
+			await session.delete(post)
+	else:
+		for post in posts:
+			post.is_deleted = True
+			session.add(post)
+	
+	await session.commit()
+	return None
+
+
+@router.get("/posts/stats", response_model=PostStatsResponse)
+async def get_posts_stats(
+	session: AsyncSession = Depends(get_session),
+):
+	"""
+	Get statistics about posts.
+	
+	**Role:** ADMIN only
+	
+	Returns:
+		Statistics including total posts, posts by status, etc.
+	"""
+	# Total posts
+	total_stmt = select(func.count()).select_from(Post).where(Post.is_deleted == False)
+	total_result = await session.exec(total_stmt)
+	total = total_result.one()
+	
+	# Posts by status
+	stats_by_status = {}
+	for status in PostStatus:
+		stmt = select(func.count()).select_from(Post).where(
+			Post.status == status,
+			Post.is_deleted == False
+		)
+		result = await session.exec(stmt)
+		stats_by_status[status.value] = result.one()
+	
+	# Deleted posts
+	deleted_stmt = select(func.count()).select_from(Post).where(Post.is_deleted == True)
+	deleted_result = await session.exec(deleted_stmt)
+	deleted = deleted_result.one()
+	
+	return PostStatsResponse(
+		total_posts=total,
+		deleted_posts=deleted,
+		by_status=stats_by_status,
+	)
+
+
+@router.get("/posts/{post_id:int}/comments", response_model=AdminPostCommentsResponse)
+async def get_post_comments(
+	post_id: int,
+	skip: int = Query(0, ge=0),
+	limit: int = Query(50, ge=1, le=100),
+	session: AsyncSession = Depends(get_session),
+):
+	"""
+	Get all comments for a specific post.
+	
+	**Role:** ADMIN only
+	
+	Args:
+		post_id: Post ID
+		skip: Number of records to skip
+		limit: Maximum number of records to return
+		
+	Returns:
+		List of comments with user information
+		
+	Raises:
+		HTTPException: If post not found
+	"""
+	# Check if post exists
+	post = await session.get(Post, post_id)
+	if not post:
+		raise HTTPException(status_code=404, detail="Post not found")
+	
+	# Get comments
+	stmt = (
+		select(
+			PostComment.id,
+			PostComment.post_id,
+			PostComment.user_id,
+			PostComment.content,
+			PostComment.created_at,
+			PostComment.is_deleted,
+			UserInfo.username,
+			UserInfo.full_name
+		)
+		.join(User, User.id == PostComment.user_id)
+		.outerjoin(UserInfo, UserInfo.user_id == User.id)
+		.where(PostComment.post_id == post_id, PostComment.is_deleted == False)
+		.order_by(PostComment.created_at.desc())
+		.offset(skip)
+		.limit(limit)
+	)
+	
+	result = await session.exec(stmt)
+	comments = result.all()
+	
+	return AdminPostCommentsResponse(
+		post_id=post_id,
+		comments=[
+			AdminCommentItem(
+				id=c.id,
+				user_id=c.user_id,
+				username=c.username,
+				full_name=c.full_name,
+				content=c.content,
+				created_at=c.created_at,
+			)
+			for c in comments
+		]
+	)
+
+
+@router.delete("/comments/{comment_id:int}", status_code=204)
+async def delete_comment(
+	comment_id: int,
+	hard_delete: bool = Query(False, description="Permanently delete instead of soft delete"),
+	session: AsyncSession = Depends(get_session),
+):
+	"""
+	Delete a comment.
+	
+	**Role:** ADMIN only
+	
+	Args:
+		comment_id: Comment ID
+		hard_delete: If True, permanently delete. If False, soft delete
+		
+	Returns:
+		No content (204)
+		
+	Raises:
+		HTTPException: If comment not found
+	"""
+	comment = await session.get(PostComment, comment_id)
+	if not comment:
+		raise HTTPException(status_code=404, detail="Comment not found")
+	
+	if hard_delete:
+		await session.delete(comment)
+	else:
+		comment.is_deleted = True
+		session.add(comment)
+	
+	await session.commit()
+	return None
+
+
