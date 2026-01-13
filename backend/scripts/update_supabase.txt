@@ -1,0 +1,44 @@
+-- Update sequence pointers to prevent "Key already exists" errors
+-- Run this after inserting sample data
+
+-- Update topics sequence
+SELECT setval('topics_id_seq', (SELECT MAX(id) FROM topics), true);
+
+-- Update lessons sequence
+SELECT setval('lessons_id_seq', (SELECT MAX(id) FROM lessons), true);
+
+-- Update lesson_sections sequence
+SELECT setval('lesson_sections_id_seq', (SELECT MAX(id) FROM lesson_sections), true);
+
+-- Update questions sequence
+SELECT setval('questions_id_seq', (SELECT MAX(id) FROM questions), true);
+
+-- Update vocabs sequence
+SELECT setval('vocabs_id_seq', (SELECT MAX(id) FROM vocabs), true);
+
+-- Update posts sequence
+SELECT setval('posts_id_seq', (SELECT MAX(id) FROM posts), true);
+
+-- Update daily_missions sequence
+SELECT setval('daily_missions_id_seq', (SELECT MAX(id) FROM daily_missions), true);
+
+-- Update users sequence (if you have sample users)
+SELECT setval('users_id_seq', (SELECT MAX(id) FROM users), true);
+
+-- Update user_words sequence (if exists)
+SELECT setval('user_words_id_seq', (SELECT MAX(id) FROM user_words), true);
+
+-- Verify the sequences are updated correctly
+SELECT 'topics_id_seq' as sequence_name, last_value FROM topics_id_seq
+UNION ALL
+SELECT 'lessons_id_seq', last_value FROM lessons_id_seq
+UNION ALL
+SELECT 'lesson_sections_id_seq', last_value FROM lesson_sections_id_seq
+UNION ALL
+SELECT 'questions_id_seq', last_value FROM questions_id_seq
+UNION ALL
+SELECT 'vocabs_id_seq', last_value FROM vocabs_id_seq
+UNION ALL
+SELECT 'posts_id_seq', last_value FROM posts_id_seq
+UNION ALL
+SELECT 'daily_missions_id_seq', last_value FROM daily_missions_id_seq;
