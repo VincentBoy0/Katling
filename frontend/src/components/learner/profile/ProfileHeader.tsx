@@ -54,7 +54,7 @@ export default function ProfileHeader({
         <div className="flex-1 text-center md:text-left space-y-4">
           <div>
             <h2 className="text-3xl md:text-4xl font-black text-foreground">
-              {userInfo.full_name || "User"}
+              {userInfo.full_name || "Katlinger"}
             </h2>
             <p className="text-muted-foreground font-medium flex items-center justify-center md:justify-start gap-2 mt-1">
               <Calendar className="w-4 h-4" />

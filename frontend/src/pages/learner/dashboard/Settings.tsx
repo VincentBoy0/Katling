@@ -31,7 +31,7 @@ export default function SettingsPage() {
       />
 
       <AccountSection
-        displayName={userInfo?.full_name || "User"}
+        displayName={userInfo?.full_name || "Katlinger"}
         email={user?.email || "example@katling.com"}
       />
 
