@@ -48,6 +48,8 @@ class TopicProgressOut(BaseModel):
     description: Optional[str] = Field(default=None, description="Topic description")
     status: TopicStatus = Field(..., description="Topic status")
     progress: int = Field(..., ge=0, le=100, description="Completion percentage (0-100)")
+    total_lessons: int = Field(default=0, description="Total number of lessons in this topic")
+    completed_lessons: int = Field(default=0, description="Number of completed lessons")
 
 
 class TopicsResponse(BaseModel):

@@ -43,13 +43,14 @@ export default function EnhancedTopicCard({
   const isCurrent = topic.status === "current";
   const isCompleted = topic.status === "completed";
 
+  // Only load lessons when expanded to avoid N+1 queries
   const { lessons = [], loading } = useTopicLessons(
-    topic.status === "locked" ? -1 : topic.id
+    isExpanded && !isLocked ? topic.id : -1
   );
 
-  const completedLessons = lessons.filter(
-    (l) => l.status === "completed"
-  ).length;
+  // Use data from topic instead of loading all lessons
+  const completedLessons = topic.completed_lessons;
+  const totalLessons = topic.total_lessons;
 
   const handleToggle = () => {
     if (!isLocked) setIsExpanded((prev) => !prev);
@@ -142,7 +143,7 @@ export default function EnhancedTopicCard({
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium">
                   <span className="text-muted-foreground flex items-center gap-1.5">
                     <BookOpen className="w-4 h-4" />
-                    {completedLessons}/{lessons.length} bài học
+                    {completedLessons}/{totalLessons} bài học
                   </span>
                   {!isCompleted && topic.progress > 0 && (
                     <span className="text-primary flex items-center gap-1">
