@@ -4,6 +4,7 @@ import {
   getQuestionTypeColor,
   getQuestionTypeLabel,
 } from "./QuestionTypeColors";
+import { statusColors } from "@/components/shared/ContentComponents";
 
 interface QuestionCardProps {
   question: Question;
@@ -61,6 +62,23 @@ export function QuestionCard({
             >
               {typeLabel}
             </span>
+            {question.status &&
+              statusColors[question.status as keyof typeof statusColors] && (
+                <span
+                  className={`text-xs px-2 py-0.5 rounded ${
+                    statusColors[question.status as keyof typeof statusColors]
+                      .bg
+                  } ${
+                    statusColors[question.status as keyof typeof statusColors]
+                      .text
+                  }`}
+                >
+                  {
+                    statusColors[question.status as keyof typeof statusColors]
+                      .label
+                  }
+                </span>
+              )}
             <span className="text-xs text-muted-foreground">
               #{question.order_index + 1}
             </span>
