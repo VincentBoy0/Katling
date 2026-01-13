@@ -1,28 +1,27 @@
 import {
-  HelpCircle,
-  Plus,
-  ArrowLeft,
-  BookOpen,
-  Folder,
-  FileText,
-  Trash2,
-  RotateCcw,
-} from "lucide-react";
-import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { contentService } from "@/services/contentService";
-import { LessonSection, Question, Lesson, Topic } from "@/types/content";
-import { toast } from "sonner";
-import { Breadcrumb } from "@/components/shared";
-import {
-  QuestionCard,
-  QuestionModal,
   DeleteConfirmModal,
+  QuestionCard,
   QuestionFormData,
-  getInitialFormData,
+  QuestionModal,
   buildQuestionData,
+  getInitialFormData,
   parseQuestionToFormData,
 } from "@/components/moderator/questions";
+import { Breadcrumb } from "@/components/shared";
+import { contentService } from "@/services/contentService";
+import { Lesson, LessonSection, Question, Topic } from "@/types/content";
+import {
+  BookOpen,
+  FileText,
+  Folder,
+  HelpCircle,
+  Plus,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function SectionQuestions() {
   const { sectionId } = useParams<{ sectionId: string }>();
@@ -258,8 +257,8 @@ export default function SectionQuestions() {
       <Breadcrumb
         items={[
           {
-            label: "Topics",
-            href: "/moderator/topics",
+            label: "Nội dung",
+            href: "/moderator",
             icon: <Folder className="w-4 h-4" />,
           },
           {
