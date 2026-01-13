@@ -29,3 +29,38 @@ export interface Comment {
     is_deleted: boolean;
     created_at: string;
 }
+
+// Admin Post Types
+export enum PostStatus {
+    PENDING = "PENDING",
+    ACCEPTED = "ACCEPTED",
+    DECLINED = "DECLINED",
+    FLAGGED = "FLAGGED",
+    ARCHIVED = "ARCHIVED",
+}
+
+export interface AdminPostListItem {
+    id: number;
+    user_id: number;
+    username: string | null;
+    full_name: string | null;
+    email: string;
+    content: PostCreate;
+    status: PostStatus;
+    like_count: number;
+    comment_count: number;
+    created_at: string;
+}
+
+export interface AdminPostListResponse {
+    total: number;
+    skip: number;
+    limit: number;
+    posts: AdminPostListItem[];
+}
+
+export interface PostStatsResponse {
+    total_posts: number;
+    deleted_posts: number;
+    by_status: Record<string, number>;
+}

@@ -11,6 +11,7 @@ import {
     UserUpdate
 } from "@/types/user"
 import { Topic, Lesson, LessonSection, Question, LessonStatus } from "@/types/content"
+import { AdminPostListResponse, PostStatus, PostStatsResponse } from "@/types/post"
 
 export const adminService = {
     // GET /admin/users
@@ -89,5 +90,37 @@ export const adminService = {
     // PATCH /admin/question/{questionId}
     updateQuestionStatus(questionId: number, status: LessonStatus) {
         return api.patch<Question>(`/admin/question/${questionId}`, null, { params: { status } })
+    },
+
+    // ============ Post Management ============
+
+    // GET /admin/posts
+    getPosts(params?: { skip?: number; limit?: number; status?: PostStatus; user_id?: number }) {
+        return api.get<AdminPostListResponse>("/admin/posts", { params })
+    },
+
+    // GET /admin/posts/stats
+    getPostsStats() {
+        return api.get<PostStatsResponse>("/admin/posts/stats")
+    },
+
+    // PATCH /admin/posts/{postId}/status
+    updatePostStatus(postId: number, status: PostStatus) {
+        return api.patch(`/admin/posts/${postId}/status`, { status })
+    },
+
+    // DELETE /admin/posts/{postId}
+    deletePost(postId: number, hardDelete: boolean = false) {
+        return api.delete<void>(`/admin/posts/${postId}`, { params: { hard_delete: hardDelete } })
+    },
+
+    // POST /admin/posts/bulk-delete
+    bulkDeletePosts(postIds: number[], hardDelete: boolean = false) {
+        return api.post<void>("/admin/posts/bulk-delete", { post_ids: postIds }, { params: { hard_delete: hardDelete } })
+    },
+
+    // DELETE /admin/comments/{commentId}
+    deleteComment(commentId: number, hardDelete: boolean = false) {
+        return api.delete<void>(`/admin/comments/${commentId}`, { params: { hard_delete: hardDelete } })
     },
 }
