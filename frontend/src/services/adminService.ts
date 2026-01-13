@@ -19,6 +19,11 @@ export const adminService = {
         return api.get<User[]>("/admin/users", { params })
     },
 
+    // GET /admin/users/enriched - OPTIMIZED endpoint with roles and profile
+    getUsersEnriched(params?: { skip?: number; limit?: number }) {
+        return api.get<any[]>("/admin/users/enriched", { params })
+    },
+
     // GET /admin/users/{userId}
     getUserById(userId: number) {
         return api.get<User>(`/admin/users/${userId}`)

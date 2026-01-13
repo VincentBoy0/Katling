@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 from fastapi import Depends, HTTPException
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.orm import selectinload
 from models.user import ActivityType, User, UserPoints, UserRole, Role, RoleType, UserInfo, UserXPLog
 from schemas.user import UserProfileUpdate, UserSignUp, UserUpdate, UserPointsUpdate, UserInfoUpdate
 from database.session import get_session
@@ -229,6 +230,84 @@ class UserRepository:
         statement = select(User).offset(skip).limit(limit)
         result = await self.session.exec(statement)
         return result.all()
+    
+    async def get_all_users_enriched(self, skip: int = 0, limit: int = 50):
+        """Get all users with their profiles and roles in a single optimized query.
+        
+        This method solves the N+1 query problem by using:
+        1. LEFT JOIN to get user profile data
+        2. Aggregated subquery to get all roles for each user
+        
+        Args:
+            skip: Number of users to skip
+            limit: Maximum number of users to return
+            
+        Returns:
+            List of dicts with user, profile, and roles data
+        """
+        from sqlalchemy import func, and_
+        from sqlalchemy.orm import aliased
+        
+        # Build query with LEFT JOIN to user_info
+        stmt = (
+            select(
+                User.id,
+                User.firebase_uid,
+                User.email,
+                User.created_at,
+                User.is_banned,
+                UserInfo.full_name,
+                UserInfo.username,
+                UserInfo.first_name,
+                UserInfo.last_name,
+            )
+            .outerjoin(UserInfo, User.id == UserInfo.user_id)
+            .offset(skip)
+            .limit(limit)
+        )
+        
+        result = await self.session.exec(stmt)
+        users_data = result.all()
+        
+        if not users_data:
+            return []
+        
+        # Get user IDs
+        user_ids = [row[0] for row in users_data]  # row[0] is User.id
+        
+        # Fetch all roles for these users in ONE query
+        roles_stmt = (
+            select(UserRole.user_id, Role.type)
+            .join(Role, UserRole.role_id == Role.id)
+            .where(UserRole.user_id.in_(user_ids))
+        )
+        roles_result = await self.session.exec(roles_stmt)
+        
+        # Build a map: user_id -> list of role types
+        roles_map: dict[int, list[RoleType]] = {}
+        for user_id, role_type in roles_result.all():
+            if user_id not in roles_map:
+                roles_map[user_id] = []
+            roles_map[user_id].append(role_type)
+        
+        # Combine everything
+        enriched_users = []
+        for row in users_data:
+            user_id, firebase_uid, email, created_at, is_banned, full_name, username, first_name, last_name = row
+            enriched_users.append({
+                "id": user_id,
+                "firebase_uid": firebase_uid,
+                "email": email,
+                "created_at": created_at,
+                "is_banned": is_banned,
+                "full_name": full_name,
+                "username": username,
+                "first_name": first_name,
+                "last_name": last_name,
+                "roles": roles_map.get(user_id, []),
+            })
+        
+        return enriched_users
     
     # --- Update ---
     async def update_user(self, user_id: int, user_data: UserUpdate) -> User:
