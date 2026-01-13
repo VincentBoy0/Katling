@@ -14,7 +14,7 @@ import {
   LessonSectionCreateRequest,
   LessonSectionUpdateRequest,
 } from "@/services/contentService";
-import { Lesson, LessonSection } from "@/types/content";
+import { Lesson, LessonSection, Topic } from "@/types/content";
 import {
   BookOpen,
   Edit,
@@ -32,6 +32,7 @@ import { toast } from "sonner";
 export default function LessonSections() {
   const { lessonId } = useParams<{ lessonId: string }>();
   const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [topic, setTopic] = useState<Topic | null>(null);
   const [sections, setSections] = useState<LessonSection[]>([]);
   const [deletedSections, setDeletedSections] = useState<LessonSection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,6 +81,14 @@ export default function LessonSections() {
         }),
       ]);
       setLesson(lessonResponse.data);
+
+      // Fetch topic data
+      if (lessonResponse.data.topic_id) {
+        const topicResponse = await contentService.getTopicById(
+          lessonResponse.data.topic_id
+        );
+        setTopic(topicResponse.data);
+      }
 
       // Separate active and deleted sections
       const allSections = sectionsResponse.data;
@@ -228,9 +237,9 @@ export default function LessonSections() {
             icon: <Folder className="w-4 h-4" />,
           },
           {
-            label: lesson?.topic_id ? `Topic ${lesson.topic_id}` : "Topic",
-            href: lesson?.topic_id
-              ? `/moderator/topics/${lesson.topic_id}/lessons`
+            label: topic?.name || "Topic",
+            href: topic?.id
+              ? `/moderator/topics/${topic.id}/lessons`
               : "/moderator",
             icon: <BookOpen className="w-4 h-4" />,
           },
