@@ -1,36 +1,50 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+
+const AVATAR_STORAGE_KEY = "katling_user_avatar";
+
+export interface SavedAvatar {
+  type: "preset";
+  value: string; // preset id
+}
 
 export function useAvatarManager() {
   const [showDialog, setShowDialog] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [savedAvatar, setSavedAvatar] = useState<SavedAvatar | null>(null);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result as string);
-        setSelectedAvatar("custom");
-      };
-      reader.readAsDataURL(file);
+  // Load saved avatar from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(AVATAR_STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as SavedAvatar;
+        setSavedAvatar(parsed);
+      } catch {
+        // Invalid data, ignore
+      }
     }
-  };
+  }, []);
 
   const handleSelectAvatar = (avatarId: string) => {
     setSelectedAvatar(avatarId);
-    setPreviewImage(null);
   };
 
   const handleSaveAvatar = async () => {
     try {
-      // TODO: Implement actual avatar save logic to backend
-      // await updateUserAvatar(selectedAvatar, previewImage);
-      
-      toast.success("Đổi ảnh đại diện thành công!");
+      if (!selectedAvatar) return;
+
+      const newAvatar: SavedAvatar = { type: "preset", value: selectedAvatar };
+
+      // Save to localStorage
+      localStorage.setItem(AVATAR_STORAGE_KEY, JSON.stringify(newAvatar));
+      setSavedAvatar(newAvatar);
+
+      toast.success("Đổi ảnh đại diện thành công!", {
+        duration: 2000,
+        dismissible: true,
+      });
       setShowDialog(false);
-      setPreviewImage(null);
       setSelectedAvatar(null);
     } catch (error) {
       toast.error("Không thể cập nhật ảnh đại diện", {
@@ -43,16 +57,14 @@ export function useAvatarManager() {
   const closeDialog = () => {
     setShowDialog(false);
     setSelectedAvatar(null);
-    setPreviewImage(null);
   };
 
   return {
     showDialog,
     selectedAvatar,
-    previewImage,
+    savedAvatar,
     openDialog,
     closeDialog,
-    handleFileChange,
     handleSelectAvatar,
     handleSaveAvatar,
   };
