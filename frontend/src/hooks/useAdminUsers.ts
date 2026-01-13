@@ -9,27 +9,26 @@ export function useAdminUsers() {
 
   const loadUsers = async() => {
     setLoading(true);
-    const { data } = await adminService.getUsers();
+    try {
+      // Use the optimized enriched endpoint - solves N+1 query problem
+      // This makes 2 queries instead of 1 + N*2 queries
+      const { data } = await adminService.getUsersEnriched({ limit: 100 });
 
-    const enriched : AdminUserVM[] = await Promise.all (
-        data.map(async u => {
-            const profile = await adminService.getUserProfileById(u.id);
+      const enriched: AdminUserVM[] = data.map(user => ({
+        id: user.id,
+        email: user.email || "",
+        name: user.full_name || user.username || user.email?.split('@')[0] || "Unknown",
+        roles: user.roles || [],
+        is_banned: user.is_banned,
+        joined: user.created_at.slice(0, 10),
+      }));
 
-            const roles: RoleType[] = (await adminService.getUserRoles(u.id)).data.roles;
-
-            return {
-                id: u.id,
-                email: u.email || "",
-                name: profile.data.full_name,
-                roles,
-                is_banned: u.is_banned,
-                joined: u.created_at.slice(0, 10),
-            }
-        })
-    )
-
-    setUsers(enriched);
-    setLoading(false);
+      setUsers(enriched);
+    } catch (error) {
+      console.error("Failed to load users:", error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   // Update user
