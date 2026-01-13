@@ -37,6 +37,7 @@ export interface Report {
     id: number;
     user_id: number;
     title: string;
+    description?: string;
     status: ReportStatus;
     severity: ReportSeverity;
     category: ReportCategory;
@@ -46,5 +47,5 @@ export interface Report {
     affected_lesson_id?: number;
     affected_post_id?: number;
     created_at: string;
-    resolved_at: string;
+    resolved_at?: string;
 }

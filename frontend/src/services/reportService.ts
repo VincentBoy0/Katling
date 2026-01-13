@@ -62,6 +62,7 @@ export interface ReportCreate {
   category?: ReportCategory;
   affected_url?: string;
   affected_lesson_id?: number;
+  affected_post_id?: number;
 }
 
 export interface ReportUpdate {
