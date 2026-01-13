@@ -6,24 +6,23 @@ export function useReport() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const createReport = async (data: ReportCreate): Promise<Report | null> => {
-    try {
-        setLoading(true);
-        setError(null);
+    const createReport = async (data: ReportCreate): Promise<Report> => {
+        try {
+            setLoading(true);
+            setError(null);
 
-        const report = await reportService.createReport(data);
-        return report;
-
+            const response = await reportService.createReport(data);
+            return response.data;
         } catch (err: any) {
-        const message =
-            err?.response?.data?.detail ||
-            err?.message ||
-            "Failed to create report";
+            const message =
+                err?.response?.data?.detail ||
+                err?.message ||
+                "Failed to create report";
 
-        setError(message);
-        return null;
+            setError(message);
+            throw new Error(message);
         } finally {
-        setLoading(false);
+            setLoading(false);
         }
     };
 

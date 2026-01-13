@@ -36,23 +36,30 @@ export function ReportDialog({
   const [severity, setSeverity] = useState<ReportSeverity>(
     ReportSeverity.MEDIUM
   );
+  // Nếu có fixedCategory thì dùng, nếu không thì mặc định CONTENT_ERROR (phù hợp cho lesson)
   const [category, setCategory] = useState<ReportCategory>(
-    fixedCategory || ReportCategory.POST
+    fixedCategory || ReportCategory.CONTENT_ERROR
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) return;
+    if (description.trim().length < 10) return;
 
     setIsSubmitting(true);
     try {
-      await onSubmit({ title, description, severity, category });
+      await onSubmit({
+        title: title.trim(),
+        description: description.trim(),
+        severity,
+        category,
+      });
       setTitle("");
       setDescription("");
       setSeverity(ReportSeverity.MEDIUM);
       if (!fixedCategory) {
-        setCategory(ReportCategory.POST);
+        setCategory(ReportCategory.CONTENT_ERROR);
       }
       onOpenChange(false);
     } finally {
