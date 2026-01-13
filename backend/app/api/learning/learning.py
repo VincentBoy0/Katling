@@ -81,6 +81,8 @@ async def get_topics(
 				description=t["description"],
 				status=status,  # type: ignore[arg-type]
 				progress=t["progress"],
+				total_lessons=t["total_lessons"],
+				completed_lessons=t["completed_lessons"],
 			)
 		)
 

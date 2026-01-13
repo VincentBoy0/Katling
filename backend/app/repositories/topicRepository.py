@@ -25,9 +25,10 @@ class TopicRepository:
         include_deleted: bool = True,
         published_only: bool = False,
     ) -> List[Dict[str, Any]]:
-        """Return topics with aggregated section counts for a user.
+        """Return topics with aggregated section and lesson counts for a user.
 
-        Each item contains: id, name, description, total_sections, completed_sections, progress.
+        Each item contains: id, name, description, total_sections, completed_sections, 
+        total_lessons, completed_lessons, progress.
         Ordered by topic.order_index then id.
         """
 
@@ -47,6 +48,7 @@ class TopicRepository:
                 Topic.name.label("name"),
                 Topic.description.label("description"),
                 Topic.order_index.label("order_index"),
+                func.count(func.distinct(Lesson.id)).label("total_lessons"),
                 func.count(func.distinct(LessonSection.id)).label("total_sections"),
                 func.count(func.distinct(UserProgress.section_id)).label("completed_sections"),
             )
@@ -76,7 +78,36 @@ class TopicRepository:
         for row in rows:
             total_sections = int(row.total_sections or 0)
             completed_sections = int(row.completed_sections or 0)
+            total_lessons = int(row.total_lessons or 0)
             progress = int((completed_sections * 100) / total_sections) if total_sections > 0 else 0
+            
+            # Calculate completed lessons: lessons where all sections are completed
+            # We'll do this in a separate query for each topic (still better than N+1 from frontend)
+            completed_lessons = 0
+            if total_lessons > 0:
+                # Count lessons where total sections == completed sections
+                lesson_completion_stmt = (
+                    select(func.count(Lesson.id))
+                    .select_from(Lesson)
+                    .join(LessonSection, LessonSection.lesson_id == Lesson.id)
+                    .join(
+                        UserProgress,
+                        (UserProgress.section_id == LessonSection.id)
+                        & (UserProgress.user_id == user_id)
+                        & (UserProgress.status == ProgressStatus.COMPLETED),
+                        isouter=True
+                    )
+                    .where(Lesson.topic_id == row.topic_id)
+                    .where(Lesson.is_deleted == False)
+                    .where(LessonSection.is_deleted == False)
+                    .group_by(Lesson.id)
+                    .having(
+                        func.count(LessonSection.id) == func.count(UserProgress.section_id)
+                    )
+                )
+                result_completed = await self.session.exec(lesson_completion_stmt)
+                completed_lessons = len(result_completed.all())
+            
             topics_raw.append(
                 {
                     "id": int(row.topic_id),
@@ -84,6 +115,8 @@ class TopicRepository:
                     "description": row.description,
                     "total_sections": total_sections,
                     "completed_sections": completed_sections,
+                    "total_lessons": total_lessons,
+                    "completed_lessons": completed_lessons,
                     "progress": max(0, min(100, progress)),
                 }
             )

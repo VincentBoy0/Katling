@@ -13,6 +13,8 @@ export interface TopicProgressOut {
   description: string;
   status: TopicStatus;
   progress: number;
+  total_lessons: number;
+  completed_lessons: number;
 }
 
 export interface TopicLessonsResponse {
