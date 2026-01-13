@@ -18,6 +18,8 @@ import { Lesson, LessonStatus, LessonType, Topic } from "@/types/content";
 import {
   BookOpen,
   Edit,
+  Eye,
+  EyeOff,
   FileText,
   Folder,
   Plus,
@@ -25,7 +27,9 @@ import {
   Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { useNavigate, useParams } from "react-router-dom";
+import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 
 export default function TopicLessons() {
@@ -44,6 +48,8 @@ export default function TopicLessons() {
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [showCreatePreview, setShowCreatePreview] = useState(false);
+  const [showEditPreview, setShowEditPreview] = useState(false);
   const navigate = useNavigate();
 
   const [createFormData, setCreateFormData] = useState<LessonCreateRequest>({
@@ -53,6 +59,7 @@ export default function TopicLessons() {
     description: "",
     status: LessonStatus.DRAFT,
     order_index: 0,
+    content: { markdown: "" },
   });
 
   const [editFormData, setEditFormData] = useState<LessonUpdateRequest>({
@@ -61,6 +68,7 @@ export default function TopicLessons() {
     description: "",
     status: LessonStatus.DRAFT,
     order_index: 0,
+    content: { markdown: "" },
   });
 
   useEffect(() => {
@@ -116,6 +124,7 @@ export default function TopicLessons() {
       description: lesson.description || "",
       status: lesson.status,
       order_index: lesson.order_index,
+      content: lesson.content || { markdown: "" },
     });
     setShowEditModal(true);
   };
@@ -463,6 +472,71 @@ export default function TopicLessons() {
             />
           </div>
 
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-semibold text-foreground">
+                Nội dung
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowCreatePreview(!showCreatePreview)}
+                className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/10 rounded-md transition-colors"
+              >
+                {showCreatePreview ? (
+                  <>
+                    <EyeOff className="w-4 h-4" />
+                    Ẩn xem trước
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4" />
+                    Xem trước
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div
+              className={`grid gap-4 ${
+                showCreatePreview ? "grid-cols-2" : "grid-cols-1"
+              }`}
+            >
+              <div>
+                <textarea
+                  value={createFormData.content?.markdown || ""}
+                  onChange={(e) =>
+                    setCreateFormData({
+                      ...createFormData,
+                      content: { markdown: e.target.value },
+                    })
+                  }
+                  placeholder="Nhập nội dung bài học dạng Markdown...&#10;&#10;VD:&#10;# Tiêu đề&#10;## Tiêu đề phụ&#10;**Chữ đậm** *Chữ nghiêng*"
+                  className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors resize-none font-mono text-sm"
+                  rows={12}
+                />
+              </div>
+
+              {showCreatePreview && (
+                <div
+                  className="border border-border rounded-lg px-4 py-3 bg-card overflow-auto"
+                  style={{ maxHeight: "320px" }}
+                >
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    {createFormData.content?.markdown ? (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {createFormData.content.markdown}
+                      </ReactMarkdown>
+                    ) : (
+                      <p className="text-muted-foreground italic">
+                        Nội dung sẽ hiển thị ở đây...
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* <div>
             <label className="block text-sm font-semibold text-foreground mb-2">
               Trạng thái
@@ -593,6 +667,78 @@ export default function TopicLessons() {
               rows={4}
               maxLength={1000}
             />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-semibold text-foreground">
+                Nội dung (Markdown)
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowEditPreview(!showEditPreview)}
+                className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/10 rounded-md transition-colors"
+              >
+                {showEditPreview ? (
+                  <>
+                    <EyeOff className="w-4 h-4" />
+                    Ẩn xem trước
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4" />
+                    Xem trước
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div
+              className={`grid gap-4 ${
+                showEditPreview ? "grid-cols-2" : "grid-cols-1"
+              }`}
+            >
+              <div>
+                <textarea
+                  value={editFormData.content?.markdown || ""}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      content: { markdown: e.target.value },
+                    })
+                  }
+                  placeholder="Nhập nội dung bài học dạng Markdown...&#10;&#10;VD:&#10;# Tiêu đề&#10;## Tiêu đề phụ&#10;**Chữ đậm** *Chữ nghiêng*"
+                  className="w-full bg-muted border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors resize-none font-mono text-sm"
+                  rows={12}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Hỗ trợ Markdown: # Tiêu đề, **đậm**, *nghiêng*, [link](url),
+                  ![ảnh](url)
+                </p>
+              </div>
+
+              {showEditPreview && (
+                <div
+                  className="border border-border rounded-lg px-4 py-3 bg-card overflow-auto"
+                  style={{ maxHeight: "320px" }}
+                >
+                  <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase">
+                    Xem trước
+                  </p>
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    {editFormData.content?.markdown ? (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {editFormData.content.markdown}
+                      </ReactMarkdown>
+                    ) : (
+                      <p className="text-muted-foreground italic">
+                        Nội dung sẽ hiển thị ở đây...
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
