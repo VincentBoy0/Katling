@@ -3,14 +3,14 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 from enum import Enum
 
-from sqlalchemy import and_, func
+from sqlalchemy import and_, exists, func
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql import Select
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models.leaderboard_snapshot import LeaderboardSnapshot, LeaderboardType
-from models.user import User, UserPoints, UserInfo
+from models.user import Role, RoleType, User, UserInfo, UserPoints, UserRole
 
 
 class LeaderboardPeriod(str, Enum):
@@ -39,6 +39,13 @@ class LeaderboardRepository:
         else:
             sort_value = func.coalesce(UserPoints.streak, 0)
 
+        has_learner_role = exists(
+            select(UserRole.user_id)
+            .select_from(UserRole)
+            .join(Role, Role.id == UserRole.role_id)
+            .where(and_(UserRole.user_id == User.id, Role.type == RoleType.LEARNER))
+        )
+
         base_stmt = (
             select(
                 User.id.label("user_id"),
@@ -51,6 +58,7 @@ class LeaderboardRepository:
             .outerjoin(UserPoints, UserPoints.user_id == User.id)
             .outerjoin(UserInfo, UserInfo.user_id == User.id)
             .where(User.is_banned == False)
+            .where(has_learner_role)
         )
 
         base_stmt = self._apply_period_filter(base_stmt, period, lb_type)
