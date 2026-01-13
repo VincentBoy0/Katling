@@ -64,6 +64,8 @@ export function useVocab() {
     } catch (e: any) {
       toast.error("Không thể lưu từ vựng", {
         description: e.response?.data?.detail ?? "Vui lòng thử lại",
+        duration: 2000,
+        dismissible: true,
       });
     }
   };
