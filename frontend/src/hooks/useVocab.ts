@@ -32,7 +32,9 @@ export function useVocab() {
       const data = await vocabService.search(searchQuery);
       setDictResult(data);
     } catch (e: any) {
-      setError(e.response?.data?.detail ?? "Không tìm thấy từ");
+      const detail = e.response?.data?.detail;
+      const message = detail === "Word not found" ? "Không tìm thấy từ" : (detail ?? "Không tìm thấy từ");
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -52,6 +54,8 @@ export function useVocab() {
 
       toast.success("Đã lưu từ vựng", {
         description: `"${dictResult.word}" đã được thêm vào kho từ vựng của bạn`,
+        duration: 2000,
+        dismissible: true,
       });
 
       // Always refresh savedWords to update folders list
