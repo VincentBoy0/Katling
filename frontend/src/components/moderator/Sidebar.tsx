@@ -7,7 +7,10 @@ import {
   Flag,
   MessageSquare,
   Upload,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "@/context/theme-context";
 
 interface ModeratorSidebarProps {
   activeTab: string;
@@ -72,6 +75,31 @@ export default function ModeratorSidebar({
           );
         })}
       </nav>
+
+      <div className="px-4 py-4 border-t border-sidebar-border">
+        <ThemeToggleButton />
+      </div>
     </aside>
+  );
+}
+
+function ThemeToggleButton() {
+  const { theme, toggleTheme } = useTheme();
+
+  return (
+    <button
+      onClick={toggleTheme}
+      className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+      title={theme === "dark" ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
+    >
+      {theme === "dark" ? (
+        <Sun className="w-5 h-5" />
+      ) : (
+        <Moon className="w-5 h-5" />
+      )}
+      <span className="font-medium">
+        {theme === "dark" ? "Chế độ sáng" : "Chế độ tối"}
+      </span>
+    </button>
   );
 }
