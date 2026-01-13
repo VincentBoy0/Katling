@@ -47,47 +47,49 @@ export function CreatePostDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md border-2 border-border">
+      <DialogContent className="sm:max-w-2xl border-2 border-border max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">
             Tạo bài viết mới
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            placeholder="Tiêu đề..."
-            className="border-2"
-          />
-          <Textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            required
-            rows={5}
-            placeholder="Nội dung..."
-            className="border-2 resize-none"
-          />
-          <div className="flex gap-2 pt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-              className="flex-1 font-bold"
-              disabled={isSubmitting}
-            >
-              Hủy
-            </Button>
-            <Button
-              type="submit"
-              className="flex-1 font-bold shadow-sm"
-              disabled={isSubmitting || !title.trim() || !content.trim()}
-            >
-              {isSubmitting ? "Đang đăng..." : "Đăng bài"}
-            </Button>
-          </div>
-        </form>
+        <div className="overflow-y-auto flex-1 -mx-6 px-6">
+          <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              placeholder="Tiêu đề..."
+              className="border-2"
+            />
+            <Textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              required
+              rows={12}
+              placeholder="Nội dung..."
+              className="border-2 resize-none min-h-[300px]"
+            />
+            <div className="flex gap-2 pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => onOpenChange(false)}
+                className="flex-1 font-bold"
+                disabled={isSubmitting}
+              >
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1 font-bold shadow-sm"
+                disabled={isSubmitting || !title.trim() || !content.trim()}
+              >
+                {isSubmitting ? "Đang đăng..." : "Đăng bài"}
+              </Button>
+            </div>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
