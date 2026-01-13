@@ -131,12 +131,22 @@ export default function TopicLessons() {
 
     try {
       setCreating(true);
-      await contentService.createLesson({
-        ...createFormData,
+
+      // Prepare request data without status field
+      const requestData: LessonCreateRequest = {
         topic_id: parseInt(topicId!),
+        type: createFormData.type,
         title: createFormData.title.trim(),
-        description: createFormData.description?.trim() || undefined,
-      });
+        order_index: createFormData.order_index,
+      };
+
+      // Only add description if it's not empty
+      if (createFormData.description?.trim()) {
+        requestData.description = createFormData.description.trim();
+      }
+
+      console.log("Creating lesson with data:", requestData);
+      await contentService.createLesson(requestData);
 
       setCreateFormData({
         topic_id: parseInt(topicId || "0"),
@@ -151,7 +161,13 @@ export default function TopicLessons() {
       await fetchTopicAndLessons();
     } catch (err: any) {
       console.error("Error creating lesson:", err);
-      toast.error(err.response?.data?.detail || "Không thể tạo bài học");
+      console.error("Error response:", err.response);
+      console.error("Error details:", err.response?.data);
+      toast.error(
+        err.response?.data?.detail ||
+          err.message ||
+          "Không thể tạo bài học. Vui lòng kiểm tra backend có đang chạy không."
+      );
     } finally {
       setCreating(false);
     }
@@ -447,7 +463,7 @@ export default function TopicLessons() {
             />
           </div>
 
-          <div>
+          {/* <div>
             <label className="block text-sm font-semibold text-foreground mb-2">
               Trạng thái
             </label>
@@ -467,7 +483,7 @@ export default function TopicLessons() {
                 </option>
               ))}
             </select>
-          </div>
+          </div> */}
 
           <div>
             <label className="block text-sm font-semibold text-foreground mb-2">
