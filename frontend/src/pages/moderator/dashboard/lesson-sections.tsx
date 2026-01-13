@@ -1,33 +1,33 @@
 import {
-  List,
-  Plus,
-  Trash2,
-  Edit,
-  BookOpen,
-  Folder,
-  FileText,
-  RotateCcw,
-} from "lucide-react";
-import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+  ActionMenu,
+  Breadcrumb,
+  ConfirmModal,
+  ContentCard,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  Modal,
+  PageHeader,
+} from "@/components/shared";
 import {
   contentService,
   LessonSectionCreateRequest,
   LessonSectionUpdateRequest,
 } from "@/services/contentService";
 import { Lesson, LessonSection } from "@/types/content";
-import { toast } from "sonner";
 import {
-  PageHeader,
-  LoadingState,
-  ErrorState,
-  EmptyState,
-  Breadcrumb,
-  ContentCard,
-  ActionMenu,
-  Modal,
-  ConfirmModal,
-} from "@/components/shared";
+  BookOpen,
+  Edit,
+  FileText,
+  Folder,
+  List,
+  Plus,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function LessonSections() {
   const { lessonId } = useParams<{ lessonId: string }>();
@@ -231,7 +231,7 @@ export default function LessonSections() {
             label: lesson?.topic_id ? `Topic ${lesson.topic_id}` : "Topic",
             href: lesson?.topic_id
               ? `/moderator/topics/${lesson.topic_id}/lessons`
-              : "/moderator/topics",
+              : "/moderator",
             icon: <BookOpen className="w-4 h-4" />,
           },
           {
