@@ -6,6 +6,7 @@ import {
   BookOpen,
   AlertCircle,
   Flag,
+  FileText,
 } from "lucide-react";
 
 interface AdminSidebarProps {
@@ -20,6 +21,7 @@ export default function AdminSidebar({
   const menuItems = [
     // { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "users", label: "Users", icon: Users },
+    { id: "posts", label: "Posts", icon: FileText },
     // { id: "approval", label: "Post Approval", icon: FileCheck },
     { id: "library", label: "Content Library", icon: BookOpen },
     { id: "reports", label: "Reports", icon: Flag },
