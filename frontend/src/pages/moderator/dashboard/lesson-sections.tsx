@@ -301,6 +301,7 @@ export default function LessonSections() {
                 type="section"
                 icon={<Trash2 className="w-6 h-6" />}
                 title={section.title}
+                status={section.status as any}
                 badge="Đã xóa"
                 meta={[
                   { label: "Thứ tự", value: section.order_index },
@@ -346,6 +347,7 @@ export default function LessonSections() {
                 </div>
               }
               title={section.title}
+              status={section.status as any}
               meta={[
                 { label: "Thứ tự", value: section.order_index },
                 { label: "Ngày tạo", value: formatDate(section.created_at) },

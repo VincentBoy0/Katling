@@ -31,15 +31,41 @@ export const contentTypeColors = {
 
 // Status color mapping
 export const statusColors = {
-  DRAFT: { bg: "bg-gray-100", text: "text-gray-600", label: "Nháp" },
-  PENDING_REVIEW: {
-    bg: "bg-yellow-100",
-    text: "text-yellow-700",
+  DRAFT: {
+    bg: "bg-gray-100 dark:bg-gray-800",
+    text: "text-gray-600 dark:text-gray-300",
+    label: "Nháp",
+  },
+  PENDING: {
+    bg: "bg-yellow-100 dark:bg-yellow-900/30",
+    text: "text-yellow-700 dark:text-yellow-400",
     label: "Chờ duyệt",
   },
-  APPROVED: { bg: "bg-green-100", text: "text-green-700", label: "Đã duyệt" },
-  REJECTED: { bg: "bg-red-100", text: "text-red-700", label: "Từ chối" },
-  PUBLISHED: { bg: "bg-blue-100", text: "text-blue-700", label: "Công khai" },
+  PENDING_REVIEW: {
+    bg: "bg-yellow-100 dark:bg-yellow-900/30",
+    text: "text-yellow-700 dark:text-yellow-400",
+    label: "Chờ duyệt",
+  },
+  APPROVED: {
+    bg: "bg-green-100 dark:bg-green-900/30",
+    text: "text-green-700 dark:text-green-400",
+    label: "Đã duyệt",
+  },
+  REJECTED: {
+    bg: "bg-red-100 dark:bg-red-900/30",
+    text: "text-red-700 dark:text-red-400",
+    label: "Từ chối",
+  },
+  PUBLISHED: {
+    bg: "bg-blue-100 dark:bg-blue-900/30",
+    text: "text-blue-700 dark:text-blue-400",
+    label: "Công khai",
+  },
+  ARCHIVED: {
+    bg: "bg-slate-100 dark:bg-slate-800",
+    text: "text-slate-600 dark:text-slate-400",
+    label: "Lưu trữ",
+  },
 };
 
 export type ContentType = keyof typeof contentTypeColors;

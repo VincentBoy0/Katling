@@ -90,7 +90,9 @@ function ThemeToggleButton() {
     <button
       onClick={toggleTheme}
       className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-      title={theme === "dark" ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
+      title={
+        theme === "dark" ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"
+      }
     >
       {theme === "dark" ? (
         <Sun className="w-5 h-5" />

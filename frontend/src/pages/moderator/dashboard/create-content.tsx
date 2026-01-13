@@ -309,6 +309,7 @@ export default function CreateContent() {
               }
               title={topic.name}
               subtitle={topic.description}
+              status={topic.status as any}
               badge={topic.is_deleted ? "Đã xóa" : undefined}
               meta={[
                 { label: "Thứ tự", value: topic.order_index },
