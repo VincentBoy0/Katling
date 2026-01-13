@@ -76,7 +76,7 @@ export function Sidebar() {
         <div className="p-4 border-b border-border flex items-center justify-center min-h-[72px]">
           {collapsed ? (
             <img
-              src="/img/logo.png"
+              src="/img/icon.png"
               alt="Logo"
               className="w-10 h-10 object-contain"
             />
