@@ -15,6 +15,8 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface LessonContentModalProps {
   content: LessonContentResponse | null;
@@ -60,7 +62,9 @@ export default function LessonContentModal({
   if (!content && !loading) return null;
 
   const LessonIcon = content ? getLessonTypeIcon(content.type) : BookOpen;
-  const gradient = content ? getLessonTypeGradient(content.type) : "from-primary to-primary/80";
+  const gradient = content
+    ? getLessonTypeGradient(content.type)
+    : "from-primary to-primary/80";
 
   return (
     <div
@@ -72,7 +76,7 @@ export default function LessonContentModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className={`bg-gradient-to-r ${gradient} p-6 text-white relative`}>
+        <div className="bg-gradient-to-r from-primary to-primary/80 p-6 text-white relative">
           <Button
             variant="ghost"
             size="icon"
@@ -87,18 +91,20 @@ export default function LessonContentModal({
               <Loader2 className="w-8 h-8 animate-spin" />
               <span className="text-lg font-medium">Đang tải...</span>
             </div>
-          ) : content && (
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-white/20 rounded-xl">
-                <LessonIcon className="w-8 h-8" />
+          ) : (
+            content && (
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-white/20 rounded-xl">
+                  <LessonIcon className="w-8 h-8" />
+                </div>
+                <div className="flex-1">
+                  <span className="text-xs font-bold uppercase tracking-wider text-white/70">
+                    {content.type}
+                  </span>
+                  <h2 className="text-2xl font-bold mt-1">{content.title}</h2>
+                </div>
               </div>
-              <div className="flex-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-white/70">
-                  {content.type}
-                </span>
-                <h2 className="text-2xl font-bold mt-1">{content.title}</h2>
-              </div>
-            </div>
+            )
           )}
         </div>
 
@@ -143,19 +149,31 @@ export default function LessonContentModal({
             {content.content && (
               <div className="p-6">
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-primary" />
+                  <div
+                    className={`p-1.5 rounded-lg bg-gradient-to-r ${gradient}`}
+                  >
+                    <FileText className="w-4 h-4 text-white" />
+                  </div>
                   Nội dung bài học
                 </h3>
-                <div className="prose prose-sm dark:prose-invert max-w-none">
+                <div className="prose prose-base dark:prose-invert max-w-none prose-headings:text-foreground prose-headings:font-bold prose-h1:text-3xl prose-h1:mb-4 prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-border prose-h2:pb-2 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:text-foreground prose-p:leading-relaxed prose-p:mb-4 prose-strong:text-foreground prose-strong:font-bold prose-em:text-foreground/90 prose-em:italic prose-ul:my-4 prose-ul:space-y-2 prose-ol:my-4 prose-ol:space-y-2 prose-li:text-foreground prose-li:leading-relaxed prose-code:text-primary prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-pre:bg-muted prose-pre:border prose-pre:border-border">
                   {typeof content.content === "string" ? (
-                    <p className="text-foreground whitespace-pre-wrap">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {content.content}
-                    </p>
-                  ) : content.content.text ? (
+                    </ReactMarkdown>
+                  ) : content.content?.markdown ? (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {content.content.markdown}
+                    </ReactMarkdown>
+                  ) : content.content?.content ? (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {content.content.content}
+                    </ReactMarkdown>
+                  ) : content.content?.text ? (
                     <p className="text-foreground whitespace-pre-wrap">
                       {content.content.text}
                     </p>
-                  ) : content.content.html ? (
+                  ) : content.content?.html ? (
                     <div
                       dangerouslySetInnerHTML={{ __html: content.content.html }}
                       className="text-foreground"
@@ -173,7 +191,9 @@ export default function LessonContentModal({
             {!content.content && !content.audio_url && !content.image_url && (
               <div className="p-12 text-center text-muted-foreground">
                 <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p className="font-medium">Bài học này chưa có nội dung xem trước.</p>
+                <p className="font-medium">
+                  Bài học này chưa có nội dung xem trước.
+                </p>
                 <p className="text-sm mt-1">Hãy bắt đầu học để khám phá!</p>
               </div>
             )}
@@ -191,10 +211,7 @@ export default function LessonContentModal({
               <BookOpen className="w-4 h-4 mr-2" />
               Xem danh sách phần học
             </Button>
-            <Button
-              className="flex-1"
-              onClick={onStartLesson}
-            >
+            <Button className="flex-1" onClick={onStartLesson}>
               <Play className="w-4 h-4 mr-2 fill-current" />
               Bắt đầu làm bài
             </Button>
