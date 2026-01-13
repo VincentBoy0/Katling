@@ -23,8 +23,37 @@ export enum ReportCategory {
   CONTENT_ERROR = "CONTENT_ERROR",
   PERFORMANCE = "PERFORMANCE",
   ACCESSIBILITY = "ACCESSIBILITY",
+  POST = "POST",
   OTHER = "OTHER",
 }
+
+// Vietnamese labels for categories
+export const ReportCategoryLabels: Record<ReportCategory, string> = {
+  [ReportCategory.BUG]: "Lỗi hệ thống",
+  [ReportCategory.FEATURE_REQUEST]: "Yêu cầu tính năng",
+  [ReportCategory.CONTENT_ERROR]: "Lỗi nội dung",
+  [ReportCategory.PERFORMANCE]: "Hiệu suất",
+  [ReportCategory.ACCESSIBILITY]: "Truy cập",
+  [ReportCategory.POST]: "Bài viết",
+  [ReportCategory.OTHER]: "Khác",
+};
+
+// Vietnamese labels for status
+export const ReportStatusLabels: Record<ReportStatus, string> = {
+  [ReportStatus.PENDING]: "Chờ xử lý",
+  [ReportStatus.IN_PROGRESS]: "Đang xử lý",
+  [ReportStatus.RESOLVED]: "Đã giải quyết",
+  [ReportStatus.CLOSED]: "Đã đóng",
+  [ReportStatus.WONT_FIX]: "Không sửa",
+};
+
+// Vietnamese labels for severity
+export const ReportSeverityLabels: Record<ReportSeverity, string> = {
+  [ReportSeverity.LOW]: "Thấp",
+  [ReportSeverity.MEDIUM]: "Trung bình",
+  [ReportSeverity.HIGH]: "Cao",
+  [ReportSeverity.CRITICAL]: "Nghiêm trọng",
+};
 
 export interface ReportCreate {
   title: string;
@@ -51,6 +80,7 @@ export interface Report {
   category: ReportCategory;
   affected_url?: string;
   affected_lesson_id?: number;
+  affected_post_id?: number;
   resolved_by?: number;
   resolution_notes?: string;
   created_at: string;
