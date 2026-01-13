@@ -31,7 +31,14 @@ export function PostCard({
   onAddComment,
 }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const avatarColor = getAvatarColor(user?.full_name || "Kalinger");
+
+  const MAX_LENGTH = 300;
+  const shouldTruncate = post.content.body.length > MAX_LENGTH;
+  const displayBody = isExpanded || !shouldTruncate
+    ? post.content.body
+    : post.content.body.slice(0, MAX_LENGTH) + "...";
 
   return (
     <Card className="p-6 border-2 border-border rounded-2xl bg-card">
@@ -72,8 +79,18 @@ export function PostCard({
           {post.content.title}
         </h2>
         <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-          {post.content.body}
+          {displayBody}
         </p>
+        {shouldTruncate && (
+          <Button
+            variant="link"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="px-0 mt-1 h-auto text-primary font-semibold hover:underline"
+          >
+            {isExpanded ? "Ẩn bớt" : "Xem thêm"}
+          </Button>
+        )}
       </div>
       {/* Actions */}
       <div className="flex items-center gap-2 pt-4 border-t border-dashed border-border">
