@@ -323,14 +323,14 @@ export function MatchingQuestion({
       <QuestionHeader question={question} />
 
       <p className="text-sm font-medium text-muted-foreground text-center">
-        💡 Chọn từ bên trái, sau đó chọn nghĩa tương ứng bên phải
+        💡 Chọn từ ở cột A, sau đó chọn từ ở cột B sao cho chúng có quan hệ với nhau
       </p>
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Left column */}
         <div className="space-y-3">
           <h3 className="font-bold text-center text-sm text-muted-foreground uppercase">
-            Từ vựng
+            Cột A
           </h3>
           {leftItems.map((item: string, index: number) => {
             const isSelected = selectedLeft === item;
@@ -381,7 +381,7 @@ export function MatchingQuestion({
         {/* Right column */}
         <div className="space-y-3">
           <h3 className="font-bold text-center text-sm text-muted-foreground uppercase">
-            Nghĩa
+            Cột B
           </h3>
           {rightItems.map((item: string, index: number) => {
             const isUsed = Object.values(matches).includes(item);

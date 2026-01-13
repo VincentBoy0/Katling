@@ -1,20 +1,23 @@
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/learner/tabs";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { useLeaderboard } from "@/hooks/useLeaderboard";
+import {
   Crown,
   Flame,
+  Locate,
   Medal,
   Minus,
   MoveDown,
   TrendingUp,
   Zap,
 } from "lucide-react";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/learner/tabs";
-import { Card } from "@/components/ui/card";
-import { useLeaderboard } from "@/hooks/useLeaderboard";
+import { useCallback, useRef } from "react";
 
 const getRankVisuals = (rank?: number | null) => {
   if (!rank || rank <= 0) {
@@ -77,23 +80,37 @@ export default function LeaderboardPage() {
     error,
   } = useLeaderboard();
 
+  const myStreakItemRef = useRef<HTMLDivElement>(null);
+  const myXpItemRef = useRef<HTMLDivElement>(null);
+
+  const scrollToMyRank = useCallback((type: "streak" | "xp") => {
+    const ref = type === "streak" ? myStreakItemRef : myXpItemRef;
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
+
   const LeaderboardItem = ({
     user,
     unit,
     icon,
+    isMe,
+    itemRef,
   }: {
     user: any;
     unit: string;
     icon: React.ReactNode;
+    isMe?: boolean;
+    itemRef?: React.RefObject<HTMLDivElement>;
   }) => {
     const visuals = getRankVisuals(user.rank);
 
     return (
       <div
+        ref={itemRef}
         className={`
         flex items-center justify-between p-4 rounded-2xl
         border-2 transition-all hover:-translate-y-0.5
         ${visuals.bg} ${visuals.border}
+        ${isMe ? "ring-2 ring-primary ring-offset-2" : ""}
       `}
       >
         <div className="flex items-center gap-4 flex-1">
@@ -104,7 +121,7 @@ export default function LeaderboardPage() {
           <div
             className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 border-white shadow-sm shrink-0 ${
               user.avatarColor || "bg-gray-100"
-            }`}
+            } ${isMe ? "ring-2 ring-primary" : ""}`}
           >
             {user.name?.charAt(0) || "?"}
           </div>
@@ -112,9 +129,16 @@ export default function LeaderboardPage() {
           {/* Info */}
           <div className="flex-1 min-w-0">
             <p
-              className={`font-bold text-sm md:text-base truncate ${visuals.text}`}
+              className={`font-bold text-sm md:text-base truncate ${
+                isMe ? "text-primary" : visuals.text
+              }`}
             >
               {user.name}
+              {isMe && (
+                <span className="ml-2 text-xs bg-primary text-white px-2 py-0.5 rounded-full">
+                  Bạn
+                </span>
+              )}
             </p>
             <div className="flex items-center gap-1 md:hidden">
               <span className="text-xs font-bold text-muted-foreground">
@@ -238,6 +262,17 @@ export default function LeaderboardPage() {
             value="streak"
             className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
           >
+            <div className="flex justify-end mb-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => scrollToMyRank("streak")}
+                className="gap-2"
+              >
+                <Locate className="w-4 h-4" />
+                Vị trí của tôi
+              </Button>
+            </div>
             {streakLeaderboard?.map((user) => (
               <LeaderboardItem
                 key={user.user_id}
@@ -249,6 +284,8 @@ export default function LeaderboardPage() {
                 }}
                 unit="Streak"
                 icon={<Flame className="w-4 h-4 text-orange-500" />}
+                isMe={user.is_me}
+                itemRef={user.is_me ? myStreakItemRef : undefined}
               />
             ))}
           </TabsContent>
@@ -257,6 +294,17 @@ export default function LeaderboardPage() {
             value="xp"
             className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
           >
+            <div className="flex justify-end mb-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => scrollToMyRank("xp")}
+                className="gap-2"
+              >
+                <Locate className="w-4 h-4" />
+                Tìm vị trí của tôi
+              </Button>
+            </div>
             {xpLeaderboard?.map((user) => (
               <LeaderboardItem
                 key={user.user_id}
@@ -268,6 +316,8 @@ export default function LeaderboardPage() {
                 }}
                 unit="XP"
                 icon={<Zap className="w-4 h-4 text-emerald-500" />}
+                isMe={user.is_me}
+                itemRef={user.is_me ? myXpItemRef : undefined}
               />
             ))}
           </TabsContent>
