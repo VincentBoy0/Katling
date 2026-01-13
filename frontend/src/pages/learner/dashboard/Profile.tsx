@@ -1,4 +1,3 @@
-import type React from "react";
 import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -12,12 +11,11 @@ import { usePasswordChange } from "@/hooks/usePasswordChange";
 import { useState } from "react";
 
 // Import components
-import ProfileHeader from "@/components/learner/profile/ProfileHeader";
-import DetailedStats from "@/components/learner/profile/DetailedStats";
-import BadgeCollection from "@/components/learner/profile/BadgeCollection";
 import AvatarDialog from "@/components/learner/profile/AvatarDialog";
-import EditNameDialog from "@/components/learner/profile/EditNameDialog";
 import ChangePasswordDialog from "@/components/learner/profile/ChangePasswordDialog";
+import DetailedStats from "@/components/learner/profile/DetailedStats";
+import EditNameDialog from "@/components/learner/profile/EditNameDialog";
+import ProfileHeader from "@/components/learner/profile/ProfileHeader";
 
 function ProfilePageContent() {
   const { user } = useAuth();
@@ -103,7 +101,7 @@ function ProfilePageContent() {
 
       {/* Profile Header with Avatar */}
       <ProfileHeader
-        previewImage={avatarManager.previewImage}
+        savedAvatar={avatarManager.savedAvatar}
         onAvatarClick={avatarManager.openDialog}
         onEditName={() => setShowEditNameDialog(true)}
         onChangePassword={passwordChange.openDialog}
@@ -112,8 +110,8 @@ function ProfilePageContent() {
       {/* Detailed Stats */}
       <DetailedStats />
 
-      {/* Badges Collection */}
-      <BadgeCollection badges={badges} />
+      {/* Badges Collection
+      <BadgeCollection badges={badges} /> */}
 
       {/* Dialogs */}
       <AvatarDialog
@@ -123,9 +121,7 @@ function ProfilePageContent() {
         }
         userName={user?.displayName}
         selectedAvatar={avatarManager.selectedAvatar}
-        previewImage={avatarManager.previewImage}
         onSelectAvatar={avatarManager.handleSelectAvatar}
-        onFileChange={avatarManager.handleFileChange}
         onSave={avatarManager.handleSaveAvatar}
       />
 

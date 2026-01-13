@@ -1,18 +1,32 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useUserInfoContext } from "@/context/user-info-context";
+import type { SavedAvatar } from "@/hooks/useAvatarManager";
 import { useUser } from "@/hooks/useUser";
 import { Calendar, Camera, Edit2, Lock } from "lucide-react";
 
+const PRESET_AVATARS: Record<string, { icon: string; color: string }> = {
+  cat: { icon: "🐱", color: "bg-orange-100" },
+  dog: { icon: "🐶", color: "bg-yellow-100" },
+  fox: { icon: "🦊", color: "bg-red-100" },
+  bear: { icon: "🐻", color: "bg-amber-100" },
+  panda: { icon: "🐼", color: "bg-slate-100" },
+  lion: { icon: "🦁", color: "bg-yellow-200" },
+  robot: { icon: "🤖", color: "bg-blue-100" },
+  alien: { icon: "👽", color: "bg-green-100" },
+  ghost: { icon: "👻", color: "bg-purple-100" },
+  cool: { icon: "😎", color: "bg-pink-100" },
+};
+
 interface ProfileHeaderProps {
-  previewImage: string | null;
+  savedAvatar: SavedAvatar | null;
   onAvatarClick: () => void;
   onEditName: () => void;
   onChangePassword: () => void;
 }
 
 export default function ProfileHeader({
-  previewImage,
+  savedAvatar,
   onAvatarClick,
   onEditName,
   onChangePassword,
@@ -28,23 +42,37 @@ export default function ProfileHeader({
   const yyyy = String(date.getFullYear());
   const joinDate = `${mm}/${yyyy}`;
 
+  // Render avatar based on saved state
+  const renderAvatar = () => {
+    // If preset avatar
+    if (savedAvatar?.type === "preset" && savedAvatar.value !== "default") {
+      const preset = PRESET_AVATARS[savedAvatar.value];
+      if (preset) {
+        return (
+          <div
+            className={`w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white dark:border-slate-900 ${preset.color} flex items-center justify-center text-6xl shadow-lg`}
+          >
+            {preset.icon}
+          </div>
+        );
+      }
+    }
+
+    // Default: first letter of name
+    return (
+      <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white dark:border-slate-900 bg-primary flex items-center justify-center text-white text-6xl font-black shadow-lg">
+        {userInfo.full_name?.charAt(0).toUpperCase() || "U"}
+      </div>
+    );
+  };
+
   return (
     <Card className="relative overflow-hidden border-2 border-border rounded-3xl p-6 md:p-8 bg-card shadow-sm">
       <div className="absolute top-0 left-0 w-full h-32 bg-primary/5 -z-10"></div>
       <div className="flex flex-col md:flex-row items-center md:items-start gap-8 relative z-10">
         {/* Avatar Section */}
         <div className="relative group cursor-pointer" onClick={onAvatarClick}>
-          {previewImage ? (
-            <img
-              src={previewImage}
-              alt="Avatar"
-              className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white dark:border-slate-900 object-cover shadow-lg"
-            />
-          ) : (
-            <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white dark:border-slate-900 bg-primary flex items-center justify-center text-white text-6xl font-black shadow-lg">
-              {userInfo.full_name?.charAt(0).toUpperCase() || "U"}
-            </div>
-          )}
+          {renderAvatar()}
 
           <div className="absolute bottom-2 right-2 p-2.5 bg-white dark:bg-slate-800 text-foreground rounded-full border-2 border-border shadow-sm group-hover:scale-110 transition-transform">
             <Camera className="w-5 h-5" />
