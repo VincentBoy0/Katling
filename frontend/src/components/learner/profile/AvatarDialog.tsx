@@ -1,4 +1,3 @@
-import { useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,14 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/learner/dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/learner/tabs";
 import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
 
 const PRESET_AVATARS = [
   {
@@ -69,9 +61,7 @@ interface AvatarDialogProps {
   onOpenChange: (open: boolean) => void;
   userName?: string;
   selectedAvatar: string | null;
-  previewImage: string | null;
   onSelectAvatar: (avatarId: string) => void;
-  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onSave: () => void;
 }
 
@@ -80,13 +70,9 @@ export default function AvatarDialog({
   onOpenChange,
   userName,
   selectedAvatar,
-  previewImage,
   onSelectAvatar,
-  onFileChange,
   onSave,
 }: AvatarDialogProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md border-2 border-border rounded-3xl p-6">
@@ -99,86 +85,43 @@ export default function AvatarDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="presets" className="w-full mt-4">
-          <TabsList className="grid w-full grid-cols-2 h-12 p-1 bg-muted/50 rounded-xl mb-6">
-            <TabsTrigger value="presets" className="rounded-lg font-bold">
-              Thư viện
-            </TabsTrigger>
-            <TabsTrigger value="upload" className="rounded-lg font-bold">
-              Tải lên
-            </TabsTrigger>
-          </TabsList>
+        <div className="mt-6">
+          <div className="grid grid-cols-5 gap-3">
+            {/* Default User Letter */}
+            <div
+              onClick={() => onSelectAvatar("default")}
+              className={`
+                aspect-square rounded-full bg-primary flex items-center justify-center text-white font-bold text-xl cursor-pointer border-4 transition-all
+                ${
+                  selectedAvatar === "default"
+                    ? "border-primary ring-2 ring-primary ring-offset-2 scale-110"
+                    : "border-transparent hover:scale-105"
+                }
+              `}
+            >
+              {userName?.charAt(0).toUpperCase()}
+            </div>
 
-          {/* TAB 1: PRESETS */}
-          <TabsContent value="presets" className="space-y-6">
-            <div className="grid grid-cols-5 gap-3">
-              {/* Default User Letter */}
+            {/* Preset List */}
+            {PRESET_AVATARS.map((preset) => (
               <div
-                onClick={() => onSelectAvatar("default")}
+                key={preset.id}
+                onClick={() => onSelectAvatar(preset.id)}
                 className={`
-                  aspect-square rounded-full bg-primary flex items-center justify-center text-white font-bold text-xl cursor-pointer border-4 transition-all
+                  aspect-square rounded-full flex items-center justify-center text-2xl cursor-pointer border-4 transition-all
+                  ${preset.color}
                   ${
-                    selectedAvatar === "default"
-                      ? "border-primary ring-2 ring-primary ring-offset-2 scale-110"
+                    selectedAvatar === preset.id
+                      ? "border-current ring-2 ring-offset-2 ring-gray-300 scale-110"
                       : "border-transparent hover:scale-105"
                   }
                 `}
               >
-                {userName?.charAt(0).toUpperCase()}
+                {preset.icon}
               </div>
-
-              {/* Preset List */}
-              {PRESET_AVATARS.map((preset) => (
-                <div
-                  key={preset.id}
-                  onClick={() => onSelectAvatar(preset.id)}
-                  className={`
-                    aspect-square rounded-full flex items-center justify-center text-2xl cursor-pointer border-4 transition-all
-                    ${preset.color}
-                    ${
-                      selectedAvatar === preset.id
-                        ? "border-current ring-2 ring-offset-2 ring-gray-300 scale-110"
-                        : "border-transparent hover:scale-105"
-                    }
-                  `}
-                >
-                  {preset.icon}
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-
-          {/* TAB 2: UPLOAD */}
-          <TabsContent value="upload" className="space-y-6">
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-muted-foreground/30 rounded-2xl h-48 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/30 transition-colors gap-3 group"
-            >
-              {previewImage ? (
-                <img
-                  src={previewImage}
-                  alt="Preview"
-                  className="h-32 w-32 rounded-full object-cover border-4 border-white shadow-md"
-                />
-              ) : (
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center text-muted-foreground group-hover:bg-white group-hover:text-primary transition-colors">
-                  <Upload className="w-8 h-8" />
-                </div>
-              )}
-
-              <p className="text-sm font-bold text-muted-foreground group-hover:text-primary">
-                {previewImage ? "Nhấn để thay đổi" : "Tải ảnh từ thiết bị"}
-              </p>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={onFileChange}
-                className="hidden"
-                accept="image/*"
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
+            ))}
+          </div>
+        </div>
 
         <div className="flex gap-3 mt-6">
           <Button
@@ -190,7 +133,7 @@ export default function AvatarDialog({
           </Button>
           <Button
             onClick={onSave}
-            disabled={!selectedAvatar && !previewImage}
+            disabled={!selectedAvatar}
             className="flex-1 font-bold shadow-md bg-primary hover:bg-primary/90 text-white"
           >
             Lưu thay đổi
